@@ -11,6 +11,7 @@ import {
   ActiveToast,
   WeatherInfo,
   WeatherLocation,
+  type UpdateStatusPayload,
 } from '../types';
 import { DEFAULT_CATEGORIES } from '../constants/calendar';
 import { DEFAULT_WEATHER_LOCATION } from '../constants/weather';
@@ -268,6 +269,12 @@ interface CalendarState {
   refreshWeather: () => Promise<void>;
   setWeatherLocation: (location: WeatherLocation) => Promise<void>;
   autoDetectLocation: () => Promise<void>;
+
+  // 소프트웨어 자동 업데이트 상태 및 액션
+  updateStatus: UpdateStatusPayload | null;
+  setUpdateStatus: (status: UpdateStatusPayload) => void;
+  checkForUpdates: () => Promise<void>;
+  quitAndInstallUpdate: () => void;
 
   // 헬퍼
   getExpandedEvents: (rangeStart: Date, rangeEnd: Date) => CalendarEvent[];
@@ -831,6 +838,32 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       await get().refreshWeather();
     } catch {
       set({ isWeatherLoading: false });
+    }
+  },
+
+  updateStatus: null,
+
+  setUpdateStatus: (status) => set({ updateStatus: status }),
+
+  checkForUpdates: async () => {
+    if (typeof window !== 'undefined' && window.electronAPI?.checkForUpdates) {
+      set({ updateStatus: { status: 'checking' } });
+      try {
+        await window.electronAPI.checkForUpdates();
+      } catch (err: any) {
+        set({ updateStatus: { status: 'error', error: err?.message || 'Error' } });
+      }
+    } else {
+      set({ updateStatus: { status: 'checking' } });
+      setTimeout(() => {
+        set({ updateStatus: { status: 'not-available', version: '1.0.0' } });
+      }, 500);
+    }
+  },
+
+  quitAndInstallUpdate: () => {
+    if (typeof window !== 'undefined' && window.electronAPI?.quitAndInstallUpdate) {
+      window.electronAPI.quitAndInstallUpdate();
     }
   },
 }));
