@@ -1,4 +1,5 @@
 import { CalendarEvent } from '../types';
+import { formatDateKey } from './calendar';
 
 /**
  * 주어진 기간(rangeStart ~ rangeEnd) 내에서 반복(recurrence) 일정을 인스턴스로 전개
@@ -9,8 +10,9 @@ export function expandEventsForRange(
   rangeEnd: Date
 ): CalendarEvent[] {
   const result: CalendarEvent[] = [];
-  const rangeStartStr = rangeStart.toISOString().slice(0, 10);
-  const rangeEndStr = rangeEnd.toISOString().slice(0, 10);
+  // 로컬 타임존 기준 YYYY-MM-DD 키로 정확히 변환하여 타임존(UTC 오프셋)으로 인한 날짜 밀림 방지
+  const rangeStartStr = formatDateKey(rangeStart);
+  const rangeEndStr = formatDateKey(rangeEnd);
 
   for (const evt of events) {
     if (!evt.recurrence || evt.recurrence === 'none') {
@@ -31,11 +33,25 @@ export function expandEventsForRange(
     // 시작 시점부터 rangeEnd까지 반복 생성
     const cursor = new Date(baseStart);
 
-    // 너무 오래 전부터 반복된 일정일 경우 범위를 점프하여 최적화
+    // 너무 오래 전부터 반복된 일정일 경우 시작 범위 직전으로 안전하게 점프 최적화
+    if (cursor < rangeStart) {
+      if (evt.recurrence === 'daily') {
+        const diffDays = Math.floor((rangeStart.getTime() - cursor.getTime()) / 86400000);
+        if (diffDays > 1) {
+          cursor.setDate(cursor.getDate() + (diffDays - 1));
+        }
+      } else if (evt.recurrence === 'weekly') {
+        const diffWeeks = Math.floor((rangeStart.getTime() - cursor.getTime()) / (86400000 * 7));
+        if (diffWeeks > 1) {
+          cursor.setDate(cursor.getDate() + (diffWeeks - 1) * 7);
+        }
+      }
+    }
+
     while (cursor <= rangeEnd) {
-      const currentStartStr = cursor.toISOString().slice(0, 10);
+      const currentStartStr = formatDateKey(cursor);
       const currentEnd = new Date(cursor.getTime() + durationMs);
-      const currentEndStr = currentEnd.toISOString().slice(0, 10);
+      const currentEndStr = formatDateKey(currentEnd);
 
       if (currentEndStr >= rangeStartStr && currentStartStr <= rangeEndStr) {
         // 인스턴스 생성

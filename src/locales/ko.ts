@@ -37,7 +37,7 @@ export const ko = {
     dragResizeTooltip: '드래그하여 크기 조절 (더블클릭 시 기본값)',
     selectedDateEvents: '선택한 날짜 일정',
     noEventsOnDate: '등록된 일정이 없습니다.',
-    addEventForDate: '+ 새 일정 추가',
+    addEventForDate: '새 일정 추가',
     editEvent: '일정 편집',
     deleteEvent: '일정 삭제',
     confirmDelete: '삭제',
