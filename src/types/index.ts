@@ -73,7 +73,10 @@ export interface ThemePreset {
   description: string;
 }
 
+export type SupportedLanguage = 'ko' | 'en';
+
 export interface AppSettings {
+  language: SupportedLanguage; // 'ko' | 'en'
   themeMode: ThemeMode;
   accentColor: string;
   firstDayOfWeek: 0 | 1; // 0: 일요일, 1: 월요일
@@ -122,6 +125,14 @@ export interface QuickPopoverState {
   y: number;
   date?: Date;
   event?: CalendarEvent;
+}
+
+export interface ActiveToast {
+  id: string;
+  event: CalendarEvent;
+  title: string;
+  body: string;
+  timestamp: number;
 }
 
 export interface WindowState {

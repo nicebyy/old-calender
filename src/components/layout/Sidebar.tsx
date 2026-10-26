@@ -12,6 +12,7 @@ import {
 import { useCalendarStore } from '../../storage/calendarStore';
 import { MiniCalendar } from '../sidebar/MiniCalendar';
 import { WALLPAPER_THEMES } from '../../constants/theme';
+import { useTranslation } from '../../locales';
 
 export const Sidebar: React.FC = () => {
   const isSidebarOpen = useCalendarStore((s) => s.isSidebarOpen);
@@ -22,6 +23,8 @@ export const Sidebar: React.FC = () => {
   const addCategory = useCalendarStore((s) => s.addCategory);
   const openAccountModal = useCalendarStore((s) => s.openAccountModal);
   const settings = useCalendarStore((s) => s.settings);
+
+  const { t, language } = useTranslation();
 
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCatName, setNewCatName] = useState('');
@@ -42,6 +45,16 @@ export const Sidebar: React.FC = () => {
     : isCustomImage
     ? `url(${settings.backgroundTheme}) center / cover no-repeat`
     : 'none';
+
+  const getCategoryDisplayName = (id: string, name: string) => {
+    if (language === 'en') {
+      if (id === 'default-personal') return 'Personal';
+      if (id === 'default-work') return 'Work';
+      if (id === 'default-holiday') return 'Holidays';
+      if (id === 'default-birthday') return 'Birthdays';
+    }
+    return name;
+  };
 
   return (
     <aside
@@ -68,7 +81,7 @@ export const Sidebar: React.FC = () => {
           className="w-full flex items-center justify-center space-x-2 py-2 px-3 bg-[var(--win10-accent)] hover:opacity-90 active:opacity-80 text-white font-medium text-[13px] rounded transition-all shadow-sm"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>새 이벤트</span>
+          <span>{t('sidebar.newEvent')}</span>
         </button>
 
         {/* 미니 캘린더 피커 */}
@@ -77,21 +90,23 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* 내 캘린더 범주 목록 */}
-        <div className="pt-2 border-t border-[#333333]">
+        <div className="pt-2 border-t border-[var(--win10-border)]">
           <div className="flex items-center justify-between px-1 mb-2">
-            <span className="text-[12px] font-semibold text-[#aaaaaa]">내 캘린더</span>
+            <span className="text-[12px] font-semibold text-[var(--win10-text-secondary)]">
+              {t('sidebar.myCalendars')}
+            </span>
             <div className="flex items-center space-x-1">
               <button
                 onClick={openAccountModal}
-                className="text-[#888888] hover:text-[#0078d7] p-0.5 rounded hover:bg-[#333333] transition-colors"
-                title="클라우드 계정 연동 및 관리 (Google, iCloud)"
+                className="text-[var(--win10-text-secondary)] hover:text-[var(--win10-accent)] p-0.5 rounded hover:bg-[var(--win10-button-hover)] transition-colors"
+                title={t('sidebar.cloudAccounts')}
               >
                 <Cloud className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setIsAddingCategory(!isAddingCategory)}
-                className="text-[#888888] hover:text-white p-0.5 rounded hover:bg-[#333333] transition-colors"
-                title="새 캘린더 범주 추가"
+                className="text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] p-0.5 rounded hover:bg-[var(--win10-button-hover)] transition-colors"
+                title={t('sidebar.addCategory')}
               >
                 <FolderPlus className="w-3.5 h-3.5" />
               </button>
@@ -100,14 +115,14 @@ export const Sidebar: React.FC = () => {
 
           {/* 새 캘린더 추가 인라인 폼 */}
           {isAddingCategory && (
-            <form onSubmit={handleCreateCategory} className="mb-2 p-2 bg-[#202020] rounded border border-[#3a3a3a] space-y-2">
+            <form onSubmit={handleCreateCategory} className="mb-2 p-2 bg-[var(--win10-card-bg)] rounded border border-[var(--win10-border)] space-y-2">
               <input
                 type="text"
                 autoFocus
-                placeholder="캘린더 이름"
+                placeholder={t('sidebar.categoryNamePlaceholder')}
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
-                className="w-full px-2 py-1 text-xs bg-[#181818] border border-[#444444] rounded text-white outline-none focus:border-[#0078d7]"
+                className="w-full px-2 py-1 text-xs bg-[var(--win10-input-bg)] border border-[var(--win10-border)] rounded text-[var(--win10-text-primary)] outline-none focus:border-[var(--win10-accent)]"
               />
               <div className="flex items-center space-x-2">
                 <input
@@ -118,16 +133,16 @@ export const Sidebar: React.FC = () => {
                 />
                 <button
                   type="submit"
-                  className="flex-1 py-1 px-2 text-[11px] bg-[#0078d7] hover:bg-[#1a86d9] rounded text-white font-medium"
+                  className="flex-1 py-1 px-2 text-[11px] bg-[var(--win10-accent)] hover:opacity-90 rounded text-white font-medium"
                 >
-                  추가
+                  {t('sidebar.add')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsAddingCategory(false)}
-                  className="py-1 px-2 text-[11px] bg-[#333333] hover:bg-[#444444] rounded text-[#cccccc]"
+                  className="py-1 px-2 text-[11px] bg-[var(--win10-button-hover)] rounded text-[var(--win10-text-secondary)]"
                 >
-                  취소
+                  {t('sidebar.cancel')}
                 </button>
               </div>
             </form>
@@ -139,7 +154,7 @@ export const Sidebar: React.FC = () => {
               <div
                 key={category.id}
                 onClick={() => toggleCategory(category.id)}
-                className="flex items-center space-x-2.5 px-2 py-1.5 rounded hover:bg-[#333333] cursor-pointer text-xs text-[#dddddd] transition-colors"
+                className="flex items-center space-x-2.5 px-2 py-1.5 rounded hover:bg-[var(--win10-button-hover)] cursor-pointer text-xs text-[var(--win10-text-primary)] transition-colors"
               >
                 <div
                   className="w-4 h-4 rounded-sm flex items-center justify-center border transition-all"
@@ -150,7 +165,9 @@ export const Sidebar: React.FC = () => {
                 >
                   {category.isVisible && <Check className="w-3 h-3 text-white stroke-[3]" />}
                 </div>
-                <span className="font-normal truncate">{category.name}</span>
+                <span className="font-normal truncate">
+                  {getCategoryDisplayName(category.id, category.name)}
+                </span>
               </div>
             ))}
           </div>
@@ -162,21 +179,21 @@ export const Sidebar: React.FC = () => {
         <div className="flex items-center space-x-3">
           <button
             onClick={openAccountModal}
-            className="p-1 hover:text-white hover:bg-[#333333] rounded transition-colors"
-            title="메일 계정 연동"
+            className="p-1 hover:text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)] rounded transition-colors"
+            title={t('sidebar.mail')}
           >
             <Mail className="w-4 h-4" />
           </button>
           <button
             onClick={openAccountModal}
-            className="p-1 hover:text-white hover:bg-[#333333] rounded transition-colors"
-            title="피플(연락처) 계정 관리"
+            className="p-1 hover:text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)] rounded transition-colors"
+            title={t('sidebar.people')}
           >
             <Users className="w-4 h-4" />
           </button>
           <button
-            className="p-1 hover:text-white hover:bg-[#333333] rounded transition-colors"
-            title="To Do"
+            className="p-1 hover:text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)] rounded transition-colors"
+            title={t('sidebar.todo')}
           >
             <CheckSquare className="w-4 h-4" />
           </button>
@@ -184,8 +201,8 @@ export const Sidebar: React.FC = () => {
 
         <button
           onClick={toggleSettings}
-          className="p-1 hover:text-white hover:bg-[#333333] rounded transition-colors"
-          title="설정"
+          className="p-1 hover:text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)] rounded transition-colors"
+          title={t('header.settings')}
         >
           <Settings className="w-4 h-4" />
         </button>

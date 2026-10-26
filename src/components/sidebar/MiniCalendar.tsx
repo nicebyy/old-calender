@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
 import { getMonthGrid } from '../../core/calendar';
-import { WEEKDAYS_KO } from '../../constants/calendar';
+import { useTranslation } from '../../locales';
 
 export const MiniCalendar: React.FC = () => {
   const selectedDate = useCalendarStore((s) => s.selectedDate);
   const setSelectedDate = useCalendarStore((s) => s.setSelectedDate);
   const viewDate = useCalendarStore((s) => s.viewDate);
+
+  const { t, weekdays, formatYearMonth } = useTranslation();
 
   const [miniYear, setMiniYear] = useState(viewDate.getFullYear());
   const [miniMonth, setMiniMonth] = useState(viewDate.getMonth());
@@ -48,32 +50,32 @@ export const MiniCalendar: React.FC = () => {
     <div className="w-full text-xs select-none">
       {/* 미니 캘린더 헤더: 년/월 및 이동 버튼 */}
       <div className="flex items-center justify-between px-1 py-1 mb-1">
-        <span className="font-semibold text-xs text-white">
-          {miniYear}년 {miniMonth + 1}월
+        <span className="font-semibold text-xs text-[var(--win10-text-primary)]">
+          {formatYearMonth(miniYear, miniMonth)}
         </span>
         <div className="flex items-center space-x-0.5">
           <button
             onClick={handlePrevMonth}
-            className="p-1 hover:bg-[#383838] active:bg-[#444444] rounded transition-colors"
-            title="이전 달"
-            aria-label="이전 달"
+            className="p-1 hover:bg-[var(--win10-button-hover)] active:bg-[var(--win10-button-active)] rounded transition-colors text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)]"
+            title={t('calendar.prevMonth')}
+            aria-label={t('calendar.prevMonth')}
           >
-            <ChevronUp className="w-3.5 h-3.5 text-[#cccccc]" />
+            <ChevronUp className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={handleNextMonth}
-            className="p-1 hover:bg-[#383838] active:bg-[#444444] rounded transition-colors"
-            title="다음 달"
-            aria-label="다음 달"
+            className="p-1 hover:bg-[var(--win10-button-hover)] active:bg-[var(--win10-button-active)] rounded transition-colors text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)]"
+            title={t('calendar.nextMonth')}
+            aria-label={t('calendar.nextMonth')}
           >
-            <ChevronDown className="w-3.5 h-3.5 text-[#cccccc]" />
+            <ChevronDown className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
       {/* 요일 헤더 */}
-      <div className="grid grid-cols-7 text-center text-[10px] text-[#999999] mb-1 font-medium">
-        {WEEKDAYS_KO.map((day, idx) => (
+      <div className="grid grid-cols-7 text-center text-[10px] text-[var(--win10-text-muted)] mb-1 font-medium">
+        {weekdays.map((day, idx) => (
           <div
             key={day}
             className={`py-0.5 ${
