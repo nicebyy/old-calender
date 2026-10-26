@@ -93,6 +93,21 @@ Windows 10 시절의 미려하고 가벼웠던 **클래식 일정(Calendar) 데�
   - 날씨 표시 여부, 섭씨(℃)/화씨(℉), 음력 표시 온/오프, 주의 첫째 날(일요일/월요일).
   - JSON 및 iCalendar(.ics) 원클릭 백업/복원.
 
+### 8. 다국어(i18n) 및 글로벌 지역화 시스템 (Multilingual Localization)
+- **완전한 텍스트 하드코딩 배제 (Zero-Hardcoded UI Text)**:
+  - 모든 뷰 탭, 헤더, 사이드바, 일정 모달, 계정 연동 다이얼로그, 검색 오버레이, 설정 패널, 토스트 알림의 모든 문자열이 타입 안전(Type-safe) 다국어 리소스 키 기반으로 관리됩니다.
+- **한국어(Korean) & 영어(English) 기본 지원**:
+  - `ko`: 정밀한 Windows 10 한국어 UWP 공식 로케일 문자열 적용.
+  - `en`: 세련된 Windows 10 글로벌 영문 로케일 및 날짜/시간 포맷 적용.
+- **Zero-Latency 실시간 언어 전환 (0ms In-Memory Switch)**:
+  - 설정 패널의 "언어 (Language)" 옵션에서 원클릭으로 페이지 새로고침 없이 즉각 전체 UI가 전환되며 로컬 스토리지에 자동 영속화됩니다.
+- **로케일 종속 포맷터 (Locale-Aware Formatter)**:
+  - 요일(`일`~`토` / `Sun`~`Sat`, `일요일`~`토요일` / `Sunday`~`Saturday`), 월(`1월`~`12월` / `January`~`December`), 연/월 헤더(`2026년 10월` / `October 2026`), 24시간제/12시간제 시간 라벨이 언어에 맞춰 실시간 변환됩니다.
+- **동적 파라미터 보간 (Interpolation)**:
+  - `{count}`, `{year}`, `{month}`, `{time}` 등 템플릿 변수를 안전하게 치환.
+- **100% 키 일치도 검증 단위 테스트 (Key Parity Tests)**:
+  - 번역 리소스 간 누락된 키가 없도록 단위 테스트(`src/locales/i18n.test.ts`)로 철저히 검증.
+
 ---
 
 ## 🏗️ 아키텍처 및 디렉터리 구조
@@ -113,6 +128,11 @@ old-calendar/
 │   │   └── notifications.ts  # 실시간 일정 알림 계산 및 메시지 포맷터
 │   ├── storage/              # Zustand 스토어 및 로컬 스토리지 영속화
 │   │   └── calendarStore.ts  # Zero-Latency In-Memory 스토어
+│   ├── locales/              # 다국어(i18n) 번역 리소스 사전 및 훅
+│   │   ├── ko.ts             # 한국어(Korean) 리소스
+│   │   ├── en.ts             # 영어(English) 리소스
+│   │   ├── index.ts          # useTranslation 훅 및 로케일 헬퍼
+│   │   └── i18n.test.ts      # i18n 엔진 및 키 패리티 단위 테스트
 │   ├── constants/            # 테마 토큰, 액센트 컬러, 설정, OAuth 상수
 │   │   ├── calendar.ts
 │   │   ├── theme.ts
