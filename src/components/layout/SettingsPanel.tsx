@@ -36,6 +36,7 @@ import {
   SIDEBAR_DEFAULT_WIDTH,
   SIDEBAR_MIN_WIDTH,
   SIDEBAR_MAX_WIDTH,
+  APP_VERSION,
 } from '../../constants/settings';
 import { WALLPAPER_THEMES, THEME_PRESETS } from '../../constants/theme';
 import { WEATHER_CITY_PRESETS } from '../../constants/weather';
@@ -869,7 +870,7 @@ export const SettingsPanel: React.FC = () => {
             <div className="bg-[var(--win10-card-bg)] border border-[var(--win10-border)] rounded p-2.5 space-y-2 text-xs">
               <div className="flex items-center justify-between text-[var(--win10-text-secondary)]">
                 <span>{t('settings.currentVersion')}</span>
-                <span className="font-semibold text-[var(--win10-text-primary)]">v1.0.0</span>
+                <span className="font-semibold text-[var(--win10-text-primary)]">v{APP_VERSION}</span>
               </div>
 
               {/* 상태 메시지 및 프로그레스 바 */}

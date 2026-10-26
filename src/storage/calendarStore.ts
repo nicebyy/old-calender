@@ -24,6 +24,7 @@ import {
   SIDEBAR_DEFAULT_WIDTH,
   SIDEBAR_MIN_WIDTH,
   SIDEBAR_MAX_WIDTH,
+  APP_VERSION,
 } from '../constants/settings';
 import { getNavigatedDate } from '../core/calendar';
 import { expandEventsForRange } from '../core/recurrence';
@@ -1002,7 +1003,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     } else {
       set({ updateStatus: { status: 'checking' } });
       setTimeout(() => {
-        set({ updateStatus: { status: 'not-available', version: '1.0.0' } });
+        set({ updateStatus: { status: 'not-available', version: APP_VERSION } });
       }, 500);
     }
   },

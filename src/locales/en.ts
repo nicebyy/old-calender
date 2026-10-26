@@ -205,7 +205,7 @@ export const en: TranslationSchema = {
     sidebarWidth: 'Sidebar Width',
     sidebarReset: 'Reset Width (260px)',
     sidebarDragHint: 'Drag the right edge of the sidebar to adjust width',
-    appInfo: 'Classic Calendar v1.0.0 (Fluent Edition)',
+    appInfo: 'Classic Calendar v1.0.1 (Fluent Edition)',
   },
   sync: {
     title: 'Manage Accounts (Cloud Accounts)',
