@@ -1,4 +1,4 @@
-import { CalendarEvent, DayCellData, WeatherInfo, WeatherLocation } from '../types';
+import { CalendarEvent, CalendarMemo, DayCellData, WeatherInfo, WeatherLocation } from '../types';
 import { DAYS_IN_WEEK, WEEKS_IN_MONTH_GRID } from '../constants/calendar';
 import { getHolidayName, getApproxLunarDateString } from './holidays';
 import { getWeatherForDate } from './weather';
@@ -66,9 +66,9 @@ export function getMonthGrid(
       return dateString >= evtStart && dateString <= evtEnd;
     });
 
-    const holidayName = getHolidayName(cellDate);
+    const holidayName = getHolidayName(cellDate, options?.lang || 'ko');
     const lunarDateString = options?.showLunar
-      ? getApproxLunarDateString(cellDate)
+      ? getApproxLunarDateString(cellDate, options?.lang || 'ko')
       : undefined;
     const weather = options?.showWeather
       ? getWeatherForDate(
@@ -149,3 +149,102 @@ export function getNavigatedDate(
 
   return newDate;
 }
+
+/**
+ * 기본 샘플 일정의 언어별 표시 제목 반환 (사용자가 직접 수정한 경우 수정본 유지)
+ */
+export function getEventDisplayTitle(evt: CalendarEvent, lang: 'ko' | 'en' = 'ko'): string {
+  if (evt.id === 'sample-1') {
+    if (
+      evt.title === 'Windows 10 캘린더 프로젝트 킥오프' ||
+      evt.title === 'Windows 10 Calendar Project Kickoff'
+    ) {
+      return lang === 'en' ? 'Windows 10 Calendar Project Kickoff' : 'Windows 10 캘린더 프로젝트 킥오프';
+    }
+  } else if (evt.id === 'sample-2') {
+    if (
+      evt.title === '팀 주간 회고 및 계획' ||
+      evt.title === 'Team Weekly Retrospective & Planning'
+    ) {
+      return lang === 'en' ? 'Team Weekly Retrospective & Planning' : '팀 주간 회고 및 계획';
+    }
+  } else if (evt.id === 'sample-3') {
+    if (
+      evt.title === '프로젝트 릴리스 데이' ||
+      evt.title === 'Project Release Day'
+    ) {
+      return lang === 'en' ? 'Project Release Day' : '프로젝트 릴리스 데이';
+    }
+  }
+  return evt.title;
+}
+
+/**
+ * 기본 샘플 일정의 언어별 표시 설명 반환 (사용자가 직접 수정한 경우 수정본 유지)
+ */
+export function getEventDisplayDescription(evt: CalendarEvent, lang: 'ko' | 'en' = 'ko'): string | undefined {
+  if (evt.id === 'sample-1') {
+    if (
+      evt.description === '반응성 1위 초고속 네이티브 캘린더 앱 개발' ||
+      evt.description === 'Top-responsiveness native calendar app development'
+    ) {
+      return lang === 'en'
+        ? 'Top-responsiveness native calendar app development'
+        : '반응성 1위 초고속 네이티브 캘린더 앱 개발';
+    }
+  } else if (evt.id === 'sample-2') {
+    if (
+      evt.description === '스프린트 진행상황 공유' ||
+      evt.description === 'Sprint progress review'
+    ) {
+      return lang === 'en' ? 'Sprint progress review' : '스프린트 진행상황 공유';
+    }
+  } else if (evt.id === 'sample-3') {
+    if (
+      evt.description === '데스크톱 앱 패키징 및 최종 검증' ||
+      evt.description === 'Desktop app packaging and final verification'
+    ) {
+      return lang === 'en'
+        ? 'Desktop app packaging and final verification'
+        : '데스크톱 앱 패키징 및 최종 검증';
+    }
+  }
+  return evt.description;
+}
+
+/**
+ * 기본 샘플 메모의 언어별 표시 제목 반환
+ */
+export function getMemoDisplayTitle(memo: CalendarMemo, lang: 'ko' | 'en' = 'ko'): string {
+  if (memo.id === 'memo-sample-1') {
+    if (memo.title === '오늘의 할 일 및 체크리스트' || memo.title === "Today's Tasks & Checklist") {
+      return lang === 'en' ? "Today's Tasks & Checklist" : '오늘의 할 일 및 체크리스트';
+    }
+  } else if (memo.id === 'memo-sample-2') {
+    if (memo.title === '아이디어 메모' || memo.title === 'Idea Notes') {
+      return lang === 'en' ? 'Idea Notes' : '아이디어 메모';
+    }
+  }
+  return memo.title || '';
+}
+
+/**
+ * 기본 샘플 메모의 언어별 표시 본문 반환
+ */
+export function getMemoDisplayContent(memo: CalendarMemo, lang: 'ko' | 'en' = 'ko'): string {
+  if (memo.id === 'memo-sample-1') {
+    const koContent = '• 주간 캘린더 피드백 정리하기\n• 회의록 작성 및 팀원 공유\n• 저녁 운동 30분';
+    const enContent = '• Organize weekly calendar feedback\n• Share meeting minutes with team\n• 30-min evening workout';
+    if (memo.content === koContent || memo.content === enContent) {
+      return lang === 'en' ? enContent : koContent;
+    }
+  } else if (memo.id === 'memo-sample-2') {
+    const koContent = 'Windows 10 플루언트 디자인 스티커 메모!\n단축키 Ctrl + M으로 언제든 메모를 열고 닫을 수 있습니다.';
+    const enContent = 'Windows 10 Fluent Design Sticky Notes!\nPress Ctrl + M anytime to toggle notes.';
+    if (memo.content === koContent || memo.content === enContent) {
+      return lang === 'en' ? enContent : koContent;
+    }
+  }
+  return memo.content;
+}
+

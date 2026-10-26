@@ -33,6 +33,26 @@ export interface CalendarEvent {
   updatedAt: number;
 }
 
+export type MemoColor =
+  | 'yellow'
+  | 'green'
+  | 'pink'
+  | 'purple'
+  | 'blue'
+  | 'gray'
+  | 'charcoal';
+
+export interface CalendarMemo {
+  id: string;
+  title?: string;
+  content: string;
+  date?: string; // YYYY-MM-DD (특정 날짜 연결) 또는 undefined/null (일반 자유 메모)
+  color: MemoColor;
+  isPinned: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface WeatherLocation {
   city: string;
   latitude: number;
@@ -97,6 +117,8 @@ export interface AppSettings {
   backgroundTheme: string; // 'none' | 'alps' | 'lake' | 'city' | 'bloom' | 'aurora' | 'sunset' | 'windows' | custom url/data
   backgroundFill: BackgroundFillOption;
   backgroundOpacity: number; // 0.1 ~ 1.0
+  zoomLevel?: number; // 0.70 ~ 1.60 (기본 1.0)
+  sidebarWidth?: number; // 200 ~ 480 (기본 260)
 }
 
 /**
@@ -150,8 +172,28 @@ export interface WindowState {
   isMaximized: boolean;
 }
 
+export type UpdateStateStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error';
+
+export interface UpdateStatusPayload {
+  status: UpdateStateStatus;
+  version?: string;
+  percent?: number;
+  transferred?: number;
+  total?: number;
+  bytesPerSecond?: number;
+  error?: string;
+}
+
 declare global {
   interface Window {
     electronAPI?: import('../../electron/preload.cts').ElectronAPI;
   }
 }
+

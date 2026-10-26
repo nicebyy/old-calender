@@ -1,6 +1,14 @@
 import React, { useRef, useEffect } from 'react';
+import { StickyNote, Plus } from 'lucide-react';
 import { useCalendarStore } from '../storage/calendarStore';
-import { formatDateKey, isSameDay } from '../core/calendar';
+import {
+  formatDateKey,
+  isSameDay,
+  getEventDisplayTitle,
+  getMemoDisplayTitle,
+  getMemoDisplayContent,
+} from '../core/calendar';
+import { MEMO_COLORS } from '../constants/memo';
 import { useTranslation } from '../locales';
 import { CalendarEvent } from '../types';
 
@@ -11,6 +19,10 @@ export const DayView: React.FC = () => {
   const allEvents = useCalendarStore((s) => s.events);
   const categories = useCalendarStore((s) => s.categories);
   const openEventModal = useCalendarStore((s) => s.openEventModal);
+  const memos = useCalendarStore((s) => s.memos);
+  const openMemoPanel = useCalendarStore((s) => s.openMemoPanel);
+  const addMemo = useCalendarStore((s) => s.addMemo);
+  const settings = useCalendarStore((s) => s.settings);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { t, weekdaysFull, months, language } = useTranslation();
@@ -36,6 +48,15 @@ export const DayView: React.FC = () => {
   const today = new Date();
   const isToday = isSameDay(selectedDate, today);
 
+  const dayMemos = memos.filter((m) => m.date === dateStr);
+
+  const isLight =
+    settings.themeMode === 'light' ||
+    (settings.themeMode === 'system' &&
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: light)').matches);
+
   const handleSlotClick = (_hour: number) => {
     openEventModal(undefined, selectedDate);
   };
@@ -53,25 +74,92 @@ export const DayView: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col h-full bg-[var(--win10-bg)] select-none overflow-hidden transition-colors">
       {/* 헤더 날짜 요약 */}
-      <div className="h-14 border-b border-[var(--win10-border)] bg-[var(--win10-surface)] flex items-center px-6 space-x-3 shrink-0">
-        <div
-          className={`w-9 h-9 flex items-center justify-center text-sm font-bold rounded-full ${
-            isToday
-              ? 'bg-[var(--win10-accent)] text-white shadow'
-              : 'text-[var(--win10-text-primary)] border border-[var(--win10-border-strong)]'
-          }`}
-        >
-          {selectedDate.getDate()}
+      <div className="h-14 border-b border-[var(--win10-border)] bg-[var(--win10-surface)] flex items-center justify-between px-6 shrink-0">
+        <div className="flex items-center space-x-3">
+          <div
+            className={`w-9 h-9 flex items-center justify-center text-sm font-bold rounded-full ${
+              isToday
+                ? 'bg-[var(--win10-accent)] text-white shadow'
+                : 'text-[var(--win10-text-primary)] border border-[var(--win10-border-strong)]'
+            }`}
+          >
+            {selectedDate.getDate()}
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-[var(--win10-text-primary)]">
+              {formattedDateTitle}
+            </span>
+            <span className="text-xs text-[var(--win10-text-secondary)]">
+              {weekdaysFull[selectedDate.getDay()]}
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-semibold text-[var(--win10-text-primary)]">
-            {formattedDateTitle}
-          </span>
-          <span className="text-xs text-[var(--win10-text-secondary)]">
-            {weekdaysFull[selectedDate.getDay()]}
-          </span>
+
+        {/* 우측: 이 날의 메모 바로가기 / 추가 버튼 */}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => openMemoPanel(dateStr)}
+            className="flex items-center space-x-1.5 px-2.5 py-1 rounded border border-[var(--win10-border)] hover:bg-[var(--win10-button-hover)] text-xs text-[var(--win10-text-primary)] transition-colors cursor-pointer"
+            title={t('memo.dayMemos')}
+          >
+            <StickyNote className="w-3.5 h-3.5 text-[#ffb900]" />
+            <span>{t('memo.dayMemos')}</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-[var(--win10-card-bg)] border border-[var(--win10-border)] text-[10.5px] font-semibold text-[var(--win10-accent)]">
+              {dayMemos.length}
+            </span>
+          </button>
         </div>
       </div>
+
+      {/* 이 날의 스티커 메모 가로 스트립 (메모가 있는 경우 표시) */}
+      {dayMemos.length > 0 && (
+        <div className="border-b border-[var(--win10-border)] bg-[var(--win10-surface)] px-6 py-2 flex items-center space-x-2.5 overflow-x-auto shrink-0">
+          <div className="flex items-center space-x-1.5 text-xs text-[var(--win10-text-secondary)] font-medium shrink-0 mr-1">
+            <StickyNote className="w-3.5 h-3.5 text-amber-500" />
+            <span>{t('memo.title')}</span>
+          </div>
+          {dayMemos.map((memo) => {
+            const colorConfig = MEMO_COLORS.find((c) => c.id === memo.color) || MEMO_COLORS[0];
+            return (
+              <div
+                key={memo.id}
+                onClick={() => openMemoPanel(dateStr)}
+                style={{
+                  backgroundColor: isLight ? colorConfig.bgLight : colorConfig.bgDark,
+                  borderColor: isLight ? colorConfig.borderLight : colorConfig.borderDark,
+                  color: isLight ? colorConfig.textLight : colorConfig.textDark,
+                }}
+                className="px-2.5 py-1.5 rounded border text-xs max-w-[200px] shrink-0 cursor-pointer hover:shadow-md transition-shadow truncate"
+                title={`${getMemoDisplayTitle(memo, language) || ''}\n${getMemoDisplayContent(memo, language)}`}
+              >
+                <div className="font-bold text-[11px] truncate">
+                  {getMemoDisplayTitle(memo, language) || t('memo.untitled')}
+                </div>
+                <div className="text-[10px] opacity-80 truncate">
+                  {getMemoDisplayContent(memo, language) || t('memo.noContent')}
+                </div>
+              </div>
+            );
+          })}
+          <button
+            onClick={() => {
+              addMemo({
+                title: '',
+                content: '',
+                color: 'yellow',
+                isPinned: false,
+                date: dateStr,
+              });
+              openMemoPanel(dateStr);
+            }}
+            className="p-1.5 rounded border border-dashed border-[var(--win10-border-strong)] hover:border-[var(--win10-accent)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-accent)] text-xs flex items-center space-x-1 shrink-0 transition-colors cursor-pointer"
+            title={t('memo.addDayMemo')}
+          >
+            <Plus className="w-3 h-3" />
+            <span className="text-[11px]">{t('memo.newMemo')}</span>
+          </button>
+        </div>
+      )}
 
       {/* 24시간 타임라인 */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto flex relative bg-[var(--win10-bg)]">
@@ -118,6 +206,7 @@ export const DayView: React.FC = () => {
             const top = (startHour + startMin / 60) * 56;
             const duration = Math.max((endHour - startHour) * 60 + (endMin - startMin), 30);
             const height = (duration / 60) * 56;
+            const displayTitle = getEventDisplayTitle(evt, language);
 
             return (
               <div
@@ -130,7 +219,7 @@ export const DayView: React.FC = () => {
                   borderLeftColor: color,
                 }}
               >
-                <div className="font-semibold text-sm truncate">{evt.title}</div>
+                <div className="font-semibold text-sm truncate">{displayTitle}</div>
                 <div className="text-xs text-[var(--win10-text-secondary)]">
                   {evt.isAllDay ? t('calendar.allDay') : `${evt.startDate.slice(11, 16)} ~ ${evt.endDate.slice(11, 16)}`}
                   {evt.location && ` • ${evt.location}`}

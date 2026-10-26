@@ -3,6 +3,7 @@ import {
   AppSettings,
   CalendarCategory,
   CalendarEvent,
+  CalendarMemo,
   CalendarViewType,
   QuickPopoverState,
   OAuthProvider,
@@ -11,9 +12,20 @@ import {
   ActiveToast,
   WeatherInfo,
   WeatherLocation,
+  type UpdateStatusPayload,
 } from '../types';
 import { DEFAULT_CATEGORIES } from '../constants/calendar';
 import { DEFAULT_WEATHER_LOCATION } from '../constants/weather';
+import {
+  ZOOM_DEFAULT,
+  ZOOM_MIN,
+  ZOOM_MAX,
+  ZOOM_STEP,
+  SIDEBAR_DEFAULT_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+  SIDEBAR_MAX_WIDTH,
+  APP_VERSION,
+} from '../constants/settings';
 import { getNavigatedDate } from '../core/calendar';
 import { expandEventsForRange } from '../core/recurrence';
 import { exportEventsToICS, parseICSToEvents } from '../core/ical';
@@ -27,6 +39,7 @@ const STORAGE_KEY_SETTINGS = 'win10_calendar_settings';
 const STORAGE_KEY_ACCOUNTS = 'win10_calendar_synced_accounts';
 const STORAGE_KEY_NOTIFIED = 'win10_calendar_notified_reminders';
 const STORAGE_KEY_WEATHER_CACHE = 'win10_calendar_weather_cache';
+const STORAGE_KEY_MEMOS = 'win10_calendar_memos';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   language: 'ko',
@@ -40,10 +53,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   backgroundTheme: 'none',
   backgroundFill: 'sidebar',
   backgroundOpacity: 0.35,
+  zoomLevel: ZOOM_DEFAULT,
+  sidebarWidth: SIDEBAR_DEFAULT_WIDTH,
 };
 
 /**
- * 테마 설정(다크/라이트 모드, 액센트 컬러, 배경 불투명도)을 DOM에 실시간 반영
+ * 테마 설정(다크/라이트 모드, 액센트 컬러, 배경 불투명도, 전역 배율)을 DOM에 실시간 반영
  */
 export function applyThemeToDOM(settings: AppSettings) {
   if (typeof document === 'undefined') return;
@@ -73,6 +88,20 @@ export function applyThemeToDOM(settings: AppSettings) {
       '--win10-bg-opacity',
       String(settings.backgroundOpacity)
     );
+  }
+
+  // 4. Zoom factor application (Electron webFrame & CSS fallback)
+  const zoom = settings.zoomLevel ?? ZOOM_DEFAULT;
+  document.documentElement.style.setProperty('--win10-zoom', String(zoom));
+  if (typeof window !== 'undefined' && window.electronAPI?.setZoomFactor) {
+    try {
+      window.electronAPI.setZoomFactor(zoom);
+      document.documentElement.style.zoom = '1';
+    } catch {
+      document.documentElement.style.zoom = String(zoom);
+    }
+  } else {
+    document.documentElement.style.zoom = String(zoom);
   }
 }
 
@@ -161,6 +190,14 @@ function loadStoredSettings(): AppSettings {
     const loaded: AppSettings = {
       ...DEFAULT_SETTINGS,
       ...parsed,
+      zoomLevel:
+        typeof parsed.zoomLevel === 'number'
+          ? Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, parsed.zoomLevel)) * 100) / 100
+          : DEFAULT_SETTINGS.zoomLevel,
+      sidebarWidth:
+        typeof parsed.sidebarWidth === 'number'
+          ? Math.round(Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, parsed.sidebarWidth)))
+          : DEFAULT_SETTINGS.sidebarWidth,
       weatherLocation: parsed.weatherLocation
         ? { ...DEFAULT_WEATHER_LOCATION, ...parsed.weatherLocation }
         : DEFAULT_WEATHER_LOCATION,
@@ -179,6 +216,40 @@ function loadStoredWeatherCache(): { current: WeatherInfo | null; daily: Record<
     return raw ? JSON.parse(raw) : { current: null, daily: {} };
   } catch {
     return { current: null, daily: {} };
+  }
+}
+
+function loadStoredMemos(): CalendarMemo[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_MEMOS);
+    if (!raw) {
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      return [
+        {
+          id: 'memo-sample-1',
+          title: '오늘의 할 일 및 체크리스트',
+          content: '• 주간 캘린더 피드백 정리하기\n• 회의록 작성 및 팀원 공유\n• 저녁 운동 30분',
+          date: todayStr,
+          color: 'yellow',
+          isPinned: true,
+          createdAt: Date.now() - 3600000,
+          updatedAt: Date.now() - 3600000,
+        },
+        {
+          id: 'memo-sample-2',
+          title: '아이디어 메모',
+          content: 'Windows 10 플루언트 디자인 스티커 메모!\n단축키 Ctrl + M으로 언제든 메모를 열고 닫을 수 있습니다.',
+          color: 'blue',
+          isPinned: false,
+          createdAt: Date.now() - 7200000,
+          updatedAt: Date.now() - 7200000,
+        },
+      ];
+    }
+    return JSON.parse(raw);
+  } catch {
+    return [];
   }
 }
 
@@ -220,6 +291,12 @@ interface CalendarState {
   toggleSettings: () => void;
   toggleSearch: () => void;
   setSearchQuery: (query: string) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
+  setZoomLevel: (zoom: number) => void;
+  setSidebarWidth: (width: number) => void;
+  resetSidebarWidth: () => void;
 
   // 모달 및 팝오버 액션
   openEventModal: (event?: CalendarEvent, defaultDate?: Date) => void;
@@ -269,6 +346,27 @@ interface CalendarState {
   setWeatherLocation: (location: WeatherLocation) => Promise<void>;
   autoDetectLocation: () => Promise<void>;
 
+  // 소프트웨어 자동 업데이트 상태 및 액션
+  updateStatus: UpdateStatusPayload | null;
+  setUpdateStatus: (status: UpdateStatusPayload) => void;
+  checkForUpdates: () => Promise<void>;
+  quitAndInstallUpdate: () => void;
+
+  // 스티커 메모 (Sticky Notes) 상태 및 액션
+  memos: CalendarMemo[];
+  isMemoPanelOpen: boolean;
+  memoFilterDate: string | null;
+  memoSearchQuery: string;
+  toggleMemoPanel: (dateStr?: string) => void;
+  openMemoPanel: (dateStr?: string) => void;
+  closeMemoPanel: () => void;
+  setMemoFilterDate: (dateStr: string | null) => void;
+  setMemoSearchQuery: (query: string) => void;
+  addMemo: (memo: Omit<CalendarMemo, 'id' | 'createdAt' | 'updatedAt'>) => CalendarMemo;
+  updateMemo: (memo: Partial<CalendarMemo> & { id: string }) => void;
+  deleteMemo: (id: string) => void;
+  togglePinMemo: (id: string) => void;
+
   // 헬퍼
   getExpandedEvents: (rangeStart: Date, rangeEnd: Date) => CalendarEvent[];
 }
@@ -299,6 +397,10 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   currentWeather: initialWeatherCache.current || getFallbackWeather(new Date(), initialStoredSettings.weatherLocation, initialStoredSettings.temperatureUnit, initialStoredSettings.language),
   weatherDailyCache: initialWeatherCache.daily,
   isWeatherLoading: false,
+  memos: loadStoredMemos(),
+  isMemoPanelOpen: false,
+  memoFilterDate: null,
+  memoSearchQuery: '',
 
   setSelectedDate: (date: Date) =>
     set({
@@ -418,6 +520,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       applyThemeToDOM(updated);
 
       if (
+        newSettings.language !== undefined ||
         newSettings.temperatureUnit !== undefined ||
         newSettings.weatherLocation !== undefined ||
         newSettings.showWeather !== undefined
@@ -429,6 +532,51 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
 
       return { settings: updated };
     });
+  },
+
+  setZoomLevel: (newZoom) => {
+    const clamped = Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, newZoom)) * 100) / 100;
+    set((state) => {
+      const updated = { ...state.settings, zoomLevel: clamped };
+      try {
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(updated));
+      } catch (err) {
+        console.error('Failed to persist zoomLevel:', err);
+      }
+      applyThemeToDOM(updated);
+      return { settings: updated };
+    });
+  },
+
+  zoomIn: () => {
+    const current = get().settings.zoomLevel ?? ZOOM_DEFAULT;
+    get().setZoomLevel(current + ZOOM_STEP);
+  },
+
+  zoomOut: () => {
+    const current = get().settings.zoomLevel ?? ZOOM_DEFAULT;
+    get().setZoomLevel(current - ZOOM_STEP);
+  },
+
+  resetZoom: () => {
+    get().setZoomLevel(ZOOM_DEFAULT);
+  },
+
+  setSidebarWidth: (width) => {
+    const clamped = Math.round(Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width)));
+    set((state) => {
+      const updated = { ...state.settings, sidebarWidth: clamped };
+      try {
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(updated));
+      } catch (err) {
+        console.error('Failed to persist sidebarWidth:', err);
+      }
+      return { settings: updated };
+    });
+  },
+
+  resetSidebarWidth: () => {
+    get().setSidebarWidth(SIDEBAR_DEFAULT_WIDTH);
   },
 
   applyThemePreset: (preset) => {
@@ -476,8 +624,8 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   closeQuickPopover: () => set({ quickPopover: { isOpen: false, x: 0, y: 0 } }),
 
   exportDataJSON: () => {
-    const { events, categories, settings } = get();
-    return JSON.stringify({ events, categories, settings }, null, 2);
+    const { events, categories, settings, memos } = get();
+    return JSON.stringify({ events, categories, settings, memos }, null, 2);
   },
 
   importDataJSON: (jsonString) => {
@@ -488,6 +636,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
           events: parsed.events,
           categories: parsed.categories || get().categories,
           settings: parsed.settings || get().settings,
+          memos: Array.isArray(parsed.memos) ? parsed.memos : get().memos,
         });
         localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(parsed.events));
         if (parsed.categories) {
@@ -495,6 +644,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         }
         if (parsed.settings) {
           localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(parsed.settings));
+        }
+        if (Array.isArray(parsed.memos)) {
+          localStorage.setItem(STORAGE_KEY_MEMOS, JSON.stringify(parsed.memos));
         }
         return true;
       }
@@ -701,7 +853,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
             ? {
                 ...a,
                 syncStatus: 'error',
-                errorMessage: err?.message || '동기화 실패',
+                errorMessage:
+                  err?.message ||
+                  (get().settings.language === 'en' ? 'Sync failed' : '동기화 실패'),
               }
             : a
         ),
@@ -745,7 +899,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   },
 
   triggerReminderNotification: (event: CalendarEvent) => {
-    const { title, body } = formatReminderMessage(event);
+    const { title, body } = formatReminderMessage(event, get().settings.language);
     const toastId = `toast-${event.id}-${Date.now()}`;
     const newToast: ActiveToast = {
       id: toastId,
@@ -785,8 +939,8 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   },
 
   checkDueReminders: () => {
-    const { events, notifiedReminderMap, triggerReminderNotification } = get();
-    const dueList = getDueReminders(events, new Date(), notifiedReminderMap);
+    const { events, settings, notifiedReminderMap, triggerReminderNotification } = get();
+    const dueList = getDueReminders(events, new Date(), notifiedReminderMap, settings.language);
     for (const item of dueList) {
       triggerReminderNotification(item.event);
     }
@@ -832,5 +986,109 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     } catch {
       set({ isWeatherLoading: false });
     }
+  },
+
+  updateStatus: null,
+
+  setUpdateStatus: (status) => set({ updateStatus: status }),
+
+  checkForUpdates: async () => {
+    if (typeof window !== 'undefined' && window.electronAPI?.checkForUpdates) {
+      set({ updateStatus: { status: 'checking' } });
+      try {
+        await window.electronAPI.checkForUpdates();
+      } catch (err: any) {
+        set({ updateStatus: { status: 'error', error: err?.message || 'Error' } });
+      }
+    } else {
+      set({ updateStatus: { status: 'checking' } });
+      setTimeout(() => {
+        set({ updateStatus: { status: 'not-available', version: APP_VERSION } });
+      }, 500);
+    }
+  },
+
+  quitAndInstallUpdate: () => {
+    if (typeof window !== 'undefined' && window.electronAPI?.quitAndInstallUpdate) {
+      window.electronAPI.quitAndInstallUpdate();
+    }
+  },
+
+  toggleMemoPanel: (dateStr) =>
+    set((state) => ({
+      isMemoPanelOpen: !state.isMemoPanelOpen,
+      memoFilterDate: dateStr !== undefined ? dateStr : state.memoFilterDate,
+    })),
+
+  openMemoPanel: (dateStr) =>
+    set({
+      isMemoPanelOpen: true,
+      memoFilterDate: dateStr !== undefined ? dateStr : null,
+    }),
+
+  closeMemoPanel: () => set({ isMemoPanelOpen: false }),
+
+  setMemoFilterDate: (dateStr) => set({ memoFilterDate: dateStr }),
+
+  setMemoSearchQuery: (query) => set({ memoSearchQuery: query }),
+
+  addMemo: (memoData) => {
+    const now = Date.now();
+    const newMemo: CalendarMemo = {
+      ...memoData,
+      id: `memo-${now}-${Math.random().toString(36).substring(2, 8)}`,
+      createdAt: now,
+      updatedAt: now,
+    };
+    set((state) => {
+      const updated = [newMemo, ...state.memos];
+      try {
+        localStorage.setItem(STORAGE_KEY_MEMOS, JSON.stringify(updated));
+      } catch (err) {
+        console.error('Failed to persist memos:', err);
+      }
+      return { memos: updated };
+    });
+    return newMemo;
+  },
+
+  updateMemo: (updated) => {
+    set((state) => {
+      const updatedMemos = state.memos.map((m) =>
+        m.id === updated.id ? { ...m, ...updated, updatedAt: Date.now() } : m
+      );
+      try {
+        localStorage.setItem(STORAGE_KEY_MEMOS, JSON.stringify(updatedMemos));
+      } catch (err) {
+        console.error('Failed to persist memos:', err);
+      }
+      return { memos: updatedMemos };
+    });
+  },
+
+  deleteMemo: (id) => {
+    set((state) => {
+      const updatedMemos = state.memos.filter((m) => m.id !== id);
+      try {
+        localStorage.setItem(STORAGE_KEY_MEMOS, JSON.stringify(updatedMemos));
+      } catch (err) {
+        console.error('Failed to persist memos:', err);
+      }
+      return { memos: updatedMemos };
+    });
+  },
+
+  togglePinMemo: (id) => {
+    set((state) => {
+      const updatedMemos = state.memos.map((m) =>
+        m.id === id ? { ...m, isPinned: !m.isPinned, updatedAt: Date.now() } : m
+      );
+      try {
+        localStorage.setItem(STORAGE_KEY_MEMOS, JSON.stringify(updatedMemos));
+      } catch (err) {
+        console.error('Failed to persist memos:', err);
+      }
+      return { memos: updatedMemos };
+    });
   },
 }));

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useCalendarStore } from '../storage/calendarStore';
-import { getWeekDays, formatDateKey, isSameDay } from '../core/calendar';
+import { getWeekDays, formatDateKey, isSameDay, getEventDisplayTitle } from '../core/calendar';
 import { useTranslation } from '../locales';
 import { CalendarEvent } from '../types';
 
@@ -17,9 +17,11 @@ export const WeekView: React.FC<WeekViewProps> = ({ isWorkWeek = false }) => {
   const allEvents = useCalendarStore((s) => s.events);
   const categories = useCalendarStore((s) => s.categories);
   const openEventModal = useCalendarStore((s) => s.openEventModal);
+  const memos = useCalendarStore((s) => s.memos);
+  const openMemoPanel = useCalendarStore((s) => s.openMemoPanel);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const { weekdays, language } = useTranslation();
+  const { t, weekdays, language } = useTranslation();
 
   // 현재 주의 날짜 목록 계산
   const fullWeekDays = getWeekDays(viewDate, false);
@@ -64,12 +66,14 @@ export const WeekView: React.FC<WeekViewProps> = ({ isWorkWeek = false }) => {
             const isToday = isSameDay(day, today);
             const isSelected = isSameDay(day, selectedDate);
             const dayOfWeek = day.getDay();
+            const dateStr = formatDateKey(day);
+            const dayMemos = memos.filter((m) => m.date === dateStr);
 
             return (
               <div
                 key={day.toISOString()}
                 onClick={() => setSelectedDate(day)}
-                className={`py-2 px-2 border-r border-[var(--win10-border)] flex flex-col items-center justify-center cursor-pointer transition-colors ${
+                className={`py-2 px-2 border-r border-[var(--win10-border)] flex flex-col items-center justify-center cursor-pointer transition-colors relative group/header ${
                   isSelected ? 'bg-[var(--win10-cell-hover)]' : 'hover:bg-[var(--win10-cell-hover)]'
                 }`}
               >
@@ -84,16 +88,31 @@ export const WeekView: React.FC<WeekViewProps> = ({ isWorkWeek = false }) => {
                 >
                   {weekdays[dayOfWeek]}
                 </span>
-                <div
-                  className={`w-7 h-7 flex items-center justify-center text-xs font-semibold rounded-full transition-all ${
-                    isToday
-                      ? 'bg-[var(--win10-accent)] text-white shadow-sm'
-                      : isSelected
-                      ? 'ring-1 ring-[var(--win10-accent)] text-[var(--win10-text-primary)]'
-                      : 'text-[var(--win10-text-primary)]'
-                  }`}
-                >
-                  {day.getDate()}
+                <div className="relative">
+                  <div
+                    className={`w-7 h-7 flex items-center justify-center text-xs font-semibold rounded-full transition-all ${
+                      isToday
+                        ? 'bg-[var(--win10-accent)] text-white shadow-sm'
+                        : isSelected
+                        ? 'ring-1 ring-[var(--win10-accent)] text-[var(--win10-text-primary)]'
+                        : 'text-[var(--win10-text-primary)]'
+                    }`}
+                  >
+                    {day.getDate()}
+                  </div>
+                  {dayMemos.length > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedDate(day);
+                        openMemoPanel(dateStr);
+                      }}
+                      className="absolute -top-1 -right-2 w-3.5 h-3.5 rounded-full bg-amber-400 text-black text-[9px] font-bold flex items-center justify-center shadow-xs cursor-pointer hover:scale-110 transition-transform"
+                      title={t('memo.badgeTooltip', { count: dayMemos.length })}
+                    >
+                      {dayMemos.length}
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -151,6 +170,7 @@ export const WeekView: React.FC<WeekViewProps> = ({ isWorkWeek = false }) => {
                 {dayEvents.map((evt) => {
                   const cat = categories.find((c) => c.id === evt.categoryId);
                   const color = cat?.color || '#0078D7';
+                  const displayTitle = getEventDisplayTitle(evt, language);
 
                   // 시작 시간 기준 Y 오프셋 및 높이 계산
                   const startHour = parseInt(evt.startDate.slice(11, 13) || '0', 10);
@@ -175,9 +195,9 @@ export const WeekView: React.FC<WeekViewProps> = ({ isWorkWeek = false }) => {
                         height: `${Math.max(height - 2, 22)}px`,
                         borderLeftColor: color,
                       }}
-                      title={`${evt.title} (${evt.startDate.slice(11, 16)}~${evt.endDate.slice(11, 16)})`}
+                      title={`${displayTitle} (${evt.startDate.slice(11, 16)}~${evt.endDate.slice(11, 16)})`}
                     >
-                      <div className="font-semibold truncate">{evt.title}</div>
+                      <div className="font-semibold truncate">{displayTitle}</div>
                       {!evt.isAllDay && height > 32 && (
                         <div className="text-[10px] text-[var(--win10-text-secondary)]">
                           {evt.startDate.slice(11, 16)} ~ {evt.endDate.slice(11, 16)}

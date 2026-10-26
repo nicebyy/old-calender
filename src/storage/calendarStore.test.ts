@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useCalendarStore } from './calendarStore';
 
 describe('CalendarStore Extended', () => {
@@ -200,6 +200,187 @@ describe('CalendarStore Extended', () => {
       const remaining = useCalendarStore.getState().activeToasts;
       expect(remaining.some((t) => t.id === toast.id)).toBe(false);
     }
+  });
+
+  it('소프트웨어 자동 업데이트 상태 설정 및 업데이트 확인 액션이 정상 작동해야 한다', async () => {
+    expect(useCalendarStore.getState().updateStatus).toBeNull();
+
+    useCalendarStore.getState().setUpdateStatus({
+      status: 'downloading',
+      percent: 50,
+      version: '1.0.1',
+    });
+    expect(useCalendarStore.getState().updateStatus?.status).toBe('downloading');
+    expect(useCalendarStore.getState().updateStatus?.percent).toBe(50);
+
+    await useCalendarStore.getState().checkForUpdates();
+    expect(useCalendarStore.getState().updateStatus?.status).toBe('checking');
+  });
+
+  it('window.electronAPI가 존재할 때 checkForUpdates 및 quitAndInstallUpdate를 호출해야 한다', async () => {
+    const mockCheck = vi.fn().mockResolvedValue({ updateInfo: { version: '1.0.1' } });
+    const mockQuit = vi.fn();
+
+    (window as any).electronAPI = {
+      ...(window as any).electronAPI,
+      checkForUpdates: mockCheck,
+      quitAndInstallUpdate: mockQuit,
+    };
+
+    await useCalendarStore.getState().checkForUpdates();
+    expect(mockCheck).toHaveBeenCalled();
+
+    useCalendarStore.getState().quitAndInstallUpdate();
+    expect(mockQuit).toHaveBeenCalled();
+  });
+
+  it('화면 배율 확대/축소(zoomIn, zoomOut, resetZoom) 및 한계값 클램핑이 정상 작동해야 한다', () => {
+    // 기본값은 1.0 (100%)
+    useCalendarStore.getState().resetZoom();
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.0);
+
+    // zoomIn (1.0 -> 1.05)
+    useCalendarStore.getState().zoomIn();
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.05);
+
+    // zoomOut 2회 (1.05 -> 1.0 -> 0.95)
+    useCalendarStore.getState().zoomOut();
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.0);
+    useCalendarStore.getState().zoomOut();
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(0.95);
+
+    // 최대 한계값(1.60) 클램핑 테스트
+    useCalendarStore.getState().setZoomLevel(3.0);
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.6);
+
+    // 최소 한계값(0.70) 클램핑 테스트
+    useCalendarStore.getState().setZoomLevel(0.2);
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(0.7);
+
+    // 리셋 시 1.0 복귀
+    useCalendarStore.getState().resetZoom();
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.0);
+  });
+
+  it('사이드바 너비 조절(setSidebarWidth, resetSidebarWidth) 및 범위 제한이 정상 작동해야 한다', () => {
+    // 기본값은 260px
+    useCalendarStore.getState().resetSidebarWidth();
+    expect(useCalendarStore.getState().settings.sidebarWidth).toBe(260);
+
+    // 정상 너비 변경 (320px)
+    useCalendarStore.getState().setSidebarWidth(320);
+    expect(useCalendarStore.getState().settings.sidebarWidth).toBe(320);
+
+    // 최소 한계값(200px) 클램핑 테스트
+    useCalendarStore.getState().setSidebarWidth(120);
+    expect(useCalendarStore.getState().settings.sidebarWidth).toBe(200);
+
+    // 최대 한계값(480px) 클램핑 테스트
+    useCalendarStore.getState().setSidebarWidth(800);
+    expect(useCalendarStore.getState().settings.sidebarWidth).toBe(480);
+
+    // 더블클릭/리셋 시 기본값(260px) 복귀
+    useCalendarStore.getState().resetSidebarWidth();
+    expect(useCalendarStore.getState().settings.sidebarWidth).toBe(260);
+  });
+
+  describe('Sticky Notes (스티커 메모) 기능', () => {
+    it('초기 메모 목록이 존재하고 배열 형태여야 한다', () => {
+      const memos = useCalendarStore.getState().memos;
+      expect(Array.isArray(memos)).toBe(true);
+      expect(memos.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('addMemo를 통해 새 메모를 생성하고 저장할 수 있어야 한다', () => {
+      const initialCount = useCalendarStore.getState().memos.length;
+
+      const newMemo = useCalendarStore.getState().addMemo({
+        title: '신규 프로젝트 기획',
+        content: '플루언트 디자인 적용 메모',
+        color: 'pink',
+        isPinned: false,
+        date: '2026-10-26',
+      });
+
+      const updatedMemos = useCalendarStore.getState().memos;
+      expect(updatedMemos.length).toBe(initialCount + 1);
+      expect(newMemo.id).toBeDefined();
+      expect(newMemo.title).toBe('신규 프로젝트 기획');
+      expect(newMemo.color).toBe('pink');
+      expect(newMemo.date).toBe('2026-10-26');
+      expect(updatedMemos[0].id).toBe(newMemo.id);
+    });
+
+    it('updateMemo를 통해 메모의 내용, 제목, 색상, 날짜를 수정할 수 있어야 한다', () => {
+      const target = useCalendarStore.getState().memos[0];
+
+      useCalendarStore.getState().updateMemo({
+        id: target.id,
+        title: '수정된 메모 제목',
+        content: '수정된 메모 내용입니다.',
+        color: 'green',
+      });
+
+      const updated = useCalendarStore.getState().memos.find((m) => m.id === target.id);
+      expect(updated?.title).toBe('수정된 메모 제목');
+      expect(updated?.content).toBe('수정된 메모 내용입니다.');
+      expect(updated?.color).toBe('green');
+    });
+
+    it('togglePinMemo를 통해 메모의 상단 고정 상태를 토글할 수 있어야 한다', () => {
+      const target = useCalendarStore.getState().memos[0];
+      const initialPinned = !!target.isPinned;
+
+      useCalendarStore.getState().togglePinMemo(target.id);
+      const afterFirstToggle = useCalendarStore.getState().memos.find((m) => m.id === target.id);
+      expect(afterFirstToggle?.isPinned).toBe(!initialPinned);
+
+      useCalendarStore.getState().togglePinMemo(target.id);
+      const afterSecondToggle = useCalendarStore.getState().memos.find((m) => m.id === target.id);
+      expect(afterSecondToggle?.isPinned).toBe(initialPinned);
+    });
+
+    it('deleteMemo를 통해 메모를 삭제할 수 있어야 한다', () => {
+      const target = useCalendarStore.getState().memos[0];
+      const prevCount = useCalendarStore.getState().memos.length;
+
+      useCalendarStore.getState().deleteMemo(target.id);
+      const updated = useCalendarStore.getState().memos;
+      expect(updated.length).toBe(prevCount - 1);
+      expect(updated.some((m) => m.id === target.id)).toBe(false);
+    });
+
+    it('메모 패널 토글 및 열기/닫기 액션이 정확해야 한다', () => {
+      useCalendarStore.getState().closeMemoPanel();
+      expect(useCalendarStore.getState().isMemoPanelOpen).toBe(false);
+
+      useCalendarStore.getState().openMemoPanel('2026-11-01');
+      expect(useCalendarStore.getState().isMemoPanelOpen).toBe(true);
+      expect(useCalendarStore.getState().memoFilterDate).toBe('2026-11-01');
+
+      useCalendarStore.getState().toggleMemoPanel();
+      expect(useCalendarStore.getState().isMemoPanelOpen).toBe(false);
+    });
+
+    it('JSON 백업 및 복원에 메모(memos)가 포함되어야 한다', () => {
+      useCalendarStore.getState().addMemo({
+        title: '백업 테스트 메모',
+        content: '백업 및 복원 확인용',
+        color: 'purple',
+        isPinned: true,
+      });
+
+      const exportedJson = useCalendarStore.getState().exportDataJSON();
+      const parsed = JSON.parse(exportedJson);
+      expect(Array.isArray(parsed.memos)).toBe(true);
+      expect(parsed.memos.some((m: any) => m.title === '백업 테스트 메모')).toBe(true);
+
+      // 새 메모 추가 후 복원 시 이전 데이터로 원복 검증
+      const restoreSuccess = useCalendarStore.getState().importDataJSON(exportedJson);
+      expect(restoreSuccess).toBe(true);
+      const restoredMemos = useCalendarStore.getState().memos;
+      expect(restoredMemos.some((m) => m.title === '백업 테스트 메모')).toBe(true);
+    });
   });
 });
 

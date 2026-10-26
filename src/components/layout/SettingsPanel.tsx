@@ -17,9 +17,27 @@ import {
   RotateCw,
   Search,
   Loader2,
+  RefreshCw,
+  ArrowDownCircle,
+  CheckCircle2,
+  AlertCircle,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
-import { WIN10_ACCENT_COLORS, FIRST_DAY_OPTIONS, THEME_MODES, BACKGROUND_FILL_OPTIONS } from '../../constants/settings';
+import {
+  WIN10_ACCENT_COLORS,
+  FIRST_DAY_OPTIONS,
+  THEME_MODES,
+  BACKGROUND_FILL_OPTIONS,
+  ZOOM_MIN,
+  ZOOM_MAX,
+  ZOOM_STEP,
+  SIDEBAR_DEFAULT_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+  SIDEBAR_MAX_WIDTH,
+  APP_VERSION,
+} from '../../constants/settings';
 import { WALLPAPER_THEMES, THEME_PRESETS } from '../../constants/theme';
 import { WEATHER_CITY_PRESETS } from '../../constants/weather';
 import { searchLocations, LocationSearchResult } from '../../core/weather';
@@ -40,6 +58,15 @@ export const SettingsPanel: React.FC = () => {
   const setWeatherLocation = useCalendarStore((s) => s.setWeatherLocation);
   const refreshWeather = useCalendarStore((s) => s.refreshWeather);
   const isWeatherLoading = useCalendarStore((s) => s.isWeatherLoading);
+  const updateStatus = useCalendarStore((s) => s.updateStatus);
+  const checkForUpdates = useCalendarStore((s) => s.checkForUpdates);
+  const quitAndInstallUpdate = useCalendarStore((s) => s.quitAndInstallUpdate);
+  const zoomIn = useCalendarStore((s) => s.zoomIn);
+  const zoomOut = useCalendarStore((s) => s.zoomOut);
+  const resetZoom = useCalendarStore((s) => s.resetZoom);
+  const setZoomLevel = useCalendarStore((s) => s.setZoomLevel);
+  const setSidebarWidth = useCalendarStore((s) => s.setSidebarWidth);
+  const resetSidebarWidth = useCalendarStore((s) => s.resetSidebarWidth);
 
   const { t, language, setLanguage } = useTranslation();
 
@@ -234,6 +261,11 @@ export const SettingsPanel: React.FC = () => {
                   settings.accentColor.toLowerCase() === preset.accentColor.toLowerCase() &&
                   settings.backgroundTheme === preset.backgroundTheme;
 
+                const presetName = t(`themePresets.${preset.id}.name`);
+                const presetDesc = t(`themePresets.${preset.id}.description`);
+                const displayName = presetName !== `themePresets.${preset.id}.name` ? presetName : preset.name;
+                const displayDesc = presetDesc !== `themePresets.${preset.id}.description` ? presetDesc : preset.description;
+
                 return (
                   <button
                     key={preset.id}
@@ -250,12 +282,12 @@ export const SettingsPanel: React.FC = () => {
                           className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs border border-black/20"
                           style={{ backgroundColor: preset.accentColor }}
                         />
-                        <span className="font-semibold text-[11px] truncate">{preset.name}</span>
+                        <span className="font-semibold text-[11px] truncate">{displayName}</span>
                       </div>
                       {isActive && <Check className="w-3.5 h-3.5 text-[var(--win10-accent)] stroke-[3]" />}
                     </div>
                     <span className="text-[10px] text-[var(--win10-text-secondary)] line-clamp-2 leading-tight">
-                      {preset.description}
+                      {displayDesc}
                     </span>
                   </button>
                 );
@@ -304,6 +336,8 @@ export const SettingsPanel: React.FC = () => {
             <div className="grid grid-cols-4 gap-2 pt-1">
               {WIN10_ACCENT_COLORS.map((accent) => {
                 const isSelected = settings.accentColor.toLowerCase() === accent.color.toLowerCase();
+                const accentName = t(`accentColors.${accent.id}`);
+                const displayAccentName = accentName !== `accentColors.${accent.id}` ? accentName : accent.name;
                 return (
                   <button
                     key={accent.id}
@@ -313,7 +347,7 @@ export const SettingsPanel: React.FC = () => {
                       backgroundColor: accent.color,
                       borderColor: isSelected ? '#ffffff' : 'transparent',
                     }}
-                    title={accent.name}
+                    title={displayAccentName}
                   >
                     {isSelected && <Check className="w-4 h-4 text-white stroke-[3] drop-shadow" />}
                   </button>
@@ -363,6 +397,8 @@ export const SettingsPanel: React.FC = () => {
             <div className="grid grid-cols-4 gap-2 pt-1">
               {WALLPAPER_THEMES.map((wp) => {
                 const isSelected = settings.backgroundTheme === wp.id;
+                const wpName = t(`wallpapers.${wp.id}`);
+                const displayWpName = wpName !== `wallpapers.${wp.id}` ? wpName : wp.name;
                 return (
                   <button
                     key={wp.id}
@@ -378,10 +414,10 @@ export const SettingsPanel: React.FC = () => {
                       borderColor: isSelected ? 'var(--win10-accent)' : 'var(--win10-border)',
                       boxShadow: isSelected ? '0 0 0 1px var(--win10-accent)' : 'none',
                     }}
-                    title={wp.name}
+                    title={displayWpName}
                   >
                     <span className="text-[9.5px] text-white font-medium drop-shadow-md truncate z-10">
-                      {wp.name}
+                      {displayWpName}
                     </span>
                     {isSelected && (
                       <div className="absolute top-1 right-1 bg-[var(--win10-accent)] rounded-full p-0.5 shadow-sm">
@@ -429,6 +465,100 @@ export const SettingsPanel: React.FC = () => {
                 />
               </div>
             )}
+          </div>
+
+          {/* 화면 배율 및 크기 조절 (Zoom & Sidebar Sizing) */}
+          <div className="space-y-3 pt-3 border-t border-[var(--win10-border)]">
+            <div className="flex items-center space-x-2 font-medium text-[13px] text-[var(--win10-text-primary)]">
+              <ZoomIn className="w-4 h-4 text-[var(--win10-accent)]" />
+              <span>{t('settings.zoomAndDisplay')}</span>
+            </div>
+
+            {/* 화면 배율 조절 */}
+            <div className="space-y-1.5 bg-[var(--win10-card-bg)] p-2.5 rounded border border-[var(--win10-border)]">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--win10-text-secondary)] font-medium">
+                  {t('settings.zoomLevel')}
+                </span>
+                <div className="flex items-center space-x-1">
+                  <span className="font-bold text-[var(--win10-accent)]">
+                    {Math.round((settings.zoomLevel ?? 1.0) * 100)}%
+                  </span>
+                  <button
+                    onClick={resetZoom}
+                    className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-[var(--win10-button-hover)] hover:bg-[var(--win10-button-active)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors"
+                    title={t('settings.zoomReset')}
+                  >
+                    {t('settings.zoomReset')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-1">
+                <button
+                  onClick={zoomOut}
+                  disabled={(settings.zoomLevel ?? 1.0) <= ZOOM_MIN}
+                  className="p-1 rounded bg-[var(--win10-input-bg)] hover:bg-[var(--win10-button-hover)] disabled:opacity-40 text-[var(--win10-text-primary)] transition-colors"
+                >
+                  <ZoomOut className="w-3.5 h-3.5" />
+                </button>
+                <input
+                  type="range"
+                  min={ZOOM_MIN}
+                  max={ZOOM_MAX}
+                  step={ZOOM_STEP}
+                  value={settings.zoomLevel ?? 1.0}
+                  onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
+                  className="flex-1 accent-[var(--win10-accent)] cursor-pointer"
+                />
+                <button
+                  onClick={zoomIn}
+                  disabled={(settings.zoomLevel ?? 1.0) >= ZOOM_MAX}
+                  className="p-1 rounded bg-[var(--win10-input-bg)] hover:bg-[var(--win10-button-hover)] disabled:opacity-40 text-[var(--win10-text-primary)] transition-colors"
+                >
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <p className="text-[10px] text-[var(--win10-text-muted)] pt-0.5">
+                {t('settings.zoomShortcutHint')}
+              </p>
+            </div>
+
+            {/* 사이드바 너비 조절 */}
+            <div className="space-y-1.5 bg-[var(--win10-card-bg)] p-2.5 rounded border border-[var(--win10-border)]">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--win10-text-secondary)] font-medium">
+                  {t('settings.sidebarWidth')}
+                </span>
+                <div className="flex items-center space-x-1">
+                  <span className="font-bold text-[var(--win10-accent)]">
+                    {settings.sidebarWidth ?? SIDEBAR_DEFAULT_WIDTH}px
+                  </span>
+                  <button
+                    onClick={resetSidebarWidth}
+                    className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-[var(--win10-button-hover)] hover:bg-[var(--win10-button-active)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors"
+                    title={t('settings.sidebarReset')}
+                  >
+                    {t('settings.sidebarReset')}
+                  </button>
+                </div>
+              </div>
+
+              <input
+                type="range"
+                min={SIDEBAR_MIN_WIDTH}
+                max={SIDEBAR_MAX_WIDTH}
+                step={5}
+                value={settings.sidebarWidth ?? SIDEBAR_DEFAULT_WIDTH}
+                onChange={(e) => setSidebarWidth(parseInt(e.target.value, 10))}
+                className="w-full accent-[var(--win10-accent)] cursor-pointer"
+              />
+
+              <p className="text-[10px] text-[var(--win10-text-muted)] pt-0.5">
+                {t('settings.sidebarDragHint')}
+              </p>
+            </div>
           </div>
 
           {/* 6. 날씨 설정 (Windows 10 UWP 시그니처) */}
@@ -479,7 +609,12 @@ export const SettingsPanel: React.FC = () => {
                     <MapPin className="w-4 h-4 text-[var(--win10-accent)] shrink-0" />
                     <div>
                       <div className="font-semibold text-[var(--win10-text-primary)] flex items-center space-x-1.5">
-                        <span>{settings.weatherLocation?.city || '서울'}</span>
+                        <span>
+                          {language === 'en'
+                            ? WEATHER_CITY_PRESETS.find((p) => p.nameKo === settings.weatherLocation?.city || p.nameEn === settings.weatherLocation?.city)?.nameEn ||
+                              (settings.weatherLocation?.city === '서울' ? 'Seoul' : settings.weatherLocation?.city || 'Seoul')
+                            : settings.weatherLocation?.city || '서울'}
+                        </span>
                         {settings.weatherLocation?.autoDetect && (
                           <span className="px-1.5 py-0.5 bg-[var(--win10-accent)]/20 text-[var(--win10-accent)] text-[10px] rounded font-medium">
                             GPS
@@ -722,6 +857,95 @@ export const SettingsPanel: React.FC = () => {
                 onChange={handleImportJSON}
                 className="hidden"
               />
+            </div>
+          </div>
+
+          {/* 소프트웨어 자동 업데이트 (Auto-Update) */}
+          <div className="space-y-2 pt-3 border-t border-[var(--win10-border)]">
+            <div className="flex items-center space-x-2 font-medium text-[13px] text-[var(--win10-text-primary)]">
+              <RefreshCw className="w-4 h-4 text-[var(--win10-accent)]" />
+              <span>{t('settings.softwareUpdate')}</span>
+            </div>
+
+            <div className="bg-[var(--win10-card-bg)] border border-[var(--win10-border)] rounded p-2.5 space-y-2 text-xs">
+              <div className="flex items-center justify-between text-[var(--win10-text-secondary)]">
+                <span>{t('settings.currentVersion')}</span>
+                <span className="font-semibold text-[var(--win10-text-primary)]">v{APP_VERSION}</span>
+              </div>
+
+              {/* 상태 메시지 및 프로그레스 바 */}
+              {updateStatus?.status === 'checking' && (
+                <div className="flex items-center space-x-2 text-[var(--win10-accent)] py-1">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  <span>{t('settings.checkingForUpdates')}</span>
+                </div>
+              )}
+
+              {updateStatus?.status === 'available' && (
+                <div className="flex items-center space-x-2 text-amber-400 py-1">
+                  <ArrowDownCircle className="w-3.5 h-3.5 shrink-0 animate-bounce" />
+                  <span>{t('settings.updateAvailable', { version: updateStatus.version || '' })}</span>
+                </div>
+              )}
+
+              {updateStatus?.status === 'downloading' && (
+                <div className="space-y-1.5 py-1">
+                  <div className="flex justify-between text-[11px] text-[var(--win10-text-secondary)]">
+                    <span>{t('settings.updateDownloading', { percent: updateStatus.percent || 0 })}</span>
+                    <span>{updateStatus.percent || 0}%</span>
+                  </div>
+                  <div className="w-full bg-[var(--win10-input-bg)] h-1.5 rounded overflow-hidden">
+                    <div
+                      className="bg-[var(--win10-accent)] h-full transition-all duration-300"
+                      style={{ width: `${updateStatus.percent || 0}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {updateStatus?.status === 'downloaded' && (
+                <div className="space-y-2 py-1">
+                  <div className="flex items-center space-x-2 text-emerald-400 font-medium">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{t('settings.updateDownloaded', { version: updateStatus.version || '' })}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={quitAndInstallUpdate}
+                    className="w-full py-1.5 px-3 bg-[var(--win10-accent)] hover:opacity-90 text-white font-medium rounded transition-opacity flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>{t('settings.restartAndInstall')}</span>
+                  </button>
+                </div>
+              )}
+
+              {updateStatus?.status === 'not-available' && (
+                <div className="flex items-center space-x-1.5 text-emerald-400 py-0.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>{t('settings.updateLatest')}</span>
+                </div>
+              )}
+
+              {updateStatus?.status === 'error' && (
+                <div className="flex items-center space-x-1.5 text-red-400 py-0.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{updateStatus.error || t('settings.updateError')}</span>
+                </div>
+              )}
+
+              {/* 업데이트 확인 버튼 */}
+              {updateStatus?.status !== 'downloaded' && (
+                <button
+                  type="button"
+                  disabled={updateStatus?.status === 'checking' || updateStatus?.status === 'downloading'}
+                  onClick={() => checkForUpdates()}
+                  className="w-full mt-1 py-1.5 px-2 bg-[var(--win10-input-bg)] hover:bg-[var(--win10-button-hover)] disabled:opacity-50 text-[var(--win10-text-primary)] rounded border border-[var(--win10-border)] transition-colors flex items-center justify-center space-x-1 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3 h-3 ${updateStatus?.status === 'checking' ? 'animate-spin' : ''}`} />
+                  <span>{t('settings.checkForUpdates')}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

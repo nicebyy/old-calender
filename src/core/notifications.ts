@@ -24,29 +24,37 @@ export function calculateReminderTime(event: CalendarEvent): number | null {
 /**
  * Windows 10 UWP 스타일 알림 메시지 텍스트 포맷팅
  */
-export function formatReminderMessage(event: CalendarEvent): { title: string; body: string } {
-  const title = `[일정 알림] ${event.title}`;
+export function formatReminderMessage(
+  event: CalendarEvent,
+  lang: 'ko' | 'en' = 'ko'
+): { title: string; body: string } {
+  const isEn = lang === 'en';
+  const title = isEn ? `[Reminder] ${event.title}` : `[일정 알림] ${event.title}`;
 
   const timePart = event.isAllDay
-    ? '종일 일정'
+    ? isEn
+      ? 'All-day'
+      : '종일 일정'
     : `${event.startDate.slice(11, 16)} ~ ${event.endDate.slice(11, 16)}`;
 
   let relativeTimeStr = '';
   if (event.reminderMinutes === 0) {
-    relativeTimeStr = '지금 시작';
+    relativeTimeStr = isEn ? 'Starts now' : '지금 시작';
   } else if (event.reminderMinutes && event.reminderMinutes > 0) {
     if (event.reminderMinutes >= 1440) {
-      relativeTimeStr = `${Math.floor(event.reminderMinutes / 1440)}일 후 시작`;
+      const days = Math.floor(event.reminderMinutes / 1440);
+      relativeTimeStr = isEn ? `Starts in ${days}d` : `${days}일 후 시작`;
     } else if (event.reminderMinutes >= 60) {
-      relativeTimeStr = `${Math.floor(event.reminderMinutes / 60)}시간 후 시작`;
+      const hours = Math.floor(event.reminderMinutes / 60);
+      relativeTimeStr = isEn ? `Starts in ${hours}h` : `${hours}시간 후 시작`;
     } else {
-      relativeTimeStr = `${event.reminderMinutes}분 후 시작`;
+      relativeTimeStr = isEn ? `Starts in ${event.reminderMinutes}m` : `${event.reminderMinutes}분 후 시작`;
     }
   }
 
   const bodyParts = [relativeTimeStr, timePart].filter(Boolean);
   if (event.location) {
-    bodyParts.push(`장소: ${event.location}`);
+    bodyParts.push(isEn ? `Location: ${event.location}` : `장소: ${event.location}`);
   }
 
   return {
@@ -60,11 +68,13 @@ export function formatReminderMessage(event: CalendarEvent): { title: string; bo
  * @param events 전체 등록 일정
  * @param currentTime 현재 기준 시각
  * @param notifiedMap 이미 알림이 전송된 기록 { [eventId]: lastNotifiedReminderTime }
+ * @param lang 언어 ('ko' | 'en')
  */
 export function getDueReminders(
   events: CalendarEvent[],
   currentTime: Date,
-  notifiedMap: Record<string, number> = {}
+  notifiedMap: Record<string, number> = {},
+  lang: 'ko' | 'en' = 'ko'
 ): DueReminderResult[] {
   const nowMs = currentTime.getTime();
   const results: DueReminderResult[] = [];
@@ -91,7 +101,7 @@ export function getDueReminders(
       continue;
     }
 
-    const { title, body } = formatReminderMessage(evt);
+    const { title, body } = formatReminderMessage(evt, lang);
     results.push({
       event: evt,
       title,

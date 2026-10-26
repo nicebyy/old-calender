@@ -115,6 +115,7 @@ jobs:
           make_latest: true
           files: |
             release/*.exe
+            release/*.blockmap
             release/latest.yml
             release/checksums.txt
         env:

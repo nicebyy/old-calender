@@ -46,11 +46,16 @@ describe('Notifications Core Module', () => {
   });
 
   it('Windows 10 스타일 알림 메시지를 올바르게 포맷해야 한다', () => {
-    const formatted = formatReminderMessage(baseEvent);
+    const formatted = formatReminderMessage(baseEvent, 'ko');
     expect(formatted.title).toBe('[일정 알림] 주간 전략 회의');
     expect(formatted.body).toContain('15분 후 시작');
     expect(formatted.body).toContain('14:00 ~ 15:00');
     expect(formatted.body).toContain('장소: 대회의실');
+
+    const formattedEn = formatReminderMessage(baseEvent, 'en');
+    expect(formattedEn.title).toBe('[Reminder] 주간 전략 회의');
+    expect(formattedEn.body).toContain('Starts in 15m');
+    expect(formattedEn.body).toContain('Location: 대회의실');
   });
 
   it('현재 시각에 알림 예정 시각이 도달한 이벤트를 추출해야 한다', () => {

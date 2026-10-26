@@ -56,3 +56,18 @@ export const RECURRENCE_OPTIONS = [
   { id: 'monthly', label: '매월' },
   { id: 'yearly', label: '매년' },
 ] as const;
+
+/**
+ * 화면 배율 및 레이아웃 크기 상수
+ */
+export const ZOOM_DEFAULT = 1.0;
+export const ZOOM_MIN = 0.70;
+export const ZOOM_MAX = 1.60;
+export const ZOOM_STEP = 0.05;
+
+export const SIDEBAR_DEFAULT_WIDTH = 260;
+export const SIDEBAR_MIN_WIDTH = 200;
+export const SIDEBAR_MAX_WIDTH = 480;
+
+export const APP_VERSION = '1.0.1';
+

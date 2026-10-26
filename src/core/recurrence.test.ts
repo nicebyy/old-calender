@@ -111,4 +111,33 @@ describe('Recurrence and Layout Core Logic', () => {
     const emptyResult = searchEvents(events, '없는 검색어');
     expect(emptyResult.length).toBe(0);
   });
+
+  it('로컬 특정 날짜(26일)에 생성된 일정은 다음 날(27일) 범위 조회 시 포함되지 않아야 한다 (타임존 오프셋 분리 검증)', () => {
+    const events: CalendarEvent[] = [
+      {
+        id: 'evt-26',
+        title: '26일 일정',
+        startDate: '2026-10-26T10:00:00',
+        endDate: '2026-10-26T11:00:00',
+        isAllDay: false,
+        categoryId: 'default-work',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    ];
+
+    // 27일 하루 범위 조회
+    const startOf27 = new Date(2026, 9, 27, 0, 0, 0);
+    const endOf27 = new Date(2026, 9, 27, 23, 59, 59);
+    const result27 = expandEventsForRange(events, startOf27, endOf27);
+    expect(result27.length).toBe(0);
+
+    // 26일 하루 범위 조회
+    const startOf26 = new Date(2026, 9, 26, 0, 0, 0);
+    const endOf26 = new Date(2026, 9, 26, 23, 59, 59);
+    const result26 = expandEventsForRange(events, startOf26, endOf26);
+    expect(result26.length).toBe(1);
+    expect(result26[0].title).toBe('26일 일정');
+  });
 });
+

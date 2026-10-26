@@ -10,6 +10,7 @@ import {
 import { ko } from './ko';
 import { en } from './en';
 import { useCalendarStore } from '../storage/calendarStore';
+import { getHolidayName, getApproxLunarDateString } from '../core/holidays';
 
 describe('i18n 다국어 지원 엔진 및 사전 검증', () => {
   it('한국어(ko)와 영어(en) 사전의 모든 번역 키가 1:1로 일치해야 한다 (Key Parity)', () => {
@@ -110,5 +111,40 @@ describe('i18n 다국어 지원 엔진 및 사전 검증', () => {
     // 다시 한국어(ko)로 변경
     store.updateSettings({ language: 'ko' });
     expect(useCalendarStore.getState().settings.language).toBe('ko');
+  });
+
+  it('공휴일 및 음력 날짜가 선택된 언어에 맞게 변환되어야 한다', () => {
+    // 2026-10-03 (개천절 / National Foundation Day)
+    const oct3 = new Date(2026, 9, 3);
+    expect(getHolidayName(oct3, 'ko')).toBe('개천절');
+    expect(getHolidayName(oct3, 'en')).toBe('National Foundation Day');
+
+    // 2026-10-09 (한글날 / Hangeul Day)
+    const oct9 = new Date(2026, 9, 9);
+    expect(getHolidayName(oct9, 'ko')).toBe('한글날');
+    expect(getHolidayName(oct9, 'en')).toBe('Hangeul Day');
+
+    // 음력 1일 (초하루 / 1st) 및 15일 (보름 / 15th)
+    const lunar1 = getApproxLunarDateString(oct3, 'ko');
+    expect(lunar1).toBeDefined();
+
+    const lunar1En = getApproxLunarDateString(oct3, 'en');
+    expect(lunar1En).toBeDefined();
+    if (lunar1 === '초하루') expect(lunar1En).toBe('1st');
+    if (lunar1 === '보름') expect(lunar1En).toBe('15th');
+  });
+
+  it('테마 프리셋, 액센트 색상, 월페이퍼, 샘플 일정이 다국어로 제공되어야 한다', () => {
+    expect(translate('themePresets.classic-dark.name', 'ko')).toBe('Windows 10 클래식 다크');
+    expect(translate('themePresets.classic-dark.name', 'en')).toBe('Windows 10 Classic Dark');
+
+    expect(translate('accentColors.blue', 'ko')).toBe('기본 파랑');
+    expect(translate('accentColors.blue', 'en')).toBe('Default Blue');
+
+    expect(translate('wallpapers.windows', 'ko')).toBe('Windows 10 히어로');
+    expect(translate('wallpapers.windows', 'en')).toBe('Windows 10 Hero');
+
+    expect(translate('sampleEvents.sample1Title', 'ko')).toBe('Windows 10 캘린더 프로젝트 킥오프');
+    expect(translate('sampleEvents.sample1Title', 'en')).toBe('Windows 10 Calendar Project Kickoff');
   });
 });

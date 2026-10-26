@@ -1,6 +1,8 @@
 import React from 'react';
 import { Bell, X, Clock, MapPin } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
+import { useTranslation } from '../../locales';
+import { getEventDisplayTitle } from '../../core/calendar';
 
 export const ToastContainer: React.FC = () => {
   const activeToasts = useCalendarStore((s) => s.activeToasts);
@@ -9,12 +11,15 @@ export const ToastContainer: React.FC = () => {
   const openEventModal = useCalendarStore((s) => s.openEventModal);
   const setSelectedDate = useCalendarStore((s) => s.setSelectedDate);
 
+  const { t, language } = useTranslation();
+
   if (activeToasts.length === 0) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col space-y-3 pointer-events-none select-none max-w-sm w-full print:hidden">
       {activeToasts.map((toast) => {
         const evt = toast.event;
+        const displayTitle = getEventDisplayTitle(evt, language);
 
         const handleToastClick = () => {
           setSelectedDate(new Date(evt.startDate));
@@ -33,7 +38,9 @@ export const ToastContainer: React.FC = () => {
                 <div className="w-4 h-4 rounded-full bg-[var(--win10-accent)] flex items-center justify-center text-white">
                   <Bell className="w-2.5 h-2.5" />
                 </div>
-                <span className="font-semibold text-[11px] text-[var(--win10-accent)]">일정 알림</span>
+                <span className="font-semibold text-[11px] text-[var(--win10-accent)]">
+                  {t('notifications.header')}
+                </span>
               </div>
               <button
                 onClick={(e) => {
@@ -41,7 +48,7 @@ export const ToastContainer: React.FC = () => {
                   dismissToast(toast.id);
                 }}
                 className="p-1 hover:bg-[#e81123] rounded transition-colors text-[var(--win10-text-secondary)] hover:text-white"
-                title="닫기"
+                title={t('common.close')}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -53,14 +60,14 @@ export const ToastContainer: React.FC = () => {
               className="cursor-pointer space-y-1 hover:opacity-90 transition-opacity"
             >
               <div className="text-sm font-bold text-[var(--win10-text-primary)] truncate">
-                {evt.title}
+                {displayTitle}
               </div>
 
               <div className="flex items-center space-x-1.5 text-xs text-[var(--win10-text-secondary)]">
                 <Clock className="w-3.5 h-3.5 text-[var(--win10-text-muted)] shrink-0" />
                 <span>
                   {evt.isAllDay
-                    ? '종일 일정'
+                    ? t('notifications.allDay')
                     : `${evt.startDate.slice(11, 16)} ~ ${evt.endDate.slice(11, 16)}`}
                 </span>
               </div>
@@ -78,16 +85,16 @@ export const ToastContainer: React.FC = () => {
               <button
                 onClick={() => snoozeToast(toast.id, 5)}
                 className="px-2.5 py-1 rounded bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)] text-[var(--win10-text-primary)] border border-[var(--win10-border)] transition-colors text-[11px]"
-                title="5분 뒤 다시 알림"
+                title={t('notifications.snoozeTooltip')}
               >
-                다시 알림 (5분)
+                {t('notifications.snooze5m')}
               </button>
 
               <button
                 onClick={() => dismissToast(toast.id)}
                 className="px-3 py-1 rounded bg-[var(--win10-accent)] hover:brightness-110 active:brightness-95 text-white font-medium transition-all text-[11px] shadow-sm"
               >
-                해제
+                {t('notifications.dismiss')}
               </button>
             </div>
           </div>
