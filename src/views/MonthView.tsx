@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Sun, CloudSun, Cloud, CloudRain, CloudSnow, StickyNote } from 'lucide-react';
 import { useCalendarStore } from '../storage/calendarStore';
 import { getMonthGrid, getEventDisplayTitle } from '../core/calendar';
@@ -10,6 +10,7 @@ export const MonthView: React.FC = () => {
   const selectedDate = useCalendarStore((s) => s.selectedDate);
   const setSelectedDate = useCalendarStore((s) => s.setSelectedDate);
   const navigateViewDate = useCalendarStore((s) => s.navigateViewDate);
+  const events = useCalendarStore((s) => s.events);
   const categories = useCalendarStore((s) => s.categories);
   const settings = useCalendarStore((s) => s.settings);
   const weatherDailyCache = useCalendarStore((s) => s.weatherDailyCache);
@@ -93,26 +94,30 @@ export const MonthView: React.FC = () => {
     }
   };
 
-  // 해당 월의 앞뒤 여유를 두고 반복 일정 전개
-  const startOfGrid = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 15);
-  const endOfGrid = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 15);
-  const visibleEvents = getExpandedEvents(startOfGrid, endOfGrid);
+  // 해당 월의 앞뒤 여유를 두고 반복 일정 전개 (이벤트 추가/수정/삭제 시 즉시 반영되도록 useMemo 적용)
+  const visibleEvents = useMemo(() => {
+    const startOfGrid = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 15);
+    const endOfGrid = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 15);
+    return getExpandedEvents(startOfGrid, endOfGrid);
+  }, [viewDate, events, categories, getExpandedEvents]);
 
   // 월간 그리드 42개 셀 계산 (공휴일, 음력, 위치 기반 날씨 옵션 반영)
-  const grid = getMonthGrid(
-    viewDate.getFullYear(),
-    viewDate.getMonth(),
-    selectedDate,
-    visibleEvents,
-    {
-      showWeather: settings.showWeather,
-      tempUnit: settings.temperatureUnit,
-      showLunar: settings.showLunarCalendar,
-      location: settings.weatherLocation,
-      weatherCache: weatherDailyCache,
-      lang: settings.language,
-    }
-  );
+  const grid = useMemo(() => {
+    return getMonthGrid(
+      viewDate.getFullYear(),
+      viewDate.getMonth(),
+      selectedDate,
+      visibleEvents,
+      {
+        showWeather: settings.showWeather,
+        tempUnit: settings.temperatureUnit,
+        showLunar: settings.showLunarCalendar,
+        location: settings.weatherLocation,
+        weatherCache: weatherDailyCache,
+        lang: settings.language,
+      }
+    );
+  }, [viewDate, selectedDate, visibleEvents, settings, weatherDailyCache]);
 
   const handleCellClick = (cell: DayCellData) => {
     setSelectedDate(cell.date);

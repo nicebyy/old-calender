@@ -300,5 +300,68 @@ describe('Calendar Views & HeaderControls Test Suite', () => {
     expect(useCalendarStore.getState().events.some((e) => e.id === 'test-modal-delete-evt')).toBe(false);
     expect(useCalendarStore.getState().isEventModalOpen).toBe(false);
   });
+
+  it('MonthView에 새 일정을 추가하면 즉시 캘린더 그리드에 반영되어야 한다', () => {
+    useCalendarStore.setState({
+      selectedDate: new Date(2026, 9, 26),
+      viewDate: new Date(2026, 9, 26),
+      events: [],
+    });
+
+    const { unmount } = render(<MonthView />);
+
+    // store.addEvent 호출 시 즉시 MonthView에 렌더링되는지 검증
+    act(() => {
+      useCalendarStore.getState().addEvent({
+        title: '즉각 반영 검증 일정',
+        startDate: '2026-10-26T10:00:00',
+        endDate: '2026-10-26T11:00:00',
+        isAllDay: false,
+        categoryId: 'default-personal',
+      });
+    });
+
+    expect(screen.getByText('즉각 반영 검증 일정')).toBeInTheDocument();
+
+    act(() => {
+      unmount();
+    });
+  });
+
+  it('Sidebar에서 일정이 없는 날(27일)을 클릭했을 때 전날(26일) 일정이 뜨지 않고 단일 플러스 문구로 표시되어야 한다', () => {
+    useCalendarStore.setState({
+      selectedDate: new Date(2026, 9, 27),
+      viewDate: new Date(2026, 9, 27),
+      events: [
+        {
+          id: 'oct-26-event',
+          title: '26일 전용 일정',
+          startDate: '2026-10-26T10:00:00',
+          endDate: '2026-10-26T11:00:00',
+          isAllDay: false,
+          categoryId: 'default-personal',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+      ],
+    });
+
+    const { unmount } = render(<Sidebar />);
+
+    // 27일 헤더 확인 및 26일 일정이 사이드바에 나타나지 않음 검증
+    expect(screen.getByText('10월 27일 (화)')).toBeInTheDocument();
+    expect(screen.queryByText('26일 전용 일정')).toBeNull();
+    expect(screen.getByText('등록된 일정이 없습니다.')).toBeInTheDocument();
+
+    // '+ 새 일정 추가' 버튼에서 중복 '+'가 없음을 검증
+    const addBtn = screen.getByText('새 일정 추가');
+    expect(addBtn).toBeInTheDocument();
+    expect(addBtn.textContent).toBe('새 일정 추가');
+
+    act(() => {
+      unmount();
+    });
+  });
 });
+
 

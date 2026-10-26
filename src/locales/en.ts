@@ -39,7 +39,7 @@ export const en: TranslationSchema = {
     dragResizeTooltip: 'Drag to resize (Double-click to reset)',
     selectedDateEvents: 'Events for Selected Date',
     noEventsOnDate: 'No events scheduled for this date.',
-    addEventForDate: '+ Add New Event',
+    addEventForDate: 'Add New Event',
     editEvent: 'Edit Event',
     deleteEvent: 'Delete Event',
     confirmDelete: 'Delete',
