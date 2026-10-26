@@ -111,7 +111,7 @@ export const MiniCalendar: React.FC = () => {
                 ${isSelected ? 'bg-[var(--win10-accent)] text-white font-bold' : ''}
                 ${!isSelected && isToday ? 'border border-[var(--win10-accent)] text-[var(--win10-text-primary)] font-bold' : ''}
                 ${!isSelected && !isToday && isCurrent ? 'text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)]' : ''}
-                ${!isSelected && !isToday && !isCurrent ? 'text-[var(--win10-text-muted)] hover:bg-[var(--win10-button-hover)]' : ''}
+                ${!isSelected && !isToday && !isCurrent ? 'text-[var(--win10-text-other-month)] opacity-40 hover:opacity-100 hover:bg-[var(--win10-button-hover)]' : ''}
               `}
             >
               {cell.dayNumber}
