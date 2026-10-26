@@ -17,13 +17,9 @@ import { useCalendarStore } from '../../storage/calendarStore';
 import { formatDateKey } from '../../core/calendar';
 import { RECURRENCE_OPTIONS, REMINDER_OPTIONS } from '../../constants/settings';
 import { RecurrenceType, BusyStatusType } from '../../types';
+import { useTranslation } from '../../locales';
 
-const BUSY_STATUS_OPTIONS: { id: BusyStatusType; label: string }[] = [
-  { id: 'busy', label: '약속 있음 (바쁨)' },
-  { id: 'free', label: '한가함' },
-  { id: 'tentative', label: '임시 일정' },
-  { id: 'away', label: '다른 곳에 있음' },
-];
+const BUSY_STATUS_OPTIONS: BusyStatusType[] = ['busy', 'free', 'tentative', 'away'];
 
 export const EventModal: React.FC = () => {
   const isOpen = useCalendarStore((s) => s.isEventModalOpen);
@@ -35,6 +31,8 @@ export const EventModal: React.FC = () => {
   const deleteEvent = useCalendarStore((s) => s.deleteEvent);
   const closeModal = useCalendarStore((s) => s.closeEventModal);
   const triggerReminderNotification = useCalendarStore((s) => s.triggerReminderNotification);
+
+  const { t, language } = useTranslation();
 
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -129,7 +127,9 @@ export const EventModal: React.FC = () => {
 
   const handleDelete = () => {
     if (editingEvent) {
-      deleteEvent(editingEvent.id);
+      if (confirm(t('event.deleteConfirm'))) {
+        deleteEvent(editingEvent.id);
+      }
     }
   };
 
@@ -152,6 +152,67 @@ export const EventModal: React.FC = () => {
     });
   };
 
+  const getCategoryDisplayName = (id: string, name: string) => {
+    if (language === 'en') {
+      if (id === 'default-personal') return 'Personal';
+      if (id === 'default-work') return 'Work';
+      if (id === 'default-holiday') return 'Holidays';
+      if (id === 'default-birthday') return 'Birthdays';
+    }
+    return name;
+  };
+
+  const getBusyStatusLabel = (status: BusyStatusType) => {
+    switch (status) {
+      case 'busy':
+        return t('event.busyStatusBusy');
+      case 'free':
+        return t('event.busyStatusFree');
+      case 'tentative':
+        return t('event.busyStatusTentative');
+      case 'away':
+        return t('event.busyStatusAway');
+      default:
+        return status;
+    }
+  };
+
+  const getRecurrenceLabel = (rec: RecurrenceType) => {
+    switch (rec) {
+      case 'none':
+        return t('event.recurrenceNone');
+      case 'daily':
+        return t('event.recurrenceDaily');
+      case 'weekly':
+        return t('event.recurrenceWeekly');
+      case 'monthly':
+        return t('event.recurrenceMonthly');
+      case 'yearly':
+        return t('event.recurrenceYearly');
+      default:
+        return rec;
+    }
+  };
+
+  const getReminderLabel = (minutes: number) => {
+    switch (minutes) {
+      case -1:
+        return t('event.reminderNone');
+      case 0:
+        return t('event.reminderAtTime');
+      case 15:
+        return t('event.reminder15m');
+      case 30:
+        return t('event.reminder30m');
+      case 60:
+        return t('event.reminder1h');
+      case 1440:
+        return t('event.reminder1d');
+      default:
+        return `${minutes}m`;
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs select-none print:hidden">
       <div className="w-[500px] max-h-[90vh] bg-[var(--win10-modal-bg)] border border-[var(--win10-border)] rounded shadow-2xl overflow-hidden flex flex-col text-[var(--win10-text-primary)] transition-colors">
@@ -159,7 +220,7 @@ export const EventModal: React.FC = () => {
         <div className="h-10 bg-[var(--win10-surface)] border-b border-[var(--win10-border)] flex items-center justify-between px-3 shrink-0">
           <div className="text-xs font-semibold text-[var(--win10-text-primary)] flex items-center space-x-2">
             <CalendarIcon className="w-3.5 h-3.5 text-[var(--win10-accent)]" />
-            <span>{editingEvent ? '이벤트 편집' : '새 이벤트'}</span>
+            <span>{editingEvent ? t('event.editTitle') : t('event.newTitle')}</span>
           </div>
           <button
             onClick={closeModal}
@@ -177,7 +238,7 @@ export const EventModal: React.FC = () => {
               type="text"
               required
               autoFocus
-              placeholder="이벤트 이름 추가"
+              placeholder={t('event.titlePlaceholder')}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-2.5 py-1.5 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] focus:border-[var(--win10-accent)] outline-none text-sm text-[var(--win10-text-primary)] placeholder-[var(--win10-text-muted)] rounded"
@@ -193,7 +254,7 @@ export const EventModal: React.FC = () => {
                 onChange={(e) => setIsAllDay(e.target.checked)}
                 className="accent-[var(--win10-accent)] w-3.5 h-3.5"
               />
-              <span>종일</span>
+              <span>{t('event.allDayToggle')}</span>
             </label>
 
             <label className="flex items-center space-x-1.5 cursor-pointer">
@@ -204,7 +265,7 @@ export const EventModal: React.FC = () => {
                 className="accent-[var(--win10-accent)] w-3.5 h-3.5"
               />
               <Lock className="w-3 h-3 text-[var(--win10-text-muted)]" />
-              <span>비공개</span>
+              <span>{t('event.privateEvent')}</span>
             </label>
           </div>
 
@@ -213,7 +274,7 @@ export const EventModal: React.FC = () => {
             {/* 시작일 */}
             <div className="flex items-center space-x-2">
               <Clock className="w-3.5 h-3.5 text-[var(--win10-text-muted)] shrink-0" />
-              <span className="w-12 text-[var(--win10-text-secondary)]">시작:</span>
+              <span className="w-12 text-[var(--win10-text-secondary)]">{t('event.startDate')}:</span>
               <input
                 type="date"
                 value={startDate}
@@ -233,7 +294,7 @@ export const EventModal: React.FC = () => {
             {/* 종료일 */}
             <div className="flex items-center space-x-2">
               <div className="w-3.5" />
-              <span className="w-12 text-[var(--win10-text-secondary)]">종료:</span>
+              <span className="w-12 text-[var(--win10-text-secondary)]">{t('event.endDate')}:</span>
               <input
                 type="date"
                 value={endDate}
@@ -254,7 +315,7 @@ export const EventModal: React.FC = () => {
           {/* 캘린더 범주 & 상태 표시 */}
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center space-x-1.5">
-              <span className="w-12 text-[var(--win10-text-secondary)]">캘린더:</span>
+              <span className="w-12 text-[var(--win10-text-secondary)]">{t('event.calendarSelect')}:</span>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
@@ -262,7 +323,7 @@ export const EventModal: React.FC = () => {
               >
                 {categories.map((c) => (
                   <option key={c.id} value={c.id} className="bg-[var(--win10-surface)] text-[var(--win10-text-primary)]">
-                    {c.name}
+                    {getCategoryDisplayName(c.id, c.name)}
                   </option>
                 ))}
               </select>
@@ -276,9 +337,9 @@ export const EventModal: React.FC = () => {
                 onChange={(e) => setBusyStatus(e.target.value as BusyStatusType)}
                 className="flex-1 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] px-2 py-1.5 rounded text-[var(--win10-text-primary)] outline-none cursor-pointer"
               >
-                {BUSY_STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.id} value={opt.id} className="bg-[var(--win10-surface)] text-[var(--win10-text-primary)]">
-                    {opt.label}
+                {BUSY_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status} className="bg-[var(--win10-surface)] text-[var(--win10-text-primary)]">
+                    {getBusyStatusLabel(status)}
                   </option>
                 ))}
               </select>
@@ -296,7 +357,7 @@ export const EventModal: React.FC = () => {
               >
                 {RECURRENCE_OPTIONS.map((opt) => (
                   <option key={opt.id} value={opt.id} className="bg-[var(--win10-surface)] text-[var(--win10-text-primary)]">
-                    {opt.label}
+                    {getRecurrenceLabel(opt.id as RecurrenceType)}
                   </option>
                 ))}
               </select>
@@ -311,7 +372,7 @@ export const EventModal: React.FC = () => {
               >
                 {REMINDER_OPTIONS.map((opt) => (
                   <option key={opt.minutes} value={opt.minutes} className="bg-[var(--win10-surface)] text-[var(--win10-text-primary)]">
-                    {opt.label}
+                    {getReminderLabel(opt.minutes)}
                   </option>
                 ))}
               </select>
@@ -331,7 +392,7 @@ export const EventModal: React.FC = () => {
             <MapPin className="w-3.5 h-3.5 text-[var(--win10-text-muted)] shrink-0" />
             <input
               type="text"
-              placeholder="위치 추가"
+              placeholder={t('event.locationPlaceholder')}
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               className="flex-1 px-2 py-1.5 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] focus:border-[var(--win10-accent)] outline-none text-[var(--win10-text-primary)] placeholder-[var(--win10-text-muted)] rounded"
@@ -343,7 +404,7 @@ export const EventModal: React.FC = () => {
             <Users className="w-3.5 h-3.5 text-[var(--win10-text-muted)] shrink-0" />
             <input
               type="text"
-              placeholder="참석자 초대 (쉼표로 구분된 이메일)"
+              placeholder={t('event.attendeesPlaceholder')}
               value={attendeesInput}
               onChange={(e) => setAttendeesInput(e.target.value)}
               className="flex-1 px-2 py-1.5 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] focus:border-[var(--win10-accent)] outline-none text-[var(--win10-text-primary)] placeholder-[var(--win10-text-muted)] rounded"
@@ -355,7 +416,7 @@ export const EventModal: React.FC = () => {
             <AlignLeft className="w-3.5 h-3.5 text-[var(--win10-text-muted)] mt-2 shrink-0" />
             <textarea
               rows={2}
-              placeholder="설명 추가"
+              placeholder={t('event.descriptionPlaceholder')}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="flex-1 px-2 py-1.5 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] focus:border-[var(--win10-accent)] outline-none text-[var(--win10-text-primary)] placeholder-[var(--win10-text-muted)] rounded resize-none"
@@ -371,7 +432,7 @@ export const EventModal: React.FC = () => {
                 className="flex items-center space-x-1.5 px-3 py-1.5 text-xs text-[#ff5555] hover:bg-[#e81123]/20 rounded transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>삭제</span>
+                <span>{t('event.delete')}</span>
               </button>
             ) : (
               <div />
@@ -383,13 +444,13 @@ export const EventModal: React.FC = () => {
                 onClick={closeModal}
                 className="px-4 py-1.5 text-xs bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)] text-[var(--win10-text-primary)] border border-[var(--win10-border)] rounded transition-colors"
               >
-                취소
+                {t('event.cancel')}
               </button>
               <button
                 type="submit"
                 className="px-5 py-1.5 text-xs font-semibold bg-[var(--win10-accent)] hover:opacity-90 active:opacity-80 text-white rounded transition-opacity shadow"
               >
-                저장
+                {t('event.save')}
               </button>
             </div>
           </div>

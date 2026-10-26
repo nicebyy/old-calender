@@ -1,6 +1,6 @@
 import React from 'react';
 import { useCalendarStore } from '../storage/calendarStore';
-import { getMonthGrid, isSameDay } from '../core/calendar';
+import { getMonthGrid } from '../core/calendar';
 import { useTranslation } from '../locales';
 
 export const YearView: React.FC = () => {
@@ -13,7 +13,6 @@ export const YearView: React.FC = () => {
   const { months, weekdays } = useTranslation();
 
   const year = viewDate.getFullYear();
-  const today = new Date();
 
   const handleMonthClick = (monthIdx: number) => {
     const newDate = new Date(year, monthIdx, 1);

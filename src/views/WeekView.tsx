@@ -19,7 +19,7 @@ export const WeekView: React.FC<WeekViewProps> = ({ isWorkWeek = false }) => {
   const openEventModal = useCalendarStore((s) => s.openEventModal);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const { t, weekdays, language } = useTranslation();
+  const { weekdays, language } = useTranslation();
 
   // 현재 주의 날짜 목록 계산
   const fullWeekDays = getWeekDays(viewDate, false);

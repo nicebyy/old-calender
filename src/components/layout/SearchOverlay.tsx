@@ -3,6 +3,7 @@ import { Search, X, Calendar as CalIcon, MapPin, Clock } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
 import { searchEvents } from '../../core/recurrence';
 import { CalendarEvent } from '../../types';
+import { useTranslation } from '../../locales';
 
 export const SearchOverlay: React.FC = () => {
   const isSearchOpen = useCalendarStore((s) => s.isSearchOpen);
@@ -13,6 +14,8 @@ export const SearchOverlay: React.FC = () => {
   const categories = useCalendarStore((s) => s.categories);
   const setSelectedDate = useCalendarStore((s) => s.setSelectedDate);
   const openEventModal = useCalendarStore((s) => s.openEventModal);
+
+  const { t, language } = useTranslation();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -33,6 +36,11 @@ export const SearchOverlay: React.FC = () => {
     toggleSearch();
   };
 
+  const emptyHint =
+    language === 'ko'
+      ? '검색어를 입력하시면 일정을 실시간으로 찾아드립니다.'
+      : 'Type to search scheduled events in real-time.';
+
   return (
     <div className="fixed inset-0 z-50 flex justify-center items-start pt-16 bg-black/50 backdrop-blur-xs select-none">
       <div className="w-[520px] bg-[#292929] border border-[#444444] rounded shadow-2xl overflow-hidden text-white flex flex-col max-h-[500px]">
@@ -42,7 +50,7 @@ export const SearchOverlay: React.FC = () => {
           <input
             ref={inputRef}
             type="text"
-            placeholder="일정 검색 (제목, 위치, 설명)..."
+            placeholder={t('search.placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder-[#888888]"
@@ -59,7 +67,7 @@ export const SearchOverlay: React.FC = () => {
             onClick={toggleSearch}
             className="px-2 py-1 text-xs text-[#aaaaaa] hover:text-white rounded hover:bg-[#333333]"
           >
-            닫기
+            {t('common.close')}
           </button>
         </div>
 
@@ -67,11 +75,11 @@ export const SearchOverlay: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {searchQuery.trim() === '' ? (
             <div className="py-8 text-center text-xs text-[#777777]">
-              검색어를 입력하시면 일정을 실시간으로 찾아드립니다.
+              {emptyHint}
             </div>
           ) : results.length === 0 ? (
             <div className="py-8 text-center text-xs text-[#777777]">
-              '{searchQuery}'에 일치하는 일정이 없습니다.
+              {t('search.noResults')}
             </div>
           ) : (
             results.map((evt) => {
@@ -86,7 +94,7 @@ export const SearchOverlay: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-xs text-white">{evt.title}</span>
                     <span className="text-[10px] text-[#aaaaaa]">
-                      {cat?.name || '일정'}
+                      {cat?.name || t('calendar.allDay')}
                     </span>
                   </div>
 
@@ -104,7 +112,7 @@ export const SearchOverlay: React.FC = () => {
                       </div>
                     )}
                     {evt.location && (
-                      <div className="flex items-center space-x-1 truncate max-w-[150px]">
+                      <div className="flex items-center space-x-1 truncate max-w-[200px]">
                         <MapPin className="w-3 h-3" />
                         <span className="truncate">{evt.location}</span>
                       </div>

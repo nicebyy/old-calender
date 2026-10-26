@@ -10,6 +10,7 @@ import {
 import { useCalendarStore } from '../../storage/calendarStore';
 import { OAUTH_PROVIDERS } from '../../constants/oauth';
 import { OAuthProvider } from '../../types';
+import { useTranslation } from '../../locales';
 
 export const AccountModal: React.FC = () => {
   const isOpen = useCalendarStore((s) => s.isAccountModalOpen);
@@ -18,6 +19,8 @@ export const AccountModal: React.FC = () => {
   const addSyncedAccount = useCalendarStore((s) => s.addSyncedAccount);
   const removeSyncedAccount = useCalendarStore((s) => s.removeSyncedAccount);
   const syncAccount = useCalendarStore((s) => s.syncAccount);
+
+  const { t, language } = useTranslation();
 
   const [selectedProvider, setSelectedProvider] = useState<OAuthProvider | null>(null);
   const [emailInput, setEmailInput] = useState('');
@@ -37,12 +40,12 @@ export const AccountModal: React.FC = () => {
     if (!selectedProvider || !emailInput.trim()) return;
 
     setIsAuthenticating(true);
-    // OAuth2 인증 흐름 모의 (토큰 발급 대기 시뮬레이션)
+    // OAuth2 인증 대기 시뮬레이션
     await new Promise((resolve) => setTimeout(resolve, 600));
 
     const defaultNames: Record<OAuthProvider, string> = {
-      google: 'Google 캘린더',
-      apple: 'iCloud 캘린더',
+      google: language === 'ko' ? 'Google 캘린더' : 'Google Calendar',
+      apple: language === 'ko' ? 'iCloud 캘린더' : 'iCloud Calendar',
     };
 
     addSyncedAccount(
@@ -72,11 +75,14 @@ export const AccountModal: React.FC = () => {
         {/* 모달 헤더 (Windows 10 특유의 상단 바) */}
         <div className="h-11 bg-[#202020] border-b border-[#333333] flex items-center justify-between px-4">
           <span className="text-sm font-semibold text-white">
-            {selectedProvider ? '계정 로그인 및 연결' : '계정 선택 (Choose an account)'}
+            {selectedProvider
+              ? (language === 'ko' ? '계정 로그인 및 연결' : 'Sign in & Connect Account')
+              : t('sync.title')}
           </span>
           <button
             onClick={closeModal}
             className="p-1 hover:bg-[#e81123] rounded transition-colors text-[#aaaaaa] hover:text-white"
+            title={t('common.close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -90,7 +96,7 @@ export const AccountModal: React.FC = () => {
               {syncedAccounts.length > 0 && (
                 <div className="space-y-2 pb-3 border-b border-[#383838]">
                   <span className="text-[11px] font-semibold text-[#aaaaaa] uppercase tracking-wider block">
-                    연동된 계정 ({syncedAccounts.length})
+                    {t('sync.connectedAccounts')} ({syncedAccounts.length})
                   </span>
                   <div className="space-y-1.5">
                     {syncedAccounts.map((acc) => (
@@ -114,7 +120,7 @@ export const AccountModal: React.FC = () => {
                             onClick={() => syncAccount(acc.id)}
                             disabled={acc.syncStatus === 'syncing'}
                             className="p-1.5 rounded hover:bg-[#333333] text-[#aaaaaa] hover:text-white transition-colors"
-                            title="지금 동기화"
+                            title={t('sync.syncNow')}
                           >
                             <RotateCw
                               className={`w-3.5 h-3.5 ${
@@ -127,7 +133,7 @@ export const AccountModal: React.FC = () => {
                           <button
                             onClick={() => removeSyncedAccount(acc.id)}
                             className="p-1.5 rounded hover:bg-[#3d2424] text-[#888888] hover:text-[#ff6b6b] transition-colors"
-                            title="계정 연동 해제"
+                            title={t('sync.disconnect')}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -141,7 +147,7 @@ export const AccountModal: React.FC = () => {
               {/* 2. 공급자 선택 목록 (Windows 10 UWP 공식 메뉴) */}
               <div className="space-y-2">
                 <span className="text-[11px] font-semibold text-[#aaaaaa] uppercase tracking-wider block">
-                  새 캘린더 계정 추가
+                  {t('sync.addAccount')}
                 </span>
                 <div className="space-y-1.5">
                   {OAUTH_PROVIDERS.map((prov) => (
@@ -157,7 +163,9 @@ export const AccountModal: React.FC = () => {
                             {prov.name}
                           </div>
                           <div className="text-[10.5px] text-[#777777]">
-                            일정, 회의 및 리마인더 양방향 동기화
+                            {language === 'ko'
+                              ? '일정, 회의 및 리마인더 양방향 동기화'
+                              : 'Two-way sync for events, meetings, and reminders'}
                           </div>
                         </div>
                       </div>
@@ -177,7 +185,9 @@ export const AccountModal: React.FC = () => {
                     {OAUTH_PROVIDERS.find((p) => p.provider === selectedProvider)?.name}
                   </div>
                   <div className="text-[10px] text-[#888888]">
-                    OAuth2 표준 프로토콜을 통해 안전하게 일정을 동기화합니다.
+                    {language === 'ko'
+                      ? 'OAuth2 표준 프로토콜을 통해 안전하게 일정을 동기화합니다.'
+                      : 'Securely sync your events via standard OAuth2 protocols.'}
                   </div>
                 </div>
               </div>
@@ -185,7 +195,7 @@ export const AccountModal: React.FC = () => {
               <div className="space-y-3">
                 <div>
                   <label className="text-[11px] text-[#aaaaaa] block mb-1">
-                    이메일 주소 <span className="text-[#e81123]">*</span>
+                    {language === 'ko' ? '이메일 주소' : 'Email Address'} <span className="text-[#e81123]">*</span>
                   </label>
                   <input
                     type="email"
@@ -200,11 +210,15 @@ export const AccountModal: React.FC = () => {
 
                 <div>
                   <label className="text-[11px] text-[#aaaaaa] block mb-1">
-                    표시 이름 (선택사항)
+                    {language === 'ko' ? '표시 이름 (선택사항)' : 'Display Name (Optional)'}
                   </label>
                   <input
                     type="text"
-                    placeholder="예: 회사 업무 일정, 개인 구글 캘린더"
+                    placeholder={
+                      language === 'ko'
+                        ? '예: 회사 업무 일정, 개인 구글 캘린더'
+                        : 'e.g. Work Calendar, Personal Google Calendar'
+                    }
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
                     className="w-full px-3 py-1.5 bg-[#181818] border border-[#444444] focus:border-[#0078d7] outline-none text-white rounded text-xs"
@@ -218,7 +232,7 @@ export const AccountModal: React.FC = () => {
                   onClick={() => setSelectedProvider(null)}
                   className="px-3 py-1.5 text-xs text-[#aaaaaa] hover:text-white hover:bg-[#333333] rounded transition-colors"
                 >
-                  뒤로
+                  {language === 'ko' ? '뒤로' : 'Back'}
                 </button>
 
                 <div className="flex items-center space-x-2">
@@ -227,7 +241,7 @@ export const AccountModal: React.FC = () => {
                     onClick={closeModal}
                     className="px-3.5 py-1.5 text-xs bg-[#333333] hover:bg-[#444444] text-[#cccccc] rounded transition-colors"
                   >
-                    취소
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
@@ -237,10 +251,10 @@ export const AccountModal: React.FC = () => {
                     {isAuthenticating ? (
                       <>
                         <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>인증 중...</span>
+                        <span>{t('sync.syncing')}</span>
                       </>
                     ) : (
-                      <span>계정 연결</span>
+                      <span>{t('sync.connect')}</span>
                     )}
                   </button>
                 </div>
