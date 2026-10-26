@@ -48,4 +48,33 @@ describe('CalendarStore Extended', () => {
     const result = useCalendarStore.getState().importDataJSON(exportedJSON);
     expect(result).toBe(true);
   });
+
+  it('새 캘린더 카테고리를 정상적으로 추가할 수 있어야 한다', () => {
+    const prevCount = useCalendarStore.getState().categories.length;
+    useCalendarStore.getState().addCategory('피트니스', '#CA5010');
+
+    const newCategories = useCalendarStore.getState().categories;
+    expect(newCategories.length).toBe(prevCount + 1);
+    expect(newCategories.some((c) => c.name === '피트니스')).toBe(true);
+  });
+
+  it('일정 드래그 앤 드롭 이동(rescheduleEvent)이 시작/종료 일자를 정확히 변경해야 한다', () => {
+    const sampleEvent = useCalendarStore.getState().events[0];
+    const newTargetDate = '2026-11-15';
+
+    useCalendarStore.getState().rescheduleEvent(sampleEvent.id, newTargetDate);
+
+    const updated = useCalendarStore
+      .getState()
+      .events.find((e) => e.id === sampleEvent.id);
+    expect(updated?.startDate.startsWith('2026-11-15')).toBe(true);
+  });
+
+  it('iCalendar(.ics) 내보내기 및 가져오기가 정상 작동해야 한다', () => {
+    const icsContent = useCalendarStore.getState().exportEventsToICSFile();
+    expect(icsContent).toContain('BEGIN:VCALENDAR');
+
+    const count = useCalendarStore.getState().importEventsFromICS(icsContent);
+    expect(count).toBeGreaterThan(0);
+  });
 });

@@ -60,6 +60,7 @@ describe('Calendar Views & HeaderControls Test Suite', () => {
       closeWindow: mockClose,
       isWindowMaximized: mockIsMaximized,
       onWindowStateChange: mockOnWindowStateChange,
+      showNotification: vi.fn(),
     };
 
     await act(async () => {
