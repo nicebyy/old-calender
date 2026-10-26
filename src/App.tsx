@@ -3,6 +3,7 @@ import { ZoomIn } from 'lucide-react';
 import { HeaderControls } from './components/layout/HeaderControls';
 import { Sidebar } from './components/layout/Sidebar';
 import { SettingsPanel } from './components/layout/SettingsPanel';
+import { MemoPanel } from './components/memo/MemoPanel';
 import { MonthView } from './views/MonthView';
 import { WeekView } from './views/WeekView';
 import { DayView } from './views/DayView';
@@ -21,6 +22,7 @@ export const App: React.FC = () => {
   const setViewType = useCalendarStore((s) => s.setViewType);
   const toggleSearch = useCalendarStore((s) => s.toggleSearch);
   const toggleSettings = useCalendarStore((s) => s.toggleSettings);
+  const toggleMemoPanel = useCalendarStore((s) => s.toggleMemoPanel);
   const settings = useCalendarStore((s) => s.settings);
   const zoomIn = useCalendarStore((s) => s.zoomIn);
   const zoomOut = useCalendarStore((s) => s.zoomOut);
@@ -147,6 +149,9 @@ export const App: React.FC = () => {
         } else if (e.key.toLowerCase() === 'f') {
           e.preventDefault();
           toggleSearch();
+        } else if (e.key.toLowerCase() === 'm') {
+          e.preventDefault();
+          toggleMemoPanel();
         } else if (e.key === ',') {
           e.preventDefault();
           toggleSettings();
@@ -207,7 +212,7 @@ export const App: React.FC = () => {
       {/* 2. 본문 영역: 사이드바 + 캘린더 뷰 */}
       <div className="flex-1 flex overflow-hidden relative z-10">
         <Sidebar />
-        <main className="flex-1 flex flex-col overflow-hidden relative">
+        <main className="flex-1 flex flex-col overflow-hidden relative min-h-0">
           {viewType === 'month' && <MonthView />}
           {viewType === 'week' && <WeekView isWorkWeek={false} />}
           {viewType === 'workWeek' && <WeekView isWorkWeek={true} />}
@@ -217,6 +222,9 @@ export const App: React.FC = () => {
 
         {/* 3. 우측 설정 플라이아웃 패널 */}
         <SettingsPanel />
+
+        {/* 3-1. 우측 스티커 메모 플라이아웃 패널 */}
+        <MemoPanel />
       </div>
 
       {/* 4. 전역 모달 (이벤트 추가/수정) */}

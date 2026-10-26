@@ -204,4 +204,16 @@ describe('Calendar Views & HeaderControls Test Suite', () => {
       unmount();
     });
   });
+
+  it('MonthView가 minmax(84px, 1fr) 그리드 구조를 가지며 스크롤 컨테이너를 포함해야 한다', () => {
+    const { container, unmount } = render(<MonthView />);
+    const gridDiv = container.querySelector('[style*="grid-template-rows"]') as HTMLElement;
+    expect(gridDiv).toBeInTheDocument();
+    expect(gridDiv.style.gridTemplateRows).toBe('repeat(6, minmax(84px, 1fr))');
+
+    act(() => {
+      unmount();
+    });
+  });
 });
+

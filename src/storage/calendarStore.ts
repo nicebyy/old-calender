@@ -3,6 +3,7 @@ import {
   AppSettings,
   CalendarCategory,
   CalendarEvent,
+  CalendarMemo,
   CalendarViewType,
   QuickPopoverState,
   OAuthProvider,
@@ -37,6 +38,7 @@ const STORAGE_KEY_SETTINGS = 'win10_calendar_settings';
 const STORAGE_KEY_ACCOUNTS = 'win10_calendar_synced_accounts';
 const STORAGE_KEY_NOTIFIED = 'win10_calendar_notified_reminders';
 const STORAGE_KEY_WEATHER_CACHE = 'win10_calendar_weather_cache';
+const STORAGE_KEY_MEMOS = 'win10_calendar_memos';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   language: 'ko',
@@ -216,6 +218,40 @@ function loadStoredWeatherCache(): { current: WeatherInfo | null; daily: Record<
   }
 }
 
+function loadStoredMemos(): CalendarMemo[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_MEMOS);
+    if (!raw) {
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      return [
+        {
+          id: 'memo-sample-1',
+          title: '오늘의 할 일 및 체크리스트',
+          content: '• 주간 캘린더 피드백 정리하기\n• 회의록 작성 및 팀원 공유\n• 저녁 운동 30분',
+          date: todayStr,
+          color: 'yellow',
+          isPinned: true,
+          createdAt: Date.now() - 3600000,
+          updatedAt: Date.now() - 3600000,
+        },
+        {
+          id: 'memo-sample-2',
+          title: '아이디어 메모',
+          content: 'Windows 10 플루언트 디자인 스티커 메모!\n단축키 Ctrl + M으로 언제든 메모를 열고 닫을 수 있습니다.',
+          color: 'blue',
+          isPinned: false,
+          createdAt: Date.now() - 7200000,
+          updatedAt: Date.now() - 7200000,
+        },
+      ];
+    }
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
 interface CalendarState {
   // 상태
   selectedDate: Date;
@@ -315,6 +351,21 @@ interface CalendarState {
   checkForUpdates: () => Promise<void>;
   quitAndInstallUpdate: () => void;
 
+  // 스티커 메모 (Sticky Notes) 상태 및 액션
+  memos: CalendarMemo[];
+  isMemoPanelOpen: boolean;
+  memoFilterDate: string | null;
+  memoSearchQuery: string;
+  toggleMemoPanel: (dateStr?: string) => void;
+  openMemoPanel: (dateStr?: string) => void;
+  closeMemoPanel: () => void;
+  setMemoFilterDate: (dateStr: string | null) => void;
+  setMemoSearchQuery: (query: string) => void;
+  addMemo: (memo: Omit<CalendarMemo, 'id' | 'createdAt' | 'updatedAt'>) => CalendarMemo;
+  updateMemo: (memo: Partial<CalendarMemo> & { id: string }) => void;
+  deleteMemo: (id: string) => void;
+  togglePinMemo: (id: string) => void;
+
   // 헬퍼
   getExpandedEvents: (rangeStart: Date, rangeEnd: Date) => CalendarEvent[];
 }
@@ -345,6 +396,10 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   currentWeather: initialWeatherCache.current || getFallbackWeather(new Date(), initialStoredSettings.weatherLocation, initialStoredSettings.temperatureUnit, initialStoredSettings.language),
   weatherDailyCache: initialWeatherCache.daily,
   isWeatherLoading: false,
+  memos: loadStoredMemos(),
+  isMemoPanelOpen: false,
+  memoFilterDate: null,
+  memoSearchQuery: '',
 
   setSelectedDate: (date: Date) =>
     set({
@@ -464,6 +519,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       applyThemeToDOM(updated);
 
       if (
+        newSettings.language !== undefined ||
         newSettings.temperatureUnit !== undefined ||
         newSettings.weatherLocation !== undefined ||
         newSettings.showWeather !== undefined
@@ -567,8 +623,8 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   closeQuickPopover: () => set({ quickPopover: { isOpen: false, x: 0, y: 0 } }),
 
   exportDataJSON: () => {
-    const { events, categories, settings } = get();
-    return JSON.stringify({ events, categories, settings }, null, 2);
+    const { events, categories, settings, memos } = get();
+    return JSON.stringify({ events, categories, settings, memos }, null, 2);
   },
 
   importDataJSON: (jsonString) => {
@@ -579,6 +635,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
           events: parsed.events,
           categories: parsed.categories || get().categories,
           settings: parsed.settings || get().settings,
+          memos: Array.isArray(parsed.memos) ? parsed.memos : get().memos,
         });
         localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(parsed.events));
         if (parsed.categories) {
@@ -586,6 +643,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         }
         if (parsed.settings) {
           localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(parsed.settings));
+        }
+        if (Array.isArray(parsed.memos)) {
+          localStorage.setItem(STORAGE_KEY_MEMOS, JSON.stringify(parsed.memos));
         }
         return true;
       }
@@ -949,5 +1009,83 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     if (typeof window !== 'undefined' && window.electronAPI?.quitAndInstallUpdate) {
       window.electronAPI.quitAndInstallUpdate();
     }
+  },
+
+  toggleMemoPanel: (dateStr) =>
+    set((state) => ({
+      isMemoPanelOpen: !state.isMemoPanelOpen,
+      memoFilterDate: dateStr !== undefined ? dateStr : state.memoFilterDate,
+    })),
+
+  openMemoPanel: (dateStr) =>
+    set({
+      isMemoPanelOpen: true,
+      memoFilterDate: dateStr !== undefined ? dateStr : null,
+    }),
+
+  closeMemoPanel: () => set({ isMemoPanelOpen: false }),
+
+  setMemoFilterDate: (dateStr) => set({ memoFilterDate: dateStr }),
+
+  setMemoSearchQuery: (query) => set({ memoSearchQuery: query }),
+
+  addMemo: (memoData) => {
+    const now = Date.now();
+    const newMemo: CalendarMemo = {
+      ...memoData,
+      id: `memo-${now}-${Math.random().toString(36).substring(2, 8)}`,
+      createdAt: now,
+      updatedAt: now,
+    };
+    set((state) => {
+      const updated = [newMemo, ...state.memos];
+      try {
+        localStorage.setItem(STORAGE_KEY_MEMOS, JSON.stringify(updated));
+      } catch (err) {
+        console.error('Failed to persist memos:', err);
+      }
+      return { memos: updated };
+    });
+    return newMemo;
+  },
+
+  updateMemo: (updated) => {
+    set((state) => {
+      const updatedMemos = state.memos.map((m) =>
+        m.id === updated.id ? { ...m, ...updated, updatedAt: Date.now() } : m
+      );
+      try {
+        localStorage.setItem(STORAGE_KEY_MEMOS, JSON.stringify(updatedMemos));
+      } catch (err) {
+        console.error('Failed to persist memos:', err);
+      }
+      return { memos: updatedMemos };
+    });
+  },
+
+  deleteMemo: (id) => {
+    set((state) => {
+      const updatedMemos = state.memos.filter((m) => m.id !== id);
+      try {
+        localStorage.setItem(STORAGE_KEY_MEMOS, JSON.stringify(updatedMemos));
+      } catch (err) {
+        console.error('Failed to persist memos:', err);
+      }
+      return { memos: updatedMemos };
+    });
+  },
+
+  togglePinMemo: (id) => {
+    set((state) => {
+      const updatedMemos = state.memos.map((m) =>
+        m.id === id ? { ...m, isPinned: !m.isPinned, updatedAt: Date.now() } : m
+      );
+      try {
+        localStorage.setItem(STORAGE_KEY_MEMOS, JSON.stringify(updatedMemos));
+      } catch (err) {
+        console.error('Failed to persist memos:', err);
+      }
+      return { memos: updatedMemos };
+    });
   },
 }));

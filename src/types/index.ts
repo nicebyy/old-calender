@@ -33,6 +33,26 @@ export interface CalendarEvent {
   updatedAt: number;
 }
 
+export type MemoColor =
+  | 'yellow'
+  | 'green'
+  | 'pink'
+  | 'purple'
+  | 'blue'
+  | 'gray'
+  | 'charcoal';
+
+export interface CalendarMemo {
+  id: string;
+  title?: string;
+  content: string;
+  date?: string; // YYYY-MM-DD (특정 날짜 연결) 또는 undefined/null (일반 자유 메모)
+  color: MemoColor;
+  isPinned: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface WeatherLocation {
   city: string;
   latitude: number;
