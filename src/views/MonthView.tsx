@@ -137,15 +137,15 @@ export const MonthView: React.FC = () => {
     if (!weather) return null;
     switch (weather.condition) {
       case 'sunny':
-        return <Sun className="w-3 h-3 text-[#ffb900]" />;
+        return <Sun className="w-4 h-4 text-[#ffb900] shrink-0" />;
       case 'partlyCloudy':
-        return <CloudSun className="w-3 h-3 text-[#fce100]" />;
+        return <CloudSun className="w-4 h-4 text-[#fce100] shrink-0" />;
       case 'cloudy':
-        return <Cloud className="w-3 h-3 text-[#aaaaaa]" />;
+        return <Cloud className="w-4 h-4 text-[#aaaaaa] shrink-0" />;
       case 'rainy':
-        return <CloudRain className="w-3 h-3 text-[#4ba0e3]" />;
+        return <CloudRain className="w-4 h-4 text-[#4ba0e3] shrink-0" />;
       case 'snowy':
-        return <CloudSnow className="w-3 h-3 text-[#b4e1fa]" />;
+        return <CloudSnow className="w-4 h-4 text-[#b4e1fa] shrink-0" />;
       default:
         return null;
     }
@@ -157,7 +157,7 @@ export const MonthView: React.FC = () => {
       className="flex-1 flex flex-col h-full bg-[var(--win10-bg)] select-none overflow-hidden transition-colors"
     >
       {/* 요일 헤더 */}
-      <div className="grid grid-cols-7 border-b border-[var(--win10-border)] bg-[var(--win10-surface)] text-xs font-semibold text-[var(--win10-text-secondary)]">
+      <div className="grid grid-cols-7 border-b border-[var(--win10-border)] bg-[var(--win10-surface)] text-xs md:text-sm font-semibold text-[var(--win10-text-secondary)]">
         {weekdays.map((day, idx) => (
           <div
             key={day}
@@ -202,7 +202,7 @@ export const MonthView: React.FC = () => {
               onDragOver={(e) => handleDragOver(e, cell.dateString)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, cell.dateString)}
-              className={`border-r border-b border-[var(--win10-border)] p-1 flex flex-col justify-between transition-colors relative cursor-pointer group
+              className={`border-r border-b border-[var(--win10-border)] p-1.5 flex flex-col justify-between transition-colors relative cursor-pointer group
                 ${isCurrent ? 'bg-[var(--win10-cell-bg)]' : 'bg-[var(--win10-cell-other)] opacity-75 hover:opacity-100'}
                 ${isSelected ? 'ring-2 ring-[var(--win10-accent)] z-10' : ''}
                 ${isDragOver ? 'bg-[var(--win10-cell-hover)] ring-2 ring-[var(--win10-accent)]' : ''}
@@ -210,15 +210,15 @@ export const MonthView: React.FC = () => {
               `}
             >
               {/* 상단 날짜 및 날씨, 공휴일 헤더 */}
-              <div className="flex items-start justify-between mb-0.5">
-                <div className="flex items-center space-x-1">
+              <div className="flex items-start justify-between mb-1 px-0.5">
+                <div className="flex items-center space-x-1.5">
                   {/* 1일인 경우 월 라벨 표시 (Windows 10 UWP 시그니처 월 구분선) */}
                   {isFirstDay && (
                     <span
-                      className={`text-[11px] tracking-tight transition-colors ${
+                      className={`text-xs md:text-sm tracking-tight transition-colors ${
                         isCurrent
                           ? 'text-[var(--win10-accent)] font-bold'
-                          : 'text-[var(--win10-text-muted)] opacity-60 font-medium'
+                          : 'text-[var(--win10-text-muted)] opacity-60 font-semibold'
                       }`}
                     >
                       {monthLabel}
@@ -226,13 +226,13 @@ export const MonthView: React.FC = () => {
                   )}
 
                   <div
-                    className={`w-6 h-6 flex items-center justify-center text-xs rounded-full transition-colors
-                      ${isToday ? 'bg-[var(--win10-accent)] text-white font-bold shadow' : ''}
-                      ${!isToday && isHoliday && isCurrent ? 'text-[#ff5555] font-semibold' : ''}
+                    className={`w-7 h-7 flex items-center justify-center text-sm md:text-base rounded-full transition-colors
+                      ${isToday ? 'bg-[var(--win10-accent)] text-white font-bold shadow-sm' : ''}
+                      ${!isToday && isHoliday && isCurrent ? 'text-[#ff5555] font-bold' : ''}
                       ${!isToday && isHoliday && !isCurrent ? 'text-[#ff5555]/40 font-normal' : ''}
-                      ${!isToday && !isHoliday && isCurrent && isWeekend ? 'text-[var(--win10-text-primary)] font-medium' : ''}
-                      ${!isToday && !isHoliday && isCurrent && !isWeekend ? 'text-[var(--win10-text-primary)] font-medium' : ''}
-                      ${!isToday && !isHoliday && !isCurrent ? 'text-[var(--win10-text-other-month)] font-normal text-[11.5px]' : ''}
+                      ${!isToday && !isHoliday && isCurrent && isWeekend ? 'text-[var(--win10-text-primary)] font-semibold' : ''}
+                      ${!isToday && !isHoliday && isCurrent && !isWeekend ? 'text-[var(--win10-text-primary)] font-semibold' : ''}
+                      ${!isToday && !isHoliday && !isCurrent ? 'text-[var(--win10-text-other-month)] font-normal text-xs md:text-sm' : ''}
                     `}
                   >
                     {cell.dayNumber}
@@ -241,8 +241,8 @@ export const MonthView: React.FC = () => {
                   {/* 공휴일 이름 표시 */}
                   {cell.holidayName && (
                     <span
-                      className={`text-[10px] truncate max-w-[65px] transition-colors ${
-                        isCurrent ? 'text-[#ff6b6b] font-medium' : 'text-[#ff6b6b]/40 font-normal'
+                      className={`text-xs font-semibold truncate max-w-[85px] transition-colors ${
+                        isCurrent ? 'text-[#ff6b6b]' : 'text-[#ff6b6b]/40 font-normal'
                       }`}
                     >
                       {cell.holidayName}
@@ -252,8 +252,8 @@ export const MonthView: React.FC = () => {
                   {/* 음력 일자 표시 */}
                   {cell.lunarDateString && (
                     <span
-                      className={`text-[9px] hidden md:inline transition-colors ${
-                        isCurrent ? 'text-[var(--win10-text-secondary)] opacity-70' : 'text-[var(--win10-text-muted)] opacity-35'
+                      className={`text-[11px] hidden md:inline transition-colors ${
+                        isCurrent ? 'text-[var(--win10-text-secondary)] opacity-80' : 'text-[var(--win10-text-muted)] opacity-40'
                       }`}
                     >
                       {cell.lunarDateString}
@@ -264,15 +264,15 @@ export const MonthView: React.FC = () => {
                 {/* 우상단 날씨 위젯 (Windows 10 UWP 시그니처) */}
                 {cell.weather && (
                   <div
-                    className={`flex items-center space-x-1 text-[9.5px] pr-1 transition-opacity ${
+                    className={`flex items-center space-x-1.5 text-xs pr-1 transition-opacity ${
                       isCurrent
-                        ? 'text-[var(--win10-text-secondary)] opacity-90'
-                        : 'text-[var(--win10-text-muted)] opacity-35 group-hover:opacity-90'
+                        ? 'text-[var(--win10-text-secondary)] opacity-95'
+                        : 'text-[var(--win10-text-muted)] opacity-40 group-hover:opacity-90'
                     }`}
                     title={`${cell.weather.locationName ? `[${cell.weather.locationName}] ` : ''}${cell.weather.label} (${cell.weather.tempMax}° / ${cell.weather.tempMin}°)`}
                   >
                     {renderWeatherIcon(cell.weather)}
-                    <span className="hidden xl:inline">{cell.weather.tempMax}°</span>
+                    <span className="font-semibold text-xs md:text-[13px]">{cell.weather.tempMax}°</span>
                   </div>
                 )}
               </div>
@@ -289,17 +289,17 @@ export const MonthView: React.FC = () => {
                       draggable
                       onDragStart={(e) => handleDragStart(e, evt)}
                       onClick={(e) => handleEventClick(e, evt)}
-                      className={`px-1.5 py-0.5 rounded text-[11px] truncate flex items-center space-x-1.5 bg-[var(--win10-card-bg)] hover:bg-[var(--win10-card-hover)] border-l-2 transition-all shadow-xs cursor-grab active:cursor-grabbing text-[var(--win10-text-primary)] ${
+                      className={`px-2 py-1 rounded text-xs truncate flex items-center space-x-1.5 bg-[var(--win10-card-bg)] hover:bg-[var(--win10-card-hover)] border-l-2 transition-all shadow-xs cursor-grab active:cursor-grabbing text-[var(--win10-text-primary)] ${
                         isCurrent ? 'opacity-100' : 'opacity-65 group-hover:opacity-100'
                       }`}
                       style={{ borderLeftColor: color }}
                       title={`${evt.title} (${evt.startDate.slice(11, 16)}~${evt.endDate.slice(11, 16)}) - 드래그하여 날짜 이동 가능`}
                     >
-                      <span className="font-normal text-[var(--win10-text-primary)] truncate flex-1">
+                      <span className="font-medium text-[var(--win10-text-primary)] truncate flex-1 text-xs">
                         {evt.title}
                       </span>
                       {!evt.isAllDay && (
-                        <span className="text-[9.5px] text-[var(--win10-text-secondary)] shrink-0">
+                        <span className="text-[10px] text-[var(--win10-text-secondary)] shrink-0 font-normal">
                           {evt.startDate.slice(11, 16)}
                         </span>
                       )}
@@ -309,7 +309,7 @@ export const MonthView: React.FC = () => {
 
                 {cell.events.length > 3 && (
                   <div
-                    className={`text-[10px] text-[var(--win10-accent)] font-medium pl-1 hover:underline ${
+                    className={`text-xs text-[var(--win10-accent)] font-semibold pl-1 hover:underline ${
                       isCurrent ? 'opacity-100' : 'opacity-65 group-hover:opacity-100'
                     }`}
                   >
