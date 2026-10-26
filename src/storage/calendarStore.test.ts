@@ -201,5 +201,37 @@ describe('CalendarStore Extended', () => {
       expect(remaining.some((t) => t.id === toast.id)).toBe(false);
     }
   });
+
+  it('소프트웨어 자동 업데이트 상태 설정 및 업데이트 확인 액션이 정상 작동해야 한다', async () => {
+    expect(useCalendarStore.getState().updateStatus).toBeNull();
+
+    useCalendarStore.getState().setUpdateStatus({
+      status: 'downloading',
+      percent: 50,
+      version: '1.0.1',
+    });
+    expect(useCalendarStore.getState().updateStatus?.status).toBe('downloading');
+    expect(useCalendarStore.getState().updateStatus?.percent).toBe(50);
+
+    await useCalendarStore.getState().checkForUpdates();
+    expect(useCalendarStore.getState().updateStatus?.status).toBe('checking');
+  });
+
+  it('window.electronAPI가 존재할 때 checkForUpdates 및 quitAndInstallUpdate를 호출해야 한다', async () => {
+    const mockCheck = vi.fn().mockResolvedValue({ updateInfo: { version: '1.0.1' } });
+    const mockQuit = vi.fn();
+
+    (window as any).electronAPI = {
+      ...(window as any).electronAPI,
+      checkForUpdates: mockCheck,
+      quitAndInstallUpdate: mockQuit,
+    };
+
+    await useCalendarStore.getState().checkForUpdates();
+    expect(mockCheck).toHaveBeenCalled();
+
+    useCalendarStore.getState().quitAndInstallUpdate();
+    expect(mockQuit).toHaveBeenCalled();
+  });
 });
 
