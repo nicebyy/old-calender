@@ -30,7 +30,7 @@ describe('Calendar Views & HeaderControls Test Suite', () => {
   });
 
   it('MonthView에서 마우스 휠 스크롤 시 월 단위로 이전/다음 달로 이동해야 한다', () => {
-    const { container } = render(<MonthView />);
+    const { container, unmount } = render(<MonthView />);
     expect(useCalendarStore.getState().viewDate.getMonth()).toBe(9); // 10월
 
     const monthRoot = container.firstChild as HTMLElement;
@@ -40,6 +40,11 @@ describe('Calendar Views & HeaderControls Test Suite', () => {
       fireEvent.wheel(monthRoot, { deltaY: 100 });
     });
     expect(useCalendarStore.getState().viewDate.getMonth()).toBe(10); // 11월
+
+    // 정리
+    act(() => {
+      unmount();
+    });
   });
 
   it('WeekView가 정상적으로 렌더링되어야 한다', () => {
