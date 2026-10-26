@@ -129,7 +129,16 @@ function loadStoredEvents(): CalendarEvent[] {
     if (!raw) {
       return [];
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // 기존에 저장된 기본 샘플 데이터(sample-1, sample-2, sample-3)가 있다면 완전히 제거
+    const filtered = parsed.filter((evt: CalendarEvent) => evt && !evt.id.startsWith('sample-'));
+    if (filtered.length !== parsed.length) {
+      try {
+        localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(filtered));
+      } catch {}
+    }
+    return filtered;
   } catch {
     return [];
   }
@@ -186,7 +195,16 @@ function loadStoredMemos(): CalendarMemo[] {
     if (!raw) {
       return [];
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // 기존에 저장된 기본 샘플 메모(memo-sample-1, memo-sample-2)가 있다면 완전히 제거
+    const filtered = parsed.filter((memo: CalendarMemo) => memo && !memo.id.startsWith('memo-sample-'));
+    if (filtered.length !== parsed.length) {
+      try {
+        localStorage.setItem(STORAGE_KEY_MEMOS, JSON.stringify(filtered));
+      } catch {}
+    }
+    return filtered;
   } catch {
     return [];
   }

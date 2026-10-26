@@ -69,5 +69,5 @@ export const SIDEBAR_DEFAULT_WIDTH = 260;
 export const SIDEBAR_MIN_WIDTH = 200;
 export const SIDEBAR_MAX_WIDTH = 480;
 
-export const APP_VERSION = '1.0.1';
+export const APP_VERSION = '1.0.2';
 

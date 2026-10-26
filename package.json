@@ -1,7 +1,7 @@
 {
   "name": "classic-calendar",
   "productName": "Classic Calendar",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Classic Calendar - Windows 10 Style High-Performance Desktop Calendar",
   "main": "dist-electron/main.js",
   "type": "module",

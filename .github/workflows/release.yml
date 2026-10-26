@@ -57,23 +57,45 @@ jobs:
         id: vars
         shell: pwsh
         run: |
+          git fetch --tags
           $pkg = Get-Content -Raw -Path package.json | ConvertFrom-Json
           $baseVer = "v" + $pkg.version
-          
-          # Git tag 중복 확인
-          git fetch --tags
           $tagExists = git tag -l $baseVer
           
           if ($tagExists) {
-            # 기본 버전 태그가 이미 존재하면 빌드 번호(Run Number) 기반 고유 태그 생성
-            $relTag = "${baseVer}-build.$env:GITHUB_RUN_NUMBER"
+            # 기존 태그가 존재하면 시맨틱 버전(SemVer) 기반 다음 패치 버전 자동 계산
+            $allTags = git tag -l
+            $semverTags = $allTags | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' }
+            $parts = $pkg.version.Split('.')
+            $major = [int]$parts[0]
+            $minor = [int]$parts[1]
+            $matchingPatches = $semverTags | Where-Object { $_ -match "^v$major\.$minor\.(\d+)$" } | ForEach-Object { [int]$Matches[1] }
+            $maxPatch = ($matchingPatches | Measure-Object -Maximum).Maximum
+            $nextPatch = $maxPatch + 1
+            $newVer = "$major.$minor.$nextPatch"
+            $relTag = "v$newVer"
+
+            Write-Host "Tag $baseVer already exists. Auto-incremented to $relTag"
+            
+            # package.json 버전 자동 갱신
+            $pkg.version = $newVer
+            $pkg | ConvertTo-Json -Depth 10 | Set-Content -Path package.json -Encoding utf8
+            
+            # Git에 자동 갱신된 버전 커밋 및 푸시 ([skip ci])
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add package.json
+            git commit -m "chore(release): auto-bump version to $newVer [skip ci]"
+            git push origin main
           } else {
             $relTag = $baseVer
+            $newVer = $pkg.version
+            Write-Host "Using target version tag: $relTag"
           }
-          
-          Write-Host "Determined Release Tag: $relTag"
+
+          Write-Host "Final Release Tag: $relTag"
           "release_tag=$relTag" >> $env:GITHUB_OUTPUT
-          "version=$($pkg.version)" >> $env:GITHUB_OUTPUT
+          "version=$newVer" >> $env:GITHUB_OUTPUT
 
       - name: Build Application
         run: npm run build

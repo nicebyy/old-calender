@@ -203,7 +203,7 @@ export const ko = {
     sidebarWidth: '사이드바 너비',
     sidebarReset: '기본 너비 (260px)',
     sidebarDragHint: '사이드바 우측 경계선을 마우스로 드래그하여 조절 가능',
-    appInfo: 'Classic Calendar v1.0.1 (Fluent Edition)',
+    appInfo: 'Classic Calendar v1.0.2 (Fluent Edition)',
   },
   sync: {
     title: '계정 관리 (Cloud Accounts)',
