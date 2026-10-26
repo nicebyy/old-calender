@@ -127,46 +127,7 @@ function loadStoredEvents(): CalendarEvent[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_EVENTS);
     if (!raw) {
-      const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      return [
-        {
-          id: 'sample-1',
-          title: 'Windows 10 캘린더 프로젝트 킥오프',
-          description: '반응성 1위 초고속 네이티브 캘린더 앱 개발',
-          startDate: `${todayStr}T10:00:00`,
-          endDate: `${todayStr}T11:30:00`,
-          isAllDay: false,
-          categoryId: 'default-work',
-          location: '온라인 회의실',
-          reminderMinutes: 15,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-        {
-          id: 'sample-2',
-          title: '팀 주간 회고 및 계획',
-          description: '스프린트 진행상황 공유',
-          startDate: `${todayStr}T14:00:00`,
-          endDate: `${todayStr}T15:00:00`,
-          isAllDay: false,
-          categoryId: 'default-personal',
-          recurrence: 'weekly',
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-        {
-          id: 'sample-3',
-          title: '프로젝트 릴리스 데이',
-          description: '데스크톱 앱 패키징 및 최종 검증',
-          startDate: `${todayStr}T00:00:00`,
-          endDate: `${todayStr}T23:59:59`,
-          isAllDay: true,
-          categoryId: 'default-holiday',
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-      ];
+      return [];
     }
     return JSON.parse(raw);
   } catch {
@@ -223,29 +184,7 @@ function loadStoredMemos(): CalendarMemo[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_MEMOS);
     if (!raw) {
-      const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      return [
-        {
-          id: 'memo-sample-1',
-          title: '오늘의 할 일 및 체크리스트',
-          content: '• 주간 캘린더 피드백 정리하기\n• 회의록 작성 및 팀원 공유\n• 저녁 운동 30분',
-          date: todayStr,
-          color: 'yellow',
-          isPinned: true,
-          createdAt: Date.now() - 3600000,
-          updatedAt: Date.now() - 3600000,
-        },
-        {
-          id: 'memo-sample-2',
-          title: '아이디어 메모',
-          content: 'Windows 10 플루언트 디자인 스티커 메모!\n단축키 Ctrl + M으로 언제든 메모를 열고 닫을 수 있습니다.',
-          color: 'blue',
-          isPinned: false,
-          createdAt: Date.now() - 7200000,
-          updatedAt: Date.now() - 7200000,
-        },
-      ];
+      return [];
     }
     return JSON.parse(raw);
   } catch {

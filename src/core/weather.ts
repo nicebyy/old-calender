@@ -456,6 +456,16 @@ export async function fetchRealWeather(
     const current = parseOpenMeteoCurrentWeather(data, unit, lang, location.city);
     const daily = parseOpenMeteoDailyForecast(data, unit, lang, location.city);
 
+    // 오늘 날짜의 일별 데이터에 실시간 현재 기온 및 현재 날씨 상태 완벽 연동
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (daily[todayKey]) {
+      daily[todayKey].currentTemp = current.currentTemp;
+      daily[todayKey].condition = current.condition;
+      daily[todayKey].label = current.label;
+      daily[todayKey].humidity = current.humidity;
+    }
+
     return { current, daily };
   } catch {
     // 오프라인이거나 네트워크 오류 시 위치 기반 폴백 데이터 생성

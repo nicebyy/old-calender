@@ -73,7 +73,7 @@ export const App: React.FC = () => {
   // 날씨 초기화 및 위치 자동 감지 (최초 로드 시 실제 사용자 위치로 자동 동기화)
   useEffect(() => {
     if (settings.showWeather) {
-      if (settings.weatherLocation.autoDetect || settings.weatherLocation.city === '서울') {
+      if (settings.weatherLocation.autoDetect) {
         autoDetectLocation();
       } else {
         refreshWeather();
