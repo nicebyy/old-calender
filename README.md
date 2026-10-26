@@ -44,12 +44,10 @@ Windows 10 시절의 미려하고 가벼웠던 **클래식 일정(Calendar) 데�
 - **캘린더 인쇄 및 PDF 저장 (`Ctrl + P`)**: `@media print` 최적화 전용 스타일 지원.
 - **새 캘린더 범주 추가**: 사이드바에서 사용자 정의 카테고리 생성 및 컬러 커스텀.
 
-### 3. OAuth2 클라우드 캘린더 동기화 (Google, Outlook, Office 365, iCloud)
+### 3. OAuth2 클라우드 캘린더 동기화 (Google Calendar, Apple iCloud)
 - **Windows 10 "계정 선택(Choose an account)" 다이얼로그**:
-  - `Outlook.com / Live.com` (Microsoft Graph)
-  - `Microsoft 365 / Exchange` (회사/학교 계정)
   - `Google Calendar` (Google OAuth2 v3 API)
-  - `iCloud` (Apple CalDAV)
+  - `Apple iCloud` (iCloud CalDAV & App-Specific Password)
 - **양방향 일정 동기화 엔진**:
   - 외부 캘린더 일정을 비동기 가져와 로컬 캐시와 원자적 병합(Merge).
   - 계정 추가 시 전용 캘린더 범주(Category) 및 색상 자동 연동.
@@ -57,7 +55,7 @@ Windows 10 시절의 미려하고 가벼웠던 **클래식 일정(Calendar) 데�
   - 계정별 개별 동기화, 가시성 온/오프 토글 및 연동 해제 지원.
 
 ### 4. 고급 일정 관리 및 표준 호환
-- **iCalendar (.ics) 양방향 호환**: Google Calendar, Outlook, Apple Calendar와 호환되는 표준 `.ics` 파일 내보내기 및 가져오기 지원.
+- **iCalendar (.ics) 양방향 호환**: Google Calendar, Apple Calendar 등과 완벽 호환되는 표준 `.ics` 파일 내보내기 및 가져오기 지원.
 - **일정 상세 속성**: 종일 여부, 참석자 초대(이메일), 비공개(Private) 일정 토글, 상태 표시(약속 있음/한가함/자리비움/임시).
 - **반복 일정 (Recurrence)**: 매일, 매주, 매월, 매년 반복 일정 자동 전개 및 표시.
 - **미리 알림 (Reminders)**: 정각, 15분 전, 30분 전, 1시간 전, 1일 전 알림 및 Windows 네이티브 토스트 알림 연동.

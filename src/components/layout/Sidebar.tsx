@@ -84,7 +84,7 @@ export const Sidebar: React.FC = () => {
               <button
                 onClick={openAccountModal}
                 className="text-[#888888] hover:text-[#0078d7] p-0.5 rounded hover:bg-[#333333] transition-colors"
-                title="클라우드 계정 연동 및 관리 (Google, Outlook 등)"
+                title="클라우드 계정 연동 및 관리 (Google, iCloud)"
               >
                 <Cloud className="w-3.5 h-3.5" />
               </button>

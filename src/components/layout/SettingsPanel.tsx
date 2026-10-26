@@ -412,7 +412,7 @@ export const SettingsPanel: React.FC = () => {
               <button
                 onClick={handleExportICS}
                 className="flex items-center justify-center space-x-1 py-1.5 px-2 bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)] rounded text-[var(--win10-text-primary)] transition-colors border border-[var(--win10-border)]"
-                title="Google, Outlook 호환 .ics 파일로 내보내기"
+                title="Google, Apple 호환 표준 .ics 파일로 내보내기"
               >
                 <Download className="w-3 h-3" />
                 <span>iCal (.ics) 저장</span>
