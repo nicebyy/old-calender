@@ -22,6 +22,7 @@ export interface CalendarEvent {
   endDate: string; // ISO 8601 (YYYY-MM-DDTHH:mm:ss)
   isAllDay: boolean;
   categoryId: string;
+  accountId?: string; // OAuth2 연동 계정 ID (Google, Microsoft 등)
   location?: string;
   reminderMinutes?: number; // 분 단위 알림 (예: 15분 전, 없으면 -1)
   recurrence?: RecurrenceType;
@@ -59,6 +60,37 @@ export interface AppSettings {
   showWeather: boolean; // Windows 10 날씨 표시 여부
   temperatureUnit: 'C' | 'F'; // 섭씨/화씨
   showLunarCalendar: boolean; // 대체 캘린더 (음력 표시)
+}
+
+/**
+ * OAuth2 공급자 및 연동 계정 타입
+ */
+export type OAuthProvider = 'google' | 'microsoft' | 'apple' | 'exchange';
+
+export interface SyncedAccount {
+  id: string;
+  provider: OAuthProvider;
+  email: string;
+  displayName: string;
+  avatarUrl?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: number;
+  lastSyncTime?: number;
+  syncStatus: 'idle' | 'syncing' | 'success' | 'error';
+  errorMessage?: string;
+  color: string;
+  isEnabled: boolean;
+}
+
+export interface OAuth2ProviderConfig {
+  provider: OAuthProvider;
+  name: string;
+  iconName: string;
+  authUrl: string;
+  tokenUrl: string;
+  scopes: string[];
+  defaultColor: string;
 }
 
 export interface QuickPopoverState {

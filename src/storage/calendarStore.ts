@@ -10,10 +10,13 @@ import { DEFAULT_CATEGORIES } from '../constants/calendar';
 import { getNavigatedDate } from '../core/calendar';
 import { expandEventsForRange } from '../core/recurrence';
 import { exportEventsToICS, parseICSToEvents } from '../core/ical';
+import { generateRemoteEventsForProvider, mergeRemoteEvents } from '../core/oauthSync';
+import { OAuthProvider, SyncedAccount } from '../types';
 
 const STORAGE_KEY_EVENTS = 'win10_calendar_events';
 const STORAGE_KEY_CATEGORIES = 'win10_calendar_categories';
 const STORAGE_KEY_SETTINGS = 'win10_calendar_settings';
+const STORAGE_KEY_ACCOUNTS = 'win10_calendar_synced_accounts';
 
 const DEFAULT_SETTINGS: AppSettings = {
   themeMode: 'dark',
@@ -23,6 +26,15 @@ const DEFAULT_SETTINGS: AppSettings = {
   temperatureUnit: 'C',
   showLunarCalendar: true,
 };
+
+function loadStoredAccounts(): SyncedAccount[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
 
 function loadStoredEvents(): CalendarEvent[] {
   try {
@@ -137,11 +149,25 @@ interface CalendarState {
   openQuickPopover: (x: number, y: number, date?: Date, event?: CalendarEvent) => void;
   closeQuickPopover: () => void;
 
+  // 계정 동기화 상태
+  syncedAccounts: SyncedAccount[];
+  isAccountModalOpen: boolean;
+  isSyncing: boolean;
+
   // 카테고리 관리
   addCategory: (name: string, color: string) => void;
 
   // 일정 일정 변경 (드래그 앤 드롭 이동)
   rescheduleEvent: (id: string, newDateStr: string, newStartTime?: string) => void;
+
+  // OAuth2 계정 동기화 액션
+  addSyncedAccount: (provider: OAuthProvider, email: string, displayName: string) => void;
+  removeSyncedAccount: (accountId: string) => void;
+  toggleAccountEnabled: (accountId: string) => void;
+  syncAccount: (accountId: string) => Promise<void>;
+  syncAllAccounts: () => Promise<void>;
+  openAccountModal: () => void;
+  closeAccountModal: () => void;
 
   // 데이터 백업 및 복원 (JSON & iCal)
   exportDataJSON: () => string;
@@ -168,6 +194,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   isEventModalOpen: false,
   editingEvent: null,
   quickPopover: { isOpen: false, x: 0, y: 0 },
+  syncedAccounts: loadStoredAccounts(),
+  isAccountModalOpen: false,
+  isSyncing: false,
 
   setSelectedDate: (date: Date) =>
     set({
