@@ -56,8 +56,17 @@ export interface WindowState {
   isMaximized: boolean;
 }
 
+export interface ElectronAPI {
+  minimizeWindow: () => void;
+  maximizeWindow: () => void;
+  closeWindow: () => void;
+  isWindowMaximized: () => Promise<boolean>;
+  onWindowStateChange: (callback: (state: { isMaximized: boolean }) => void) => () => void;
+}
+
 declare global {
   interface Window {
-    electronAPI?: import('../../electron/preload.cts').ElectronAPI;
+    electronAPI?: ElectronAPI;
   }
 }
+
