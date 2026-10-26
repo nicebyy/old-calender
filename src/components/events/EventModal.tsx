@@ -48,6 +48,7 @@ export const EventModal: React.FC = () => {
   const [busyStatus, setBusyStatus] = useState<BusyStatusType>('busy');
   const [attendeesInput, setAttendeesInput] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   useEffect(() => {
     if (editingEvent) {
@@ -127,9 +128,8 @@ export const EventModal: React.FC = () => {
 
   const handleDelete = () => {
     if (editingEvent) {
-      if (confirm(t('event.deleteConfirm'))) {
-        deleteEvent(editingEvent.id);
-      }
+      deleteEvent(editingEvent.id);
+      closeModal();
     }
   };
 
@@ -426,14 +426,36 @@ export const EventModal: React.FC = () => {
           {/* 하단 액션 버튼 바 */}
           <div className="pt-2 flex items-center justify-between border-t border-[var(--win10-border)]">
             {editingEvent ? (
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="flex items-center space-x-1.5 px-3 py-1.5 text-xs text-[#ff5555] hover:bg-[#e81123]/20 rounded transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>{t('event.delete')}</span>
-              </button>
+              isConfirmingDelete ? (
+                <div className="flex items-center space-x-1.5 animate-fadeIn">
+                  <span className="text-[11px] text-[#ff6b6b] font-medium">
+                    {t('event.deleteConfirmPrompt')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="px-2.5 py-1 text-xs bg-[#e81123] hover:bg-[#e81123]/90 text-white font-medium rounded transition-colors shadow-sm cursor-pointer"
+                  >
+                    {t('event.delete')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmingDelete(false)}
+                    className="px-2 py-1 text-xs bg-[var(--win10-button-hover)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] rounded transition-colors cursor-pointer"
+                  >
+                    {t('event.cancel')}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmingDelete(true)}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 text-xs text-[#ff5555] hover:bg-[#e81123]/20 rounded transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{t('event.delete')}</span>
+                </button>
+              )
             ) : (
               <div />
             )}

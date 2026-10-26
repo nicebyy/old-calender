@@ -7,6 +7,7 @@ import { YearView } from './YearView';
 import { HeaderControls } from '../components/layout/HeaderControls';
 import { SettingsPanel } from '../components/layout/SettingsPanel';
 import { Sidebar } from '../components/layout/Sidebar';
+import { EventModal } from '../components/events/EventModal';
 import { App } from '../App';
 import { useCalendarStore } from '../storage/calendarStore';
 
@@ -214,6 +215,90 @@ describe('Calendar Views & HeaderControls Test Suite', () => {
     act(() => {
       unmount();
     });
+  });
+
+  it('Sidebar에서 선택한 날짜의 일정 목록이 렌더링되고 편집 및 삭제 버튼이 정상 작동해야 한다', () => {
+    useCalendarStore.setState({
+      selectedDate: new Date(2026, 9, 26),
+      events: [
+        {
+          id: 'test-agenda-1',
+          title: '사이드바 테스트 미팅',
+          startDate: '2026-10-26T14:00:00',
+          endDate: '2026-10-26T15:00:00',
+          isAllDay: false,
+          categoryId: 'default-work',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+      ],
+    });
+
+    render(<Sidebar />);
+
+    // 선택한 날짜 헤더 및 일정 제목 확인
+    expect(screen.getByText('10월 26일 (월)')).toBeInTheDocument();
+    expect(screen.getByText('사이드바 테스트 미팅')).toBeInTheDocument();
+
+    // 편집 버튼 클릭 시 openEventModal 호출 확인
+    const editBtn = screen.getByTitle('일정 편집');
+    act(() => {
+      fireEvent.click(editBtn);
+    });
+    expect(useCalendarStore.getState().isEventModalOpen).toBe(true);
+    expect(useCalendarStore.getState().editingEvent?.id).toBe('test-agenda-1');
+
+    // 삭제 버튼 클릭 시 인라인 확인 UI 표시 및 삭제 실행
+    const deleteBtn = screen.getByTitle('일정 삭제');
+    act(() => {
+      fireEvent.click(deleteBtn);
+    });
+    const confirmDeleteBtn = screen.getByTitle('삭제');
+    expect(confirmDeleteBtn).toBeInTheDocument();
+
+    act(() => {
+      fireEvent.click(confirmDeleteBtn);
+    });
+    expect(useCalendarStore.getState().events.some((e) => e.id === 'test-agenda-1')).toBe(false);
+  });
+
+  it('EventModal에서 삭제 클릭 시 인라인 확인창이 뜨고 즉시 삭제되어야 한다', () => {
+    const testEvt = {
+      id: 'test-modal-delete-evt',
+      title: '삭제 대상 일정',
+      startDate: '2026-10-26T10:00:00',
+      endDate: '2026-10-26T11:00:00',
+      isAllDay: false,
+      categoryId: 'default-personal',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    useCalendarStore.setState({
+      events: [testEvt],
+      isEventModalOpen: true,
+      editingEvent: testEvt,
+    });
+
+    render(<EventModal />);
+
+    // 최초 삭제 버튼 클릭
+    const deleteBtn = screen.getByRole('button', { name: /삭제/i });
+    act(() => {
+      fireEvent.click(deleteBtn);
+    });
+
+    // 인라인 확인 문구 노출 확인
+    expect(screen.getByText('정말 삭제할까요?')).toBeInTheDocument();
+
+    // 인라인 확인 삭제 버튼 클릭
+    const finalDeleteBtn = screen.getAllByRole('button', { name: /삭제/i })[0];
+    act(() => {
+      fireEvent.click(finalDeleteBtn);
+    });
+
+    expect(useCalendarStore.getState().events.some((e) => e.id === 'test-modal-delete-evt')).toBe(false);
+    expect(useCalendarStore.getState().isEventModalOpen).toBe(false);
   });
 });
 

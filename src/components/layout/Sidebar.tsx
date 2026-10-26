@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   Plus,
   Settings,
@@ -14,6 +14,10 @@ import {
   CloudRain,
   CloudSnow,
   StickyNote,
+  Pencil,
+  Trash2,
+  Calendar as CalendarIcon,
+  Clock,
 } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
 import { MiniCalendar } from '../sidebar/MiniCalendar';
@@ -24,6 +28,7 @@ import {
   SIDEBAR_MAX_WIDTH,
 } from '../../constants/settings';
 import { WEATHER_CITY_PRESETS } from '../../constants/weather';
+import { getEventDisplayTitle } from '../../core/calendar';
 import { useTranslation } from '../../locales';
 
 export const Sidebar: React.FC = () => {
@@ -43,8 +48,63 @@ export const Sidebar: React.FC = () => {
   const memos = useCalendarStore((s) => s.memos);
   const isMemoPanelOpen = useCalendarStore((s) => s.isMemoPanelOpen);
   const toggleMemoPanel = useCalendarStore((s) => s.toggleMemoPanel);
+  const selectedDate = useCalendarStore((s) => s.selectedDate);
+  const events = useCalendarStore((s) => s.events);
+  const getExpandedEvents = useCalendarStore((s) => s.getExpandedEvents);
+  const deleteEvent = useCalendarStore((s) => s.deleteEvent);
 
   const { t, language } = useTranslation();
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  // 선택한 날짜의 일정 목록 계산
+  const dayEvents = useMemo(() => {
+    const startOfDay = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      0,
+      0,
+      0
+    );
+    const endOfDay = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      23,
+      59,
+      59
+    );
+    return getExpandedEvents(startOfDay, endOfDay);
+  }, [selectedDate, events, categories, getExpandedEvents]);
+
+  const formatEventTime = (evt: (typeof dayEvents)[0]) => {
+    if (evt.isAllDay) {
+      return language === 'ko' ? '종일' : 'All day';
+    }
+    const startPart = evt.startDate.slice(11, 16);
+    const endPart = evt.endDate.slice(11, 16);
+    if (startPart && endPart) {
+      return `${startPart} - ${endPart}`;
+    }
+    return startPart || (language === 'ko' ? '시간 지정' : 'Timed');
+  };
+
+  const formatSelectedDateHeader = (date: Date) => {
+    const m = date.getMonth() + 1;
+    const d = date.getDate();
+    const dayNamesKo = ['일', '월', '화', '수', '목', '금', '토'];
+    const dayNamesEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const monthNamesEn = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    const dayIdx = date.getDay();
+    if (language === 'en') {
+      return `${monthNamesEn[date.getMonth()]} ${d} (${dayNamesEn[dayIdx]})`;
+    }
+    return `${m}월 ${d}일 (${dayNamesKo[dayIdx]})`;
+  };
 
   const asideRef = useRef<HTMLElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -247,6 +307,134 @@ export const Sidebar: React.FC = () => {
         {/* 미니 캘린더 피커 */}
         <div className="pt-0.5">
           <MiniCalendar />
+        </div>
+
+        {/* 선택한 날짜의 일정 목록 (Selected Date Events) */}
+        <div className="pt-2 border-t border-[var(--win10-border)]">
+          <div className="flex items-center justify-between px-1 mb-1.5">
+            <div className="flex items-center space-x-1.5 min-w-0">
+              <CalendarIcon className="w-3.5 h-3.5 text-[var(--win10-accent)] shrink-0" />
+              <span className="text-[12px] font-semibold text-[var(--win10-text-primary)] truncate">
+                {formatSelectedDateHeader(selectedDate)}
+              </span>
+              <span className="text-[10px] px-1.5 py-0.2 bg-[var(--win10-card-bg)] border border-[var(--win10-border)] rounded-full text-[var(--win10-text-secondary)] font-medium shrink-0">
+                {dayEvents.length}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => openEventModal(undefined, selectedDate)}
+              className="text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] p-0.5 rounded hover:bg-[var(--win10-button-hover)] transition-colors shrink-0 cursor-pointer"
+              title={t('sidebar.addEventForDate')}
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* 일정 목록 카드 */}
+          {dayEvents.length > 0 ? (
+            <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-0.5">
+              {dayEvents.map((evt) => {
+                const category = categories.find((c) => c.id === evt.categoryId);
+                const catColor = category?.color || '#0078D7';
+                const displayTitle = getEventDisplayTitle(evt, language);
+
+                return (
+                  <div
+                    key={evt.id}
+                    onClick={() => openEventModal(evt)}
+                    className="group relative p-2 rounded bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)] border border-[var(--win10-border)] transition-colors cursor-pointer text-left flex items-start justify-between space-x-2"
+                    style={{ borderLeftColor: catColor, borderLeftWidth: '3.5px' }}
+                  >
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="font-semibold text-xs text-[var(--win10-text-primary)] truncate">
+                          {displayTitle}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1 text-[11px] text-[var(--win10-text-secondary)]">
+                        <Clock className="w-3 h-3 shrink-0 text-[var(--win10-text-muted)]" />
+                        <span>{formatEventTime(evt)}</span>
+                      </div>
+                      {evt.location && (
+                        <div className="flex items-center space-x-1 text-[10px] text-[var(--win10-text-muted)] truncate">
+                          <MapPin className="w-2.5 h-2.5 shrink-0" />
+                          <span className="truncate">{evt.location}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 수정 및 삭제 액션 아이콘 */}
+                    {confirmDeleteId === evt.id ? (
+                      <div
+                        className="flex items-center space-x-1 shrink-0 pt-0.5"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            deleteEvent(evt.id);
+                            setConfirmDeleteId(null);
+                          }}
+                          className="px-1.5 py-0.5 text-[10px] bg-[#e81123] hover:bg-[#e81123]/90 text-white rounded font-medium shadow-xs cursor-pointer"
+                          title={t('sidebar.confirmDelete')}
+                        >
+                          {t('sidebar.confirmDelete')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="px-1.5 py-0.5 text-[10px] bg-[var(--win10-button-hover)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] rounded cursor-pointer"
+                        >
+                          {t('common.cancel')}
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        className="flex items-center space-x-0.5 shrink-0 pt-0.5 opacity-80 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEventModal(evt);
+                          }}
+                          className="p-1 text-[var(--win10-text-secondary)] hover:text-[var(--win10-accent)] hover:bg-[var(--win10-card-bg)] rounded transition-colors cursor-pointer"
+                          title={t('sidebar.editEvent')}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmDeleteId(evt.id);
+                          }}
+                          className="p-1 text-[var(--win10-text-secondary)] hover:text-[#ff5555] hover:bg-[#e81123]/20 rounded transition-colors cursor-pointer"
+                          title={t('sidebar.deleteEvent')}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="px-2 py-3 bg-[var(--win10-card-bg)] border border-[var(--win10-border)] rounded text-center text-xs text-[var(--win10-text-muted)] space-y-1.5">
+              <div>{t('sidebar.noEventsOnDate')}</div>
+              <button
+                type="button"
+                onClick={() => openEventModal(undefined, selectedDate)}
+                className="inline-flex items-center space-x-1 text-[11px] text-[var(--win10-accent)] hover:underline font-medium cursor-pointer"
+              >
+                <Plus className="w-3 h-3" />
+                <span>{t('sidebar.addEventForDate')}</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 내 캘린더 범주 목록 */}

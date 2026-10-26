@@ -116,6 +116,9 @@ export const MonthView: React.FC = () => {
 
   const handleCellClick = (cell: DayCellData) => {
     setSelectedDate(cell.date);
+  };
+
+  const handleCellDoubleClick = (cell: DayCellData) => {
     openEventModal(undefined, cell.date);
   };
 
@@ -229,6 +232,7 @@ export const MonthView: React.FC = () => {
               <div
                 key={`${cell.dateString}-${idx}`}
                 onClick={() => handleCellClick(cell)}
+                onDoubleClick={() => handleCellDoubleClick(cell)}
                 onDragOver={(e) => handleDragOver(e, cell.dateString)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, cell.dateString)}
