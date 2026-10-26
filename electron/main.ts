@@ -50,6 +50,19 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
+  // 페이지 로드 오류 로깅
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error(`[Electron] Failed to load URL: ${validatedURL} (${errorCode}: ${errorDescription})`);
+  });
+
+  // 디버깅을 위한 개발자 도구 단축키 (Ctrl+Shift+I 또는 F12)
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if ((input.control && input.shift && input.key.toLowerCase() === 'i') || input.key === 'F12') {
+      mainWindow?.webContents.toggleDevTools();
+      event.preventDefault();
+    }
+  });
+
   // 준비 완료 시 즉시 표시
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
