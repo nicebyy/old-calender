@@ -7,6 +7,7 @@ export interface ElectronAPI {
   isWindowMaximized: () => Promise<boolean>;
   onWindowStateChange: (callback: (state: { isMaximized: boolean }) => void) => () => void;
   showNotification: (options: { title: string; body: string }) => void;
+  getNativeGeolocation?: () => Promise<{ latitude: number; longitude: number } | null>;
 }
 
 const electronAPI: ElectronAPI = {
@@ -15,6 +16,7 @@ const electronAPI: ElectronAPI = {
   closeWindow: () => ipcRenderer.send('window-close'),
   isWindowMaximized: () => ipcRenderer.invoke('is-window-maximized'),
   showNotification: (options) => ipcRenderer.send('show-notification', options),
+  getNativeGeolocation: () => ipcRenderer.invoke('get-native-geolocation'),
   onWindowStateChange: (callback) => {
     const handler = (_event: Electron.IpcRendererEvent, state: { isMaximized: boolean }) => callback(state);
     ipcRenderer.on('window-state-change', handler);

@@ -20,6 +20,7 @@ export const WEATHER_CITY_PRESETS: WeatherCityPreset[] = [
   { id: 'seoul', nameKo: '서울', nameEn: 'Seoul', latitude: 37.5665, longitude: 126.9780 },
   { id: 'busan', nameKo: '부산', nameEn: 'Busan', latitude: 35.1796, longitude: 129.0756 },
   { id: 'daegu', nameKo: '대구', nameEn: 'Daegu', latitude: 35.8714, longitude: 128.6014 },
+  { id: 'daegu-dalseo', nameKo: '대구 (달서구 본동)', nameEn: 'Daegu (Dalseo-gu Bon-dong)', latitude: 35.8336, longitude: 128.5386 },
   { id: 'incheon', nameKo: '인천', nameEn: 'Incheon', latitude: 37.4563, longitude: 126.7052 },
   { id: 'gwangju', nameKo: '광주', nameEn: 'Gwangju', latitude: 35.1595, longitude: 126.8526 },
   { id: 'daejeon', nameKo: '대전', nameEn: 'Daejeon', latitude: 36.3504, longitude: 127.3845 },

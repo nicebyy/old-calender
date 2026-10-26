@@ -67,17 +67,38 @@ export async function reverseGeocodeCoords(
     const data = await res.json();
 
     if (lang === 'ko') {
+      const admin = Array.isArray(data.localityInfo?.administrative)
+        ? data.localityInfo.administrative
+        : [];
+
+      const level4 = admin.find((a: any) => a.adminLevel === 4)?.name || ''; // "대구광역시", "서울특별시", "경기도" 등
+      const level6 = admin.find((a: any) => a.adminLevel === 6)?.name || ''; // "달서구", "칠곡군", "강남구" 등
+      const level8 = admin.find((a: any) => a.adminLevel === 8)?.name || data.locality || ''; // "본동", "역삼동" 등
+
+      const shortProvince = level4.replace(/특별자치시|특별자치도|광역시|특별시|도/g, '').trim();
+
+      // "대구 달서구 본동", "서울 강남구 역삼동" 등
+      if (shortProvince && level6 && level8) {
+        return `${shortProvince} ${level6} ${level8}`;
+      }
+      // "달서구 본동"
+      if (level6 && level8) {
+        return `${level6} ${level8}`;
+      }
+      // "대구 달서구"
+      if (shortProvince && level6) {
+        return `${shortProvince} ${level6}`;
+      }
+
       const city = data.city || '';
       const locality = data.locality || '';
-      const sub = data.principalSubdivision || '';
-
-      if (city) return city;
-      if (locality) return locality;
-      if (sub) return sub;
+      if (city && locality && !city.includes(locality)) {
+        return `${city} ${locality}`;
+      }
+      return city || locality || level4 || null;
     } else {
-      return data.city || data.locality || data.principalSubdivision || null;
+      return data.locality || data.city || data.principalSubdivision || null;
     }
-    return null;
   } catch {
     return null;
   }
@@ -127,13 +148,25 @@ export async function detectLocationViaIP(): Promise<{ lat: number; lon: number;
 }
 
 /**
- * GPS 및 고정밀 IP Geolocation + Reverse Geocoding을 결합한 3중 실제 위치 자동 감지
+ * Windows 네이티브 Wi-Fi Geolocation + 브라우저 GPS + 고정밀 IP + Reverse Geocoding
  */
 export async function detectUserLocation(lang: 'ko' | 'en' = 'ko'): Promise<WeatherLocation> {
   let coords: { lat: number; lon: number } | null = null;
 
-  // 1. 브라우저/Electron Geolocation 시도 (GPS / Wi-Fi)
-  if (typeof window !== 'undefined' && navigator?.geolocation) {
+  // 1. Electron Windows 10/11 네이티브 Wi-Fi Geolocation 우선 시도 (동/번지 수준 10m 초고정밀)
+  if (typeof window !== 'undefined' && window.electronAPI?.getNativeGeolocation) {
+    try {
+      const native = await window.electronAPI.getNativeGeolocation();
+      if (native && !isNaN(native.latitude) && !isNaN(native.longitude)) {
+        coords = { lat: native.latitude, lon: native.longitude };
+      }
+    } catch {
+      coords = null;
+    }
+  }
+
+  // 2. 브라우저 표준 Geolocation 시도 (GPS / Wi-Fi)
+  if (!coords && typeof window !== 'undefined' && navigator?.geolocation) {
     try {
       coords = await new Promise<{ lat: number; lon: number }>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(
@@ -147,7 +180,7 @@ export async function detectUserLocation(lang: 'ko' | 'en' = 'ko'): Promise<Weat
     }
   }
 
-  // 2. Geolocation 불가/거부/타임아웃 시 고정밀 IP Geolocation 수행
+  // 3. Geolocation 불가/거부/타임아웃 시 고정밀 IP Geolocation 수행 (광역 폴백)
   let ipCityName: string | undefined;
   if (!coords) {
     const ipGeo = await detectLocationViaIP();
@@ -157,7 +190,7 @@ export async function detectUserLocation(lang: 'ko' | 'en' = 'ko'): Promise<Weat
     }
   }
 
-  // 3. 좌표 확보 시 Reverse Geocoding으로 정확한 한글 시/군/구 행정구역명 획득
+  // 4. 좌표 확보 시 Reverse Geocoding으로 정확한 한글 시/구/동 행정구역명 획득
   if (coords) {
     const districtName = await reverseGeocodeCoords(coords.lat, coords.lon, lang);
     const nearest = findNearestPresetCity(coords.lat, coords.lon);
@@ -170,7 +203,7 @@ export async function detectUserLocation(lang: 'ko' | 'en' = 'ko'): Promise<Weat
     };
   }
 
-  // 4. 모든 네트워크/위치 탐색 실패 시 기본 위치 반환
+  // 5. 모든 네트워크/위치 탐색 실패 시 기본 위치 반환
   return DEFAULT_WEATHER_LOCATION;
 }
 
