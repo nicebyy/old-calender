@@ -5,6 +5,7 @@ import { WeekView } from './WeekView';
 import { DayView } from './DayView';
 import { YearView } from './YearView';
 import { HeaderControls } from '../components/layout/HeaderControls';
+import { SettingsPanel } from '../components/layout/SettingsPanel';
 import { useCalendarStore } from '../storage/calendarStore';
 
 describe('Calendar Views & HeaderControls Test Suite', () => {
@@ -85,5 +86,31 @@ describe('Calendar Views & HeaderControls Test Suite', () => {
       fireEvent.click(closeBtn);
     });
     expect(mockClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('SettingsPanel에서 테마 프리셋 및 모드를 선택하면 설정이 즉시 반영되어야 한다', () => {
+    useCalendarStore.setState({ isSettingsOpen: true });
+
+    render(<SettingsPanel />);
+    expect(screen.getByText('완성형 테마 프리셋 (1-Click)')).toBeInTheDocument();
+    expect(screen.getByText('Windows 시스템 강조 색상 (12종)')).toBeInTheDocument();
+
+    // 프리셋 클릭 (에메랄드 포레스트)
+    const emeraldPreset = screen.getByText('에메랄드 포레스트');
+    act(() => {
+      fireEvent.click(emeraldPreset);
+    });
+
+    const updatedSettings = useCalendarStore.getState().settings;
+    expect(updatedSettings.accentColor).toBe('#107C41');
+    expect(updatedSettings.backgroundTheme).toBe('lake');
+
+    // 라이트 모드 라디오 클릭
+    const lightRadio = screen.getByLabelText('밝게');
+    act(() => {
+      fireEvent.click(lightRadio);
+    });
+
+    expect(useCalendarStore.getState().settings.themeMode).toBe('light');
   });
 });

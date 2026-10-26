@@ -107,4 +107,70 @@ describe('CalendarStore Extended', () => {
       expect(remainingAccounts.some((a) => a.id === added.id)).toBe(false);
     }
   });
+
+  it('다크/라이트 모드 및 액센트 컬러 변경 시 DOM과 CSS 변수에 즉시 반영되어야 한다', () => {
+    // 라이트 모드 및 크림슨 액센트 적용
+    useCalendarStore.getState().updateSettings({
+      themeMode: 'light',
+      accentColor: '#E81123',
+      backgroundOpacity: 0.5,
+    });
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    expect(document.documentElement.style.getPropertyValue('--win10-accent')).toBe('#E81123');
+    expect(document.documentElement.style.getPropertyValue('--win10-bg-opacity')).toBe('0.5');
+
+    // 다크 모드로 변경
+    useCalendarStore.getState().updateSettings({
+      themeMode: 'dark',
+      accentColor: '#107C41',
+    });
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect(document.documentElement.style.getPropertyValue('--win10-accent')).toBe('#107C41');
+  });
+
+  it('1-클릭 테마 프리셋(applyThemePreset) 적용 시 모든 테마 요소가 일괄 갱신되어야 한다', () => {
+    const cyberPreset = {
+      id: 'cyber-neon',
+      name: '사이버 네온 시안',
+      themeMode: 'dark' as const,
+      accentColor: '#00B7C3',
+      backgroundTheme: 'city',
+      backgroundFill: 'window' as const,
+      description: '사이버 테마',
+    };
+
+    useCalendarStore.getState().applyThemePreset(cyberPreset);
+
+    const settings = useCalendarStore.getState().settings;
+    expect(settings.themeMode).toBe('dark');
+    expect(settings.accentColor).toBe('#00B7C3');
+    expect(settings.backgroundTheme).toBe('city');
+    expect(settings.backgroundFill).toBe('window');
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect(document.documentElement.style.getPropertyValue('--win10-accent')).toBe('#00B7C3');
+  });
+
+  it('배경 테마와 채우기 모드 변경이 스토어와 로컬스토리지에 저장되어야 한다', () => {
+    useCalendarStore.getState().updateSettings({
+      backgroundTheme: 'lake',
+      backgroundFill: 'sidebar',
+      backgroundOpacity: 0.7,
+    });
+
+    const settings = useCalendarStore.getState().settings;
+    expect(settings.backgroundTheme).toBe('lake');
+    expect(settings.backgroundFill).toBe('sidebar');
+    expect(settings.backgroundOpacity).toBe(0.7);
+
+    // localStorage에 저장되었는지 확인
+    const saved = localStorage.getItem('win10_calendar_settings');
+    expect(saved).not.toBeNull();
+    const parsed = JSON.parse(saved!);
+    expect(parsed.backgroundTheme).toBe('lake');
+    expect(parsed.backgroundFill).toBe('sidebar');
+  });
 });
+
