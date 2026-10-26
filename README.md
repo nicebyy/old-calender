@@ -1,6 +1,6 @@
-# Windows 10 Classic Calendar Replica (old-calendar)
+# Classic Calendar (클래식 캘린더)
 
-Windows 10 시절의 미려하고 가벼웠던 **클래식 일정(Calendar) 데스크톱 앱**을 1:1로 정밀하게 재현한 프로젝트입니다.
+Windows 10 시절의 미려하고 가벼웠던 **클래식 일정(Calendar) 데스크톱 앱**을 정밀하게 계승한 초경량·고반응성 데스크톱 캘린더입니다. (스토어 배포 에디션)
 
 ---
 
@@ -116,12 +116,40 @@ Windows 10 시절의 미려하고 가벼웠던 **클래식 일정(Calendar) 데�
 - **100% 키 일치도 검증 단위 테스트 (Key Parity Tests)**:
   - 번역 리소스 간 누락된 키가 없도록 단위 테스트(`src/locales/i18n.test.ts`)로 철저히 검증.
 
+### 9. 스토어 배포 패키징 및 브랜드 자산 (Store Packaging & Assets)
+- **공식 제품명 (Product Name)**: `Classic Calendar (클래식 캘린더)`
+- **스토어 앱 패키지 식별자 (App ID)**: `com.fluentcal.classic`
+- **아이콘 자산 (Fluent Design Iconography)**:
+  - `assets/icon.ico`: 256, 128, 48, 32px 멀티 해상도 Windows 실행/타이틀바 아이콘.
+  - `assets/icon.png` & `public/icon.png`: 512x512 마스터 고해상도 PNG.
+  - `public/favicon.ico`: 웹 및 브라우저 프리뷰용 파비콘.
+  - **Microsoft Store / UWP 타일 규격 로고 5종**:
+    - `Square44x44Logo.png` (작업 표시줄 및 앱 목록)
+    - `Square150x150Logo.png` (시작 메뉴 중간 타일)
+    - `Square310x310Logo.png` (시작 메뉴 큰 타일)
+    - `Wide310x150Logo.png` (시작 메뉴 넓은 타일)
+    - `StoreLogo.png` (스토어 상세 페이지 로고)
+- **패키징 규격**: Microsoft Store (`appx`/`msix`) 및 Windows 데스크톱 독립형 설치 프로그램 (`nsis`).
+
 ---
 
 ## 🏗️ 아키텍처 및 디렉터리 구조
 
 ```
-old-calendar/
+classic-calendar/
+├── assets/                   # 스토어 배포용 고해상도 아이콘 및 UWP 타일 에셋
+│   ├── icon.ico              # Windows 데스크톱 다중 해상도 아이콘 (256, 128, 48, 32px)
+│   ├── icon.png              # 512x512 고해상도 마스터 아이콘
+│   ├── Square44x44Logo.png   # 작업 표시줄 및 앱 목록 타일
+│   ├── Square150x150Logo.png # 시작 메뉴 중간 타일
+│   ├── Square310x310Logo.png # 시작 메뉴 큰 타일
+│   ├── Wide310x150Logo.png   # 시작 메뉴 넓은 타일
+│   └── StoreLogo.png         # 스토어 상세 페이지 로고
+├── public/                   # 웹 파비콘 및 브라우저 에셋
+│   ├── favicon.ico
+│   └── icon.png
+├── scripts/                  # 에셋 생성 및 패키징 유틸리티
+│   └── create-ico.cjs        # 멀티 해상도 .ico 빌드 스크립트
 ├── electron/                 # 데스크톱 메인 & 프리로드 프로세스
 │   ├── main.ts               # 프레임리스 창, 창 제어 IPC, 네이티브 알림
 │   └── preload.cts           # contextBridge 기반 안전한 IPC API 노출

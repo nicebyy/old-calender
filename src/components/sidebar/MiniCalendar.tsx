@@ -46,8 +46,17 @@ export const MiniCalendar: React.FC = () => {
     setMiniMonth(date.getMonth());
   };
 
+  const handleWheel = (e: React.WheelEvent) => {
+    if (Math.abs(e.deltaY) < 25) return;
+    if (e.deltaY > 0) {
+      handleNextMonth();
+    } else {
+      handlePrevMonth();
+    }
+  };
+
   return (
-    <div className="w-full text-xs select-none">
+    <div onWheel={handleWheel} className="w-full text-xs select-none">
       {/* 미니 캘린더 헤더: 년/월 및 이동 버튼 */}
       <div className="flex items-center justify-between px-1 py-1 mb-1">
         <span className="font-semibold text-xs text-[var(--win10-text-primary)]">

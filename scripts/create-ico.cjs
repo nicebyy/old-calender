@@ -1,11 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 
-/**
- * Creates a Windows .ico file containing PNG-encoded images.
- * @param {Array<{width: number, height: number, buffer: Buffer}>} images 
- * @returns {Buffer}
- */
 function createIco(images) {
   const header = Buffer.alloc(6);
   header.writeUInt16LE(0, 0); // Reserved
@@ -32,11 +27,9 @@ function createIco(images) {
   return Buffer.concat([header, ...entries, ...images.map(img => img.buffer)]);
 }
 
-// Generate ICO from resized PNGs
 const assetsDir = path.resolve(__dirname, '../assets');
 const publicDir = path.resolve(__dirname, '../public');
 
-// We have Square310x310Logo (representing 256/310), Square150x150Logo (150/128), Square44x44Logo (44/48), and icon.png
 const img310 = fs.readFileSync(path.join(assetsDir, 'Square310x310Logo.png'));
 const img150 = fs.readFileSync(path.join(assetsDir, 'Square150x150Logo.png'));
 const img44 = fs.readFileSync(path.join(assetsDir, 'Square44x44Logo.png'));

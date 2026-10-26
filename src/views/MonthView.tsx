@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Sun, CloudSun, Cloud, CloudRain, CloudSnow } from 'lucide-react';
 import { useCalendarStore } from '../storage/calendarStore';
 import { getMonthGrid } from '../core/calendar';
@@ -9,6 +9,7 @@ export const MonthView: React.FC = () => {
   const viewDate = useCalendarStore((s) => s.viewDate);
   const selectedDate = useCalendarStore((s) => s.selectedDate);
   const setSelectedDate = useCalendarStore((s) => s.setSelectedDate);
+  const navigateViewDate = useCalendarStore((s) => s.navigateViewDate);
   const categories = useCalendarStore((s) => s.categories);
   const settings = useCalendarStore((s) => s.settings);
   const weatherDailyCache = useCalendarStore((s) => s.weatherDailyCache);
@@ -21,6 +22,46 @@ export const MonthView: React.FC = () => {
   // 드래그 앤 드롭 상태
   const [draggedEventId, setDraggedEventId] = useState<string | null>(null);
   const [dragOverDateStr, setDragOverDateStr] = useState<string | null>(null);
+
+  // 마우스 휠 세로 스크롤 월 단위 이동 상태
+  const [slideDirection, setSlideDirection] = useState<'up' | 'down' | null>(null);
+  const isScrollingRef = useRef(false);
+  const accumulatedDeltaRef = useRef(0);
+  const scrollResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    // 수평 스크롤이 지배적인 경우 무시
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+    accumulatedDeltaRef.current += e.deltaY;
+
+    if (scrollResetTimerRef.current) {
+      clearTimeout(scrollResetTimerRef.current);
+    }
+    scrollResetTimerRef.current = setTimeout(() => {
+      accumulatedDeltaRef.current = 0;
+    }, 150);
+
+    if (isScrollingRef.current) return;
+
+    const threshold = 40; // 휠 회전 감지 임계값
+    if (Math.abs(accumulatedDeltaRef.current) >= threshold) {
+      const isNext = accumulatedDeltaRef.current > 0;
+      const direction = isNext ? 'next' : 'prev';
+      const anim = isNext ? 'up' : 'down';
+
+      isScrollingRef.current = true;
+      accumulatedDeltaRef.current = 0;
+      setSlideDirection(anim);
+
+      navigateViewDate(direction);
+
+      setTimeout(() => {
+        setSlideDirection(null);
+        isScrollingRef.current = false;
+      }, 200);
+    }
+  };
 
   // 해당 월의 앞뒤 여유를 두고 반복 일정 전개
   const startOfGrid = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 15);
@@ -102,7 +143,10 @@ export const MonthView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[var(--win10-bg)] select-none overflow-hidden transition-colors">
+    <div
+      onWheel={handleWheel}
+      className="flex-1 flex flex-col h-full bg-[var(--win10-bg)] select-none overflow-hidden transition-colors"
+    >
       {/* 요일 헤더 */}
       <div className="grid grid-cols-7 border-b border-[var(--win10-border)] bg-[var(--win10-surface)] text-xs font-semibold text-[var(--win10-text-secondary)]">
         {weekdays.map((day, idx) => (
@@ -117,8 +161,17 @@ export const MonthView: React.FC = () => {
         ))}
       </div>
 
-      {/* 6주 x 7일 캘린더 그리드 */}
-      <div className="flex-1 grid grid-cols-7 grid-rows-6 border-l border-t border-[var(--win10-border)]">
+      {/* 6주 x 7일 캘린더 그리드 (Windows 10 UWP 세로 슬라이드 모션) */}
+      <div
+        key={`${viewDate.getFullYear()}-${viewDate.getMonth()}`}
+        className={`flex-1 grid grid-cols-7 grid-rows-6 border-l border-t border-[var(--win10-border)] ${
+          slideDirection === 'up'
+            ? 'win10-month-slide-up'
+            : slideDirection === 'down'
+            ? 'win10-month-slide-down'
+            : ''
+        }`}
+      >
         {grid.map((cell, idx) => {
           const isSelected = cell.isSelected;
           const isToday = cell.isToday;
