@@ -29,6 +29,19 @@ describe('Calendar Views & HeaderControls Test Suite', () => {
     expect(screen.getByText('26')).toBeInTheDocument();
   });
 
+  it('MonthView에서 마우스 휠 스크롤 시 월 단위로 이전/다음 달로 이동해야 한다', () => {
+    const { container } = render(<MonthView />);
+    expect(useCalendarStore.getState().viewDate.getMonth()).toBe(9); // 10월
+
+    const monthRoot = container.firstChild as HTMLElement;
+
+    // 아래로 휠 스크롤 (deltaY: 100) -> 11월로 이동
+    act(() => {
+      fireEvent.wheel(monthRoot, { deltaY: 100 });
+    });
+    expect(useCalendarStore.getState().viewDate.getMonth()).toBe(10); // 11월
+  });
+
   it('WeekView가 정상적으로 렌더링되어야 한다', () => {
     render(<WeekView isWorkWeek={false} />);
     expect(screen.getByText('자정')).toBeInTheDocument();
