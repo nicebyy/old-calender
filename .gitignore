@@ -8,9 +8,11 @@ coverage/
 
 # Production / Build output
 dist/
+dist-electron/
 build/
 out/
 release/
+*.tsbuildinfo
 
 # Agent Worktrees (Git Worktree Isolation Policy)
 .agents/

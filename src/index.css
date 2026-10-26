@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --win10-accent: #0078d7;
+    --win10-accent-hover: #1a86d9;
+    --win10-accent-active: #0063b1;
+    --win10-bg: #1f1f1f;
+    --win10-sidebar: #262626;
+    --win10-border: #333333;
+    --win10-card-hover: rgba(255, 255, 255, 0.05);
+  }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    user-select: none;
+    background-color: var(--win10-bg);
+    color: #ffffff;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+}
+
+/* 윈도우 10 커스텀 스크롤바 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* 타이틀바 드래그 영역 */
+.app-drag-region {
+  -webkit-app-region: drag;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Windows 10 Fluent Reveal Effect 유틸리티 */
+.win10-reveal {
+  position: relative;
+  transition: background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.win10-reveal:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.win10-reveal:active {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Windows 10 버튼 공통 스타일 */
+.win10-button {
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  transition: all 0.1s ease;
+}
+
+.win10-button:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.win10-button:active {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Windows 10 아크릴 반투명 배경 */
+.win10-acrylic {
+  background-color: rgba(38, 38, 38, 0.88);
+  backdrop-filter: blur(20px);
+}
