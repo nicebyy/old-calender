@@ -826,7 +826,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   autoDetectLocation: async () => {
     set({ isWeatherLoading: true });
     try {
-      const detected = await detectUserLocation();
+      const detected = await detectUserLocation(get().settings.language);
       get().updateSettings({ weatherLocation: detected });
       await get().refreshWeather();
     } catch {

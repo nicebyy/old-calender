@@ -151,6 +151,8 @@ export const ko = {
     detectingLocation: '위치 확인 중...',
     selectCity: '도시/지역 직접 선택',
     currentLocation: '현재 위치',
+    searchLocationTitle: '지역 및 동네 직접 검색',
+    searchLocationPlaceholder: '지역명 입력 (예: 칠곡, 구미, 분당, 해운대, 제주...)',
     refreshWeather: '실시간 날씨 새로고침',
     lunar: '캘린더 표시 및 대체 캘린더',
     showLunar: '음력 일자 표시 (초하루, 보름 등)',

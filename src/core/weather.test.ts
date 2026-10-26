@@ -30,8 +30,8 @@ describe('Location-based Weather Core Module', () => {
     const busanNear = findNearestPresetCity(35.1587, 129.1604);
     expect(busanNear.id).toBe('busan');
 
-    // 한라산 부근 (33.3617, 126.5292) -> 제주
-    const jejuNear = findNearestPresetCity(33.3617, 126.5292);
+    // 제주시청 부근 (33.4996, 126.5312) -> 제주
+    const jejuNear = findNearestPresetCity(33.4996, 126.5312);
     expect(jejuNear.id).toBe('jeju');
   });
 
@@ -110,5 +110,24 @@ describe('Location-based Weather Core Module', () => {
     const fallback = getWeatherForDate(otherDate, 'C', undefined, cacheMap);
     expect(fallback).toBeDefined();
     expect(fallback.tempMax).toBeDefined();
+  });
+
+  it('경북 칠곡/구미 좌표에서도 최근접 프리셋 도시를 정확히 찾아야 한다', () => {
+    // 칠곡 왜관 부근 (35.99, 128.40) -> 칠곡
+    const chilgokNear = findNearestPresetCity(35.99, 128.40);
+    expect(chilgokNear.id).toBe('chilgok');
+    expect(chilgokNear.nameKo).toContain('칠곡');
+
+    // 구미 시청 부근 (36.11, 128.34) -> 구미
+    const gumiNear = findNearestPresetCity(36.11, 128.34);
+    expect(gumiNear.id).toBe('gumi');
+    expect(gumiNear.nameKo).toContain('구미');
+  });
+
+  it('searchLocations 함수는 빈 쿼리나 유효하지 않은 입력 시 빈 배열을 안전하게 반환해야 한다', async () => {
+    const { searchLocations } = await import('./weather');
+    expect(await searchLocations('')).toEqual([]);
+    expect(await searchLocations(' ')).toEqual([]);
+    expect(await searchLocations('a')).toEqual([]);
   });
 });

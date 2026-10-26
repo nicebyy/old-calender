@@ -40,35 +40,197 @@ export function findNearestPresetCity(lat: number, lon: number): WeatherCityPres
   return nearest;
 }
 
+export interface LocationSearchResult {
+  id: string;
+  displayName: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+}
+
 /**
- * 브라우저 Geolocation API를 통한 현재 위치 자동 감지
+ * 위도/경도 좌표를 한글/영문 행정구역명(시/군/구)으로 변환 (BigDataCloud Free Reverse Geocoding)
  */
-export async function detectUserLocation(): Promise<WeatherLocation> {
-  if (typeof window === 'undefined' || !navigator.geolocation) {
-    return DEFAULT_WEATHER_LOCATION;
+export async function reverseGeocodeCoords(
+  lat: number,
+  lon: number,
+  lang: 'ko' | 'en' = 'ko'
+): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+    const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=${lang}`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!res.ok) return null;
+    const data = await res.json();
+
+    if (lang === 'ko') {
+      const city = data.city || '';
+      const locality = data.locality || '';
+      const sub = data.principalSubdivision || '';
+
+      if (city) return city;
+      if (locality) return locality;
+      if (sub) return sub;
+    } else {
+      return data.city || data.locality || data.principalSubdivision || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 데스크톱 및 GPS 미지원 환경을 위한 초고속 IP Geolocation 자동 감지 (GeoJS & ipapi.co)
+ */
+export async function detectLocationViaIP(): Promise<{ lat: number; lon: number; city?: string } | null> {
+  // 1차: GeoJS (초고속 오픈 무료 IP Geolocation)
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch('https://get.geojs.io/v1/ip/geo.json', { signal: controller.signal });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const data = await res.json();
+      const lat = parseFloat(data.latitude);
+      const lon = parseFloat(data.longitude);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        return { lat, lon, city: data.city };
+      }
+    }
+  } catch {
+    // 1차 실패 시 2차 시도
   }
 
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        const nearest = findNearestPresetCity(lat, lon);
+  // 2차: ipapi.co
+  try {
+    const controller2 = new AbortController();
+    const timeout2 = setTimeout(() => controller2.abort(), 3500);
+    const res2 = await fetch('https://ipapi.co/json/', { signal: controller2.signal });
+    clearTimeout(timeout2);
+    if (res2.ok) {
+      const data2 = await res2.json();
+      const lat = parseFloat(data2.latitude);
+      const lon = parseFloat(data2.longitude);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        return { lat, lon, city: data2.city };
+      }
+    }
+  } catch {
+    // 2차 실패 시 무시
+  }
 
-        resolve({
-          city: nearest.nameKo,
-          latitude: Number(lat.toFixed(4)),
-          longitude: Number(lon.toFixed(4)),
-          autoDetect: true,
-        });
+  return null;
+}
+
+/**
+ * GPS 및 고정밀 IP Geolocation + Reverse Geocoding을 결합한 3중 실제 위치 자동 감지
+ */
+export async function detectUserLocation(lang: 'ko' | 'en' = 'ko'): Promise<WeatherLocation> {
+  let coords: { lat: number; lon: number } | null = null;
+
+  // 1. 브라우저/Electron Geolocation 시도 (GPS / Wi-Fi)
+  if (typeof window !== 'undefined' && navigator?.geolocation) {
+    try {
+      coords = await new Promise<{ lat: number; lon: number }>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+          (err) => reject(err),
+          { timeout: 3000, maximumAge: 300000 }
+        );
+      });
+    } catch {
+      coords = null;
+    }
+  }
+
+  // 2. Geolocation 불가/거부/타임아웃 시 고정밀 IP Geolocation 수행
+  let ipCityName: string | undefined;
+  if (!coords) {
+    const ipGeo = await detectLocationViaIP();
+    if (ipGeo) {
+      coords = { lat: ipGeo.lat, lon: ipGeo.lon };
+      ipCityName = ipGeo.city;
+    }
+  }
+
+  // 3. 좌표 확보 시 Reverse Geocoding으로 정확한 한글 시/군/구 행정구역명 획득
+  if (coords) {
+    const districtName = await reverseGeocodeCoords(coords.lat, coords.lon, lang);
+    const nearest = findNearestPresetCity(coords.lat, coords.lon);
+
+    return {
+      city: districtName || ipCityName || (lang === 'ko' ? nearest.nameKo : nearest.nameEn),
+      latitude: Number(coords.lat.toFixed(4)),
+      longitude: Number(coords.lon.toFixed(4)),
+      autoDetect: true,
+    };
+  }
+
+  // 4. 모든 네트워크/위치 탐색 실패 시 기본 위치 반환
+  return DEFAULT_WEATHER_LOCATION;
+}
+
+/**
+ * 전국 시/군/구 및 동/면/읍 또는 글로벌 도시 직접 검색 (OSM Nominatim API)
+ */
+export async function searchLocations(
+  query: string,
+  lang: 'ko' | 'en' = 'ko'
+): Promise<LocationSearchResult[]> {
+  const trimmed = query.trim();
+  if (!trimmed || trimmed.length < 2) return [];
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const encoded = encodeURIComponent(trimmed);
+    const url = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&addressdetails=1&countrycodes=kr&limit=5`;
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'Accept-Language': lang === 'ko' ? 'ko-KR,ko;q=0.9' : 'en-US,en;q=0.9',
       },
-      () => {
-        // Geolocation 거부 또는 실패 시 기본값(서울) 반환
-        resolve(DEFAULT_WEATHER_LOCATION);
-      },
-      { timeout: 5000, maximumAge: 600000 }
-    );
-  });
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return [];
+    const items = await res.json();
+    if (!Array.isArray(items)) return [];
+
+    return items.map((item: any, idx: number) => {
+      const lat = parseFloat(item.lat);
+      const lon = parseFloat(item.lon);
+      const addr = item.address || {};
+      const cityName =
+        addr.county ||
+        addr.city ||
+        addr.borough ||
+        addr.town ||
+        addr.suburb ||
+        item.name ||
+        trimmed;
+
+      const province = addr.province || addr.state || '';
+      const displayName =
+        province && !cityName.includes(province)
+          ? `${cityName} (${province})`
+          : item.display_name.split(',').slice(0, 2).join(', ').trim();
+
+      return {
+        id: `search-${idx}-${item.place_id || Date.now()}`,
+        displayName,
+        city: cityName,
+        latitude: Number(lat.toFixed(4)),
+        longitude: Number(lon.toFixed(4)),
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 /**
