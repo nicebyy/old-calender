@@ -8,14 +8,27 @@ export const MonthView: React.FC = () => {
   const viewDate = useCalendarStore((s) => s.viewDate);
   const selectedDate = useCalendarStore((s) => s.selectedDate);
   const setSelectedDate = useCalendarStore((s) => s.setSelectedDate);
+  const allEvents = useCalendarStore((s) => s.events);
   const categories = useCalendarStore((s) => s.categories);
   const openEventModal = useCalendarStore((s) => s.openEventModal);
-  const getExpandedEvents = useCalendarStore((s) => s.getExpandedEvents);
+  const searchQuery = useCalendarStore((s) => s.searchQuery);
 
-  // 해당 월의 앞뒤 여유를 두고 반복 일정 전개
-  const startOfGrid = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 15);
-  const endOfGrid = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 15);
-  const visibleEvents = getExpandedEvents(startOfGrid, endOfGrid);
+  // 숨김 처리된 카테고리의 이벤트 필터링
+  const visibleCategoryIds = new Set(
+    categories.filter((c) => c.isVisible).map((c) => c.id)
+  );
+  let visibleEvents = allEvents.filter((e) => visibleCategoryIds.has(e.categoryId));
+
+  // 검색어가 있을 경우 필터링
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase().trim();
+    visibleEvents = visibleEvents.filter(
+      (e) =>
+        e.title.toLowerCase().includes(q) ||
+        (e.description && e.description.toLowerCase().includes(q)) ||
+        (e.location && e.location.toLowerCase().includes(q))
+    );
+  }
 
   // 월간 그리드 42개 셀 계산
   const grid = getMonthGrid(
@@ -27,18 +40,22 @@ export const MonthView: React.FC = () => {
 
   const handleCellClick = (cell: DayCellData) => {
     setSelectedDate(cell.date);
+  };
+
+  const handleCellDoubleClick = (cell: DayCellData) => {
+    setSelectedDate(cell.date);
     openEventModal(undefined, cell.date);
   };
 
   const handleEventClick = (e: React.MouseEvent, event: CalendarEvent) => {
-    e.stopPropagation(); // 셀 클릭(퀵 추가) 전파 방지
+    e.stopPropagation();
     openEventModal(event);
   };
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#1f1f1f] select-none overflow-hidden">
       {/* 요일 헤더 */}
-      <div className="grid grid-cols-7 border-b border-[#333333] bg-[#222222] text-xs font-semibold text-[#aaaaaa]">
+      <div className="grid grid-cols-7 border-b border-[#2d2d2d] bg-[#222222] text-xs font-semibold text-[#aaaaaa] shrink-0">
         {WEEKDAYS_KO.map((day, idx) => (
           <div
             key={day}
@@ -63,17 +80,18 @@ export const MonthView: React.FC = () => {
             <div
               key={`${cell.dateString}-${idx}`}
               onClick={() => handleCellClick(cell)}
+              onDoubleClick={() => handleCellDoubleClick(cell)}
               className={`border-r border-b border-[#2d2d2d] p-1.5 flex flex-col justify-between transition-colors relative cursor-pointer group
-                ${isCurrent ? 'bg-[#1f1f1f]' : 'bg-[#181818]'}
-                ${isSelected ? 'ring-1 ring-[#0078d7] z-10' : ''}
-                hover:bg-[#282828] hover:border-[#444444]
+                ${isCurrent ? 'bg-[#1f1f1f]' : 'bg-[#171717]'}
+                ${isSelected ? 'ring-2 ring-[#0078d7] z-10' : ''}
+                hover:bg-[#282828]
               `}
             >
-              {/* 상단 날짜 헤더 */}
-              <div className="flex items-center justify-between mb-1">
+              {/* 상단 날짜 헤더 (1일인 경우 월 이름을 날짜 바로 옆에 나란히 배치) */}
+              <div className="flex items-center space-x-1.5 mb-1 shrink-0">
                 <div
                   className={`w-6 h-6 flex items-center justify-center text-xs rounded-full font-medium transition-colors
-                    ${isToday ? 'bg-[#0078d7] text-white font-bold shadow' : ''}
+                    ${isToday ? 'bg-[#0078d7] text-white font-bold shadow-sm' : ''}
                     ${!isToday && isCurrent ? 'text-white' : ''}
                     ${!isToday && !isCurrent ? 'text-[#666666]' : ''}
                     ${!isToday && isCurrent && isWeekend ? 'text-[#e0e0e0]' : ''}
@@ -82,9 +100,8 @@ export const MonthView: React.FC = () => {
                   {cell.dayNumber}
                 </div>
 
-                {/* 오늘 날짜가 1일인 경우 월 라벨 표시 (예: 10월 1일) */}
                 {cell.dayNumber === 1 && (
-                  <span className="text-[10px] text-[#888888] font-medium pr-1">
+                  <span className="text-[11px] text-[#aaaaaa] font-medium tracking-tight">
                     {cell.date.getMonth() + 1}월
                   </span>
                 )}
@@ -100,7 +117,7 @@ export const MonthView: React.FC = () => {
                     <div
                       key={evt.id}
                       onClick={(e) => handleEventClick(e, evt)}
-                      className="px-1.5 py-0.5 rounded text-[11px] truncate flex items-center space-x-1.5 bg-[#2a2a2a] hover:bg-[#383838] border-l-2 transition-all shadow-xs"
+                      className="px-1.5 py-0.5 rounded text-[11px] truncate flex items-center space-x-1.5 bg-[#2a2a2a] hover:bg-[#383838] border-l-2 transition-all shadow-xs cursor-pointer"
                       style={{ borderLeftColor: color }}
                       title={`${evt.title} (${evt.startDate.slice(11, 16)}~${evt.endDate.slice(11, 16)})`}
                     >
@@ -117,7 +134,14 @@ export const MonthView: React.FC = () => {
                 })}
 
                 {cell.events.length > 3 && (
-                  <div className="text-[10px] text-[#0078d7] font-medium pl-1 hover:underline">
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedDate(cell.date);
+                      openEventModal(undefined, cell.date);
+                    }}
+                    className="text-[10px] text-[#0078d7] hover:text-[#1a86d9] font-medium pl-1 hover:underline cursor-pointer"
+                  >
                     +{cell.events.length - 3}개 더보기
                   </div>
                 )}

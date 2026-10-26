@@ -1,6 +1,6 @@
 import React from 'react';
 import { useCalendarStore } from '../storage/calendarStore';
-import { getMonthGrid } from '../core/calendar';
+import { getMonthGrid, isSameDay } from '../core/calendar';
 import { MONTH_NAMES_KO, WEEKDAYS_KO } from '../constants/calendar';
 
 export const YearView: React.FC = () => {
@@ -11,65 +11,74 @@ export const YearView: React.FC = () => {
   const setViewType = useCalendarStore((s) => s.setViewType);
 
   const year = viewDate.getFullYear();
+  const today = new Date();
 
   const handleMonthClick = (monthIdx: number) => {
-    const targetDate = new Date(year, monthIdx, 1);
-    setViewDate(targetDate);
-    setSelectedDate(targetDate);
-    setViewType('month'); // 해당 월의 월간 뷰로 즉시 줌인 전환
+    const newDate = new Date(year, monthIdx, 1);
+    setViewDate(newDate);
+    setSelectedDate(newDate);
+    setViewType('month');
   };
 
-  const handleDayClick = (e: React.MouseEvent, date: Date) => {
+  const handleDayClick = (e: React.MouseEvent, dayDate: Date) => {
     e.stopPropagation();
-    setSelectedDate(date);
-    setViewDate(date);
-    setViewType('day'); // 특정 일자 클릭 시 일간 뷰로 직행
+    setSelectedDate(dayDate);
+    setViewDate(dayDate);
+    setViewType('month');
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#1f1f1f] select-none overflow-y-auto p-4">
-      {/* 12개월 4행 3열 그리드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto w-full">
-        {MONTH_NAMES_KO.map((monthName, monthIdx) => {
+    <div className="flex-1 overflow-y-auto p-4 bg-[#1f1f1f] select-none">
+      <div className="grid grid-cols-4 gap-4 max-w-6xl mx-auto">
+        {Array.from({ length: 12 }, (_, monthIdx) => {
           const grid = getMonthGrid(year, monthIdx, selectedDate);
 
           return (
             <div
-              key={monthName}
+              key={monthIdx}
               onClick={() => handleMonthClick(monthIdx)}
-              className="bg-[#242424] hover:bg-[#2c2c2c] border border-[#333333] hover:border-[#0078d7] rounded p-3 cursor-pointer transition-all shadow-sm group"
+              className="bg-[#242424] hover:bg-[#2a2a2a] border border-[#333333] hover:border-[#0078d7] rounded p-2.5 transition-all cursor-pointer shadow-sm group"
             >
               {/* 월 타이틀 */}
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold text-sm text-white group-hover:text-[#0078d7] transition-colors">
-                  {monthName}
-                </span>
-                <span className="text-[10px] text-[#777777]">{year}</span>
+              <div className="font-semibold text-xs text-white group-hover:text-[#0078d7] transition-colors mb-2 px-1">
+                {MONTH_NAMES_KO[monthIdx]}
               </div>
 
               {/* 요일 헤더 */}
-              <div className="grid grid-cols-7 text-center text-[9px] text-[#888888] mb-1 font-medium">
-                {WEEKDAYS_KO.map((day) => (
-                  <div key={day}>{day}</div>
+              <div className="grid grid-cols-7 text-center text-[9px] text-[#888888] mb-1">
+                {WEEKDAYS_KO.map((day, idx) => (
+                  <div
+                    key={day}
+                    className={
+                      idx === 0 ? 'text-[#ff7878]' : idx === 6 ? 'text-[#70b0ff]' : ''
+                    }
+                  >
+                    {day}
+                  </div>
                 ))}
               </div>
 
-              {/* 42칸 날짜 매트릭스 */}
+              {/* 42칸 미니 그리드 */}
               <div className="grid grid-cols-7 gap-y-0.5 text-center text-[10px]">
                 {grid.map((cell, idx) => {
                   const isCurrent = cell.isCurrentMonth;
-                  const isToday = cell.isToday;
+                  const isToday = isSameDay(cell.date, today);
+
+                  if (!isCurrent) {
+                    return <div key={idx} className="h-4" />;
+                  }
 
                   return (
                     <div
                       key={idx}
-                      onClick={(e) => isCurrent && handleDayClick(e, cell.date)}
-                      className={`h-5 w-5 mx-auto flex items-center justify-center rounded-full transition-colors
-                        ${!isCurrent ? 'text-transparent' : 'text-[#cccccc] hover:bg-[#444444]'}
-                        ${isToday ? 'bg-[#0078d7] text-white font-bold' : ''}
-                      `}
+                      onClick={(e) => handleDayClick(e, cell.date)}
+                      className={`h-4.5 w-4.5 mx-auto flex items-center justify-center rounded-full text-[10px] transition-colors ${
+                        isToday
+                          ? 'bg-[#0078d7] text-white font-bold'
+                          : 'text-[#cccccc] hover:bg-[#3d3d3d]'
+                      }`}
                     >
-                      {isCurrent ? cell.dayNumber : ''}
+                      {cell.dayNumber}
                     </div>
                   );
                 })}
