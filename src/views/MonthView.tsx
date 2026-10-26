@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Sun, CloudSun, Cloud, CloudRain, CloudSnow } from 'lucide-react';
 import { useCalendarStore } from '../storage/calendarStore';
 import { getMonthGrid } from '../core/calendar';
@@ -28,6 +28,14 @@ export const MonthView: React.FC = () => {
   const isScrollingRef = useRef(false);
   const accumulatedDeltaRef = useRef(0);
   const scrollResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (scrollResetTimerRef.current) clearTimeout(scrollResetTimerRef.current);
+      if (animTimerRef.current) clearTimeout(animTimerRef.current);
+    };
+  }, []);
 
   const handleWheel = (e: React.WheelEvent) => {
     // 수평 스크롤이 지배적인 경우 무시
@@ -56,7 +64,8 @@ export const MonthView: React.FC = () => {
 
       navigateViewDate(direction);
 
-      setTimeout(() => {
+      if (animTimerRef.current) clearTimeout(animTimerRef.current);
+      animTimerRef.current = setTimeout(() => {
         setSlideDirection(null);
         isScrollingRef.current = false;
       }, 200);
