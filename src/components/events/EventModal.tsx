@@ -164,13 +164,13 @@ export const EventModal: React.FC = () => {
           </div>
 
           {/* 종일 여부 및 비공개 토글 */}
-          <div className="flex items-center space-x-5 text-[#cccccc]">
+          <div className="flex items-center space-x-5 text-[var(--win10-text-secondary)]">
             <label className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={isAllDay}
                 onChange={(e) => setIsAllDay(e.target.checked)}
-                className="accent-[#0078d7] w-3.5 h-3.5"
+                className="accent-[var(--win10-accent)] w-3.5 h-3.5"
               />
               <span>종일</span>
             </label>
@@ -180,31 +180,31 @@ export const EventModal: React.FC = () => {
                 type="checkbox"
                 checked={isPrivate}
                 onChange={(e) => setIsPrivate(e.target.checked)}
-                className="accent-[#0078d7] w-3.5 h-3.5"
+                className="accent-[var(--win10-accent)] w-3.5 h-3.5"
               />
-              <Lock className="w-3 h-3 text-[#aaaaaa]" />
+              <Lock className="w-3 h-3 text-[var(--win10-text-muted)]" />
               <span>비공개</span>
             </label>
           </div>
 
           {/* 시작 및 종료 일시 */}
-          <div className="space-y-2 bg-[#222222] p-2.5 rounded border border-[#333333]">
+          <div className="space-y-2 bg-[var(--win10-card-bg)] p-2.5 rounded border border-[var(--win10-border)]">
             {/* 시작일 */}
             <div className="flex items-center space-x-2">
-              <Clock className="w-3.5 h-3.5 text-[#888888] shrink-0" />
-              <span className="w-12 text-[#aaaaaa]">시작:</span>
+              <Clock className="w-3.5 h-3.5 text-[var(--win10-text-muted)] shrink-0" />
+              <span className="w-12 text-[var(--win10-text-secondary)]">시작:</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="bg-[#1f1f1f] border border-[#444444] px-2 py-1 rounded text-white outline-none"
+                className="bg-[var(--win10-input-bg)] border border-[var(--win10-border)] px-2 py-1 rounded text-[var(--win10-text-primary)] outline-none"
               />
               {!isAllDay && (
                 <input
                   type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="bg-[#1f1f1f] border border-[#444444] px-2 py-1 rounded text-white outline-none"
+                  className="bg-[var(--win10-input-bg)] border border-[var(--win10-border)] px-2 py-1 rounded text-[var(--win10-text-primary)] outline-none"
                 />
               )}
             </div>
@@ -212,19 +212,19 @@ export const EventModal: React.FC = () => {
             {/* 종료일 */}
             <div className="flex items-center space-x-2">
               <div className="w-3.5" />
-              <span className="w-12 text-[#aaaaaa]">종료:</span>
+              <span className="w-12 text-[var(--win10-text-secondary)]">종료:</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="bg-[#1f1f1f] border border-[#444444] px-2 py-1 rounded text-white outline-none"
+                className="bg-[var(--win10-input-bg)] border border-[var(--win10-border)] px-2 py-1 rounded text-[var(--win10-text-primary)] outline-none"
               />
               {!isAllDay && (
                 <input
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  className="bg-[#1f1f1f] border border-[#444444] px-2 py-1 rounded text-white outline-none"
+                  className="bg-[var(--win10-input-bg)] border border-[var(--win10-border)] px-2 py-1 rounded text-[var(--win10-text-primary)] outline-none"
                 />
               )}
             </div>
@@ -233,14 +233,14 @@ export const EventModal: React.FC = () => {
           {/* 캘린더 범주 & 상태 표시 */}
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center space-x-1.5">
-              <span className="w-12 text-[#aaaaaa]">캘린더:</span>
+              <span className="w-12 text-[var(--win10-text-secondary)]">캘린더:</span>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="flex-1 bg-[#1f1f1f] border border-[#444444] px-2 py-1.5 rounded text-white outline-none cursor-pointer"
+                className="flex-1 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] px-2 py-1.5 rounded text-[var(--win10-text-primary)] outline-none cursor-pointer"
               >
                 {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
+                  <option key={c.id} value={c.id} className="bg-[var(--win10-surface)] text-[var(--win10-text-primary)]">
                     {c.name}
                   </option>
                 ))}
@@ -249,14 +249,14 @@ export const EventModal: React.FC = () => {
 
             {/* 표시 상태 (바쁨 / 한가함) */}
             <div className="flex items-center space-x-1.5">
-              <Activity className="w-3.5 h-3.5 text-[#888888] shrink-0" />
+              <Activity className="w-3.5 h-3.5 text-[var(--win10-text-muted)] shrink-0" />
               <select
                 value={busyStatus}
                 onChange={(e) => setBusyStatus(e.target.value as BusyStatusType)}
-                className="flex-1 bg-[#1f1f1f] border border-[#444444] px-2 py-1.5 rounded text-white outline-none cursor-pointer"
+                className="flex-1 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] px-2 py-1.5 rounded text-[var(--win10-text-primary)] outline-none cursor-pointer"
               >
                 {BUSY_STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.id} value={opt.id}>
+                  <option key={opt.id} value={opt.id} className="bg-[var(--win10-surface)] text-[var(--win10-text-primary)]">
                     {opt.label}
                   </option>
                 ))}
@@ -267,14 +267,14 @@ export const EventModal: React.FC = () => {
           {/* 반복 주기 & 미리 알림 */}
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center space-x-1.5">
-              <RotateCw className="w-3.5 h-3.5 text-[#888888] shrink-0" />
+              <RotateCw className="w-3.5 h-3.5 text-[var(--win10-text-muted)] shrink-0" />
               <select
                 value={recurrence}
                 onChange={(e) => setRecurrence(e.target.value as RecurrenceType)}
-                className="flex-1 bg-[#1f1f1f] border border-[#444444] px-2 py-1.5 rounded text-white outline-none cursor-pointer"
+                className="flex-1 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] px-2 py-1.5 rounded text-[var(--win10-text-primary)] outline-none cursor-pointer"
               >
                 {RECURRENCE_OPTIONS.map((opt) => (
-                  <option key={opt.id} value={opt.id}>
+                  <option key={opt.id} value={opt.id} className="bg-[var(--win10-surface)] text-[var(--win10-text-primary)]">
                     {opt.label}
                   </option>
                 ))}
@@ -282,14 +282,14 @@ export const EventModal: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-1.5">
-              <Bell className="w-3.5 h-3.5 text-[#888888] shrink-0" />
+              <Bell className="w-3.5 h-3.5 text-[var(--win10-text-muted)] shrink-0" />
               <select
                 value={reminderMinutes}
                 onChange={(e) => setReminderMinutes(Number(e.target.value))}
-                className="flex-1 bg-[#1f1f1f] border border-[#444444] px-2 py-1.5 rounded text-white outline-none cursor-pointer"
+                className="flex-1 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] px-2 py-1.5 rounded text-[var(--win10-text-primary)] outline-none cursor-pointer"
               >
                 {REMINDER_OPTIONS.map((opt) => (
-                  <option key={opt.minutes} value={opt.minutes}>
+                  <option key={opt.minutes} value={opt.minutes} className="bg-[var(--win10-surface)] text-[var(--win10-text-primary)]">
                     {opt.label}
                   </option>
                 ))}
@@ -299,47 +299,47 @@ export const EventModal: React.FC = () => {
 
           {/* 위치 입력 */}
           <div className="flex items-center space-x-2">
-            <MapPin className="w-3.5 h-3.5 text-[#888888] shrink-0" />
+            <MapPin className="w-3.5 h-3.5 text-[var(--win10-text-muted)] shrink-0" />
             <input
               type="text"
               placeholder="위치 추가"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              className="flex-1 px-2 py-1.5 bg-[#1f1f1f] border border-[#444444] focus:border-[#0078d7] outline-none text-white placeholder-[#888888] rounded"
+              className="flex-1 px-2 py-1.5 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] focus:border-[var(--win10-accent)] outline-none text-[var(--win10-text-primary)] placeholder-[var(--win10-text-muted)] rounded"
             />
           </div>
 
           {/* 참석자 초대 (이메일 쉼표 구분) */}
           <div className="flex items-center space-x-2">
-            <Users className="w-3.5 h-3.5 text-[#888888] shrink-0" />
+            <Users className="w-3.5 h-3.5 text-[var(--win10-text-muted)] shrink-0" />
             <input
               type="text"
               placeholder="참석자 초대 (쉼표로 구분된 이메일)"
               value={attendeesInput}
               onChange={(e) => setAttendeesInput(e.target.value)}
-              className="flex-1 px-2 py-1.5 bg-[#1f1f1f] border border-[#444444] focus:border-[#0078d7] outline-none text-white placeholder-[#888888] rounded"
+              className="flex-1 px-2 py-1.5 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] focus:border-[var(--win10-accent)] outline-none text-[var(--win10-text-primary)] placeholder-[var(--win10-text-muted)] rounded"
             />
           </div>
 
           {/* 설명 입력 */}
           <div className="flex items-start space-x-2">
-            <AlignLeft className="w-3.5 h-3.5 text-[#888888] mt-2 shrink-0" />
+            <AlignLeft className="w-3.5 h-3.5 text-[var(--win10-text-muted)] mt-2 shrink-0" />
             <textarea
               rows={2}
               placeholder="설명 추가"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="flex-1 px-2 py-1.5 bg-[#1f1f1f] border border-[#444444] focus:border-[#0078d7] outline-none text-white placeholder-[#888888] rounded resize-none"
+              className="flex-1 px-2 py-1.5 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] focus:border-[var(--win10-accent)] outline-none text-[var(--win10-text-primary)] placeholder-[var(--win10-text-muted)] rounded resize-none"
             />
           </div>
 
           {/* 하단 액션 버튼 바 */}
-          <div className="pt-2 flex items-center justify-between border-t border-[#383838]">
+          <div className="pt-2 flex items-center justify-between border-t border-[var(--win10-border)]">
             {editingEvent ? (
               <button
                 type="button"
                 onClick={handleDelete}
-                className="flex items-center space-x-1.5 px-3 py-1.5 text-xs text-[#ff5555] hover:bg-[#3d2424] rounded transition-colors"
+                className="flex items-center space-x-1.5 px-3 py-1.5 text-xs text-[#ff5555] hover:bg-[#e81123]/20 rounded transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>삭제</span>
@@ -352,13 +352,13 @@ export const EventModal: React.FC = () => {
               <button
                 type="button"
                 onClick={closeModal}
-                className="px-4 py-1.5 text-xs bg-[#3a3a3a] hover:bg-[#4a4a4a] text-[#dddddd] rounded transition-colors"
+                className="px-4 py-1.5 text-xs bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)] text-[var(--win10-text-primary)] border border-[var(--win10-border)] rounded transition-colors"
               >
                 취소
               </button>
               <button
                 type="submit"
-                className="px-5 py-1.5 text-xs font-semibold bg-[#0078d7] hover:bg-[#1a86d9] active:bg-[#0063b1] text-white rounded transition-colors shadow"
+                className="px-5 py-1.5 text-xs font-semibold bg-[var(--win10-accent)] hover:opacity-90 active:opacity-80 text-white rounded transition-opacity shadow"
               >
                 저장
               </button>
