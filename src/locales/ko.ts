@@ -32,6 +32,7 @@ export const ko = {
     mail: '메일',
     people: '피플',
     todo: 'To Do',
+    dragResizeTooltip: '드래그하여 크기 조절 (더블클릭 시 기본값)',
   },
   calendar: {
     weekdays: ['일', '월', '화', '수', '목', '금', '토'],
@@ -180,6 +181,13 @@ export const ko = {
     updateLatest: '현재 최신 버전을 사용하고 있습니다.',
     updateError: '업데이트 확인 중 오류가 발생했습니다.',
     restartAndInstall: '지금 재시작하여 업데이트 적용',
+    zoomAndDisplay: '화면 배율 및 크기 조절',
+    zoomLevel: '화면 배율 (확대/축소)',
+    zoomReset: '기본 크기 (100%)',
+    zoomShortcutHint: 'Ctrl + 마우스 휠 또는 Ctrl + [+/-] 단축키로 언제든지 조절 가능',
+    sidebarWidth: '사이드바 너비',
+    sidebarReset: '기본 너비 (260px)',
+    sidebarDragHint: '사이드바 우측 경계선을 마우스로 드래그하여 조절 가능',
     appInfo: 'Classic Calendar v1.0.0 (Fluent Edition)',
   },
   sync: {

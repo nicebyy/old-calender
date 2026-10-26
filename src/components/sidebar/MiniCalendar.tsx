@@ -47,6 +47,7 @@ export const MiniCalendar: React.FC = () => {
   };
 
   const handleWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey) return;
     if (Math.abs(e.deltaY) < 25) return;
     if (e.deltaY > 0) {
       handleNextMonth();

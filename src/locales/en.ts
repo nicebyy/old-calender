@@ -34,6 +34,7 @@ export const en: TranslationSchema = {
     mail: 'Mail',
     people: 'People',
     todo: 'To Do',
+    dragResizeTooltip: 'Drag to resize (Double-click to reset)',
   },
   calendar: {
     weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
@@ -182,6 +183,13 @@ export const en: TranslationSchema = {
     updateLatest: 'You are using the latest version.',
     updateError: 'Error checking for updates.',
     restartAndInstall: 'Restart and Install Update',
+    zoomAndDisplay: 'Display Scale & Sizing',
+    zoomLevel: 'Zoom Scale (Zoom In/Out)',
+    zoomReset: 'Reset to 100%',
+    zoomShortcutHint: 'Ctrl + Mouse Wheel or Ctrl + [+/-] shortcuts supported',
+    sidebarWidth: 'Sidebar Width',
+    sidebarReset: 'Reset Width (260px)',
+    sidebarDragHint: 'Drag the right edge of the sidebar to adjust width',
     appInfo: 'Classic Calendar v1.0.0 (Fluent Edition)',
   },
   sync: {

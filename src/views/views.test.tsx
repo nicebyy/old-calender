@@ -6,6 +6,8 @@ import { DayView } from './DayView';
 import { YearView } from './YearView';
 import { HeaderControls } from '../components/layout/HeaderControls';
 import { SettingsPanel } from '../components/layout/SettingsPanel';
+import { Sidebar } from '../components/layout/Sidebar';
+import { App } from '../App';
 import { useCalendarStore } from '../storage/calendarStore';
 
 describe('Calendar Views & HeaderControls Test Suite', () => {
@@ -136,5 +138,70 @@ describe('Calendar Views & HeaderControls Test Suite', () => {
     });
 
     expect(useCalendarStore.getState().settings.themeMode).toBe('light');
+  });
+
+  it('Sidebar에서 너비 조절 스플리터 드래그 및 더블클릭 초기화가 정상 작동해야 한다', () => {
+    useCalendarStore.getState().resetSidebarWidth();
+    expect(useCalendarStore.getState().settings.sidebarWidth).toBe(260);
+
+    render(<Sidebar />);
+    const splitter = screen.getByRole('separator');
+    expect(splitter).toBeInTheDocument();
+
+    // 마우스 다운 후 마우스 이동으로 드래그 시뮬레이션
+    act(() => {
+      fireEvent.mouseDown(splitter, { clientX: 260 });
+    });
+
+    act(() => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 340 }));
+    });
+
+    expect(useCalendarStore.getState().settings.sidebarWidth).toBe(340);
+
+    // 마우스 업
+    act(() => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    // 스플리터 더블클릭 시 기본값 260px로 리셋
+    act(() => {
+      fireEvent.doubleClick(splitter);
+    });
+    expect(useCalendarStore.getState().settings.sidebarWidth).toBe(260);
+  });
+
+  it('App에서 Ctrl + 마우스 휠 및 키보드 단축키(Ctrl+Plus, Minus, Zero)로 화면 배율이 조절되어야 한다', () => {
+    useCalendarStore.getState().resetZoom();
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.0);
+
+    const { unmount } = render(<App />);
+
+    // Ctrl + Wheel Up (zoom in)
+    act(() => {
+      const wheelUp = new WheelEvent('wheel', { deltaY: -100, ctrlKey: true, cancelable: true });
+      window.dispatchEvent(wheelUp);
+    });
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.05);
+
+    // 플로팅 줌 인디케이터에 105% 배율 표시
+    expect(screen.getByRole('status')).toHaveTextContent('105%');
+
+    // Ctrl + '-' 단축키 (zoom out)
+    act(() => {
+      fireEvent.keyDown(window, { key: '-', ctrlKey: true });
+    });
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.0);
+
+    // Ctrl + '0' 단축키 (reset)
+    act(() => {
+      useCalendarStore.getState().setZoomLevel(1.25);
+      fireEvent.keyDown(window, { key: '0', ctrlKey: true });
+    });
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.0);
+
+    act(() => {
+      unmount();
+    });
   });
 });

@@ -233,5 +233,55 @@ describe('CalendarStore Extended', () => {
     useCalendarStore.getState().quitAndInstallUpdate();
     expect(mockQuit).toHaveBeenCalled();
   });
+
+  it('화면 배율 확대/축소(zoomIn, zoomOut, resetZoom) 및 한계값 클램핑이 정상 작동해야 한다', () => {
+    // 기본값은 1.0 (100%)
+    useCalendarStore.getState().resetZoom();
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.0);
+
+    // zoomIn (1.0 -> 1.05)
+    useCalendarStore.getState().zoomIn();
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.05);
+
+    // zoomOut 2회 (1.05 -> 1.0 -> 0.95)
+    useCalendarStore.getState().zoomOut();
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.0);
+    useCalendarStore.getState().zoomOut();
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(0.95);
+
+    // 최대 한계값(1.60) 클램핑 테스트
+    useCalendarStore.getState().setZoomLevel(3.0);
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.6);
+
+    // 최소 한계값(0.70) 클램핑 테스트
+    useCalendarStore.getState().setZoomLevel(0.2);
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(0.7);
+
+    // 리셋 시 1.0 복귀
+    useCalendarStore.getState().resetZoom();
+    expect(useCalendarStore.getState().settings.zoomLevel).toBe(1.0);
+  });
+
+  it('사이드바 너비 조절(setSidebarWidth, resetSidebarWidth) 및 범위 제한이 정상 작동해야 한다', () => {
+    // 기본값은 260px
+    useCalendarStore.getState().resetSidebarWidth();
+    expect(useCalendarStore.getState().settings.sidebarWidth).toBe(260);
+
+    // 정상 너비 변경 (320px)
+    useCalendarStore.getState().setSidebarWidth(320);
+    expect(useCalendarStore.getState().settings.sidebarWidth).toBe(320);
+
+    // 최소 한계값(200px) 클램핑 테스트
+    useCalendarStore.getState().setSidebarWidth(120);
+    expect(useCalendarStore.getState().settings.sidebarWidth).toBe(200);
+
+    // 최대 한계값(480px) 클램핑 테스트
+    useCalendarStore.getState().setSidebarWidth(800);
+    expect(useCalendarStore.getState().settings.sidebarWidth).toBe(480);
+
+    // 더블클릭/리셋 시 기본값(260px) 복귀
+    useCalendarStore.getState().resetSidebarWidth();
+    expect(useCalendarStore.getState().settings.sidebarWidth).toBe(260);
+  });
 });
 

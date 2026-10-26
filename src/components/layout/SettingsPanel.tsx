@@ -21,9 +21,22 @@ import {
   ArrowDownCircle,
   CheckCircle2,
   AlertCircle,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
-import { WIN10_ACCENT_COLORS, FIRST_DAY_OPTIONS, THEME_MODES, BACKGROUND_FILL_OPTIONS } from '../../constants/settings';
+import {
+  WIN10_ACCENT_COLORS,
+  FIRST_DAY_OPTIONS,
+  THEME_MODES,
+  BACKGROUND_FILL_OPTIONS,
+  ZOOM_MIN,
+  ZOOM_MAX,
+  ZOOM_STEP,
+  SIDEBAR_DEFAULT_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+  SIDEBAR_MAX_WIDTH,
+} from '../../constants/settings';
 import { WALLPAPER_THEMES, THEME_PRESETS } from '../../constants/theme';
 import { WEATHER_CITY_PRESETS } from '../../constants/weather';
 import { searchLocations, LocationSearchResult } from '../../core/weather';
@@ -47,6 +60,12 @@ export const SettingsPanel: React.FC = () => {
   const updateStatus = useCalendarStore((s) => s.updateStatus);
   const checkForUpdates = useCalendarStore((s) => s.checkForUpdates);
   const quitAndInstallUpdate = useCalendarStore((s) => s.quitAndInstallUpdate);
+  const zoomIn = useCalendarStore((s) => s.zoomIn);
+  const zoomOut = useCalendarStore((s) => s.zoomOut);
+  const resetZoom = useCalendarStore((s) => s.resetZoom);
+  const setZoomLevel = useCalendarStore((s) => s.setZoomLevel);
+  const setSidebarWidth = useCalendarStore((s) => s.setSidebarWidth);
+  const resetSidebarWidth = useCalendarStore((s) => s.resetSidebarWidth);
 
   const { t, language, setLanguage } = useTranslation();
 
@@ -436,6 +455,100 @@ export const SettingsPanel: React.FC = () => {
                 />
               </div>
             )}
+          </div>
+
+          {/* 화면 배율 및 크기 조절 (Zoom & Sidebar Sizing) */}
+          <div className="space-y-3 pt-3 border-t border-[var(--win10-border)]">
+            <div className="flex items-center space-x-2 font-medium text-[13px] text-[var(--win10-text-primary)]">
+              <ZoomIn className="w-4 h-4 text-[var(--win10-accent)]" />
+              <span>{t('settings.zoomAndDisplay')}</span>
+            </div>
+
+            {/* 화면 배율 조절 */}
+            <div className="space-y-1.5 bg-[var(--win10-card-bg)] p-2.5 rounded border border-[var(--win10-border)]">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--win10-text-secondary)] font-medium">
+                  {t('settings.zoomLevel')}
+                </span>
+                <div className="flex items-center space-x-1">
+                  <span className="font-bold text-[var(--win10-accent)]">
+                    {Math.round((settings.zoomLevel ?? 1.0) * 100)}%
+                  </span>
+                  <button
+                    onClick={resetZoom}
+                    className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-[var(--win10-button-hover)] hover:bg-[var(--win10-button-active)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors"
+                    title={t('settings.zoomReset')}
+                  >
+                    {t('settings.zoomReset')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-1">
+                <button
+                  onClick={zoomOut}
+                  disabled={(settings.zoomLevel ?? 1.0) <= ZOOM_MIN}
+                  className="p-1 rounded bg-[var(--win10-input-bg)] hover:bg-[var(--win10-button-hover)] disabled:opacity-40 text-[var(--win10-text-primary)] transition-colors"
+                >
+                  <ZoomOut className="w-3.5 h-3.5" />
+                </button>
+                <input
+                  type="range"
+                  min={ZOOM_MIN}
+                  max={ZOOM_MAX}
+                  step={ZOOM_STEP}
+                  value={settings.zoomLevel ?? 1.0}
+                  onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
+                  className="flex-1 accent-[var(--win10-accent)] cursor-pointer"
+                />
+                <button
+                  onClick={zoomIn}
+                  disabled={(settings.zoomLevel ?? 1.0) >= ZOOM_MAX}
+                  className="p-1 rounded bg-[var(--win10-input-bg)] hover:bg-[var(--win10-button-hover)] disabled:opacity-40 text-[var(--win10-text-primary)] transition-colors"
+                >
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <p className="text-[10px] text-[var(--win10-text-muted)] pt-0.5">
+                {t('settings.zoomShortcutHint')}
+              </p>
+            </div>
+
+            {/* 사이드바 너비 조절 */}
+            <div className="space-y-1.5 bg-[var(--win10-card-bg)] p-2.5 rounded border border-[var(--win10-border)]">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--win10-text-secondary)] font-medium">
+                  {t('settings.sidebarWidth')}
+                </span>
+                <div className="flex items-center space-x-1">
+                  <span className="font-bold text-[var(--win10-accent)]">
+                    {settings.sidebarWidth ?? SIDEBAR_DEFAULT_WIDTH}px
+                  </span>
+                  <button
+                    onClick={resetSidebarWidth}
+                    className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-[var(--win10-button-hover)] hover:bg-[var(--win10-button-active)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors"
+                    title={t('settings.sidebarReset')}
+                  >
+                    {t('settings.sidebarReset')}
+                  </button>
+                </div>
+              </div>
+
+              <input
+                type="range"
+                min={SIDEBAR_MIN_WIDTH}
+                max={SIDEBAR_MAX_WIDTH}
+                step={5}
+                value={settings.sidebarWidth ?? SIDEBAR_DEFAULT_WIDTH}
+                onChange={(e) => setSidebarWidth(parseInt(e.target.value, 10))}
+                className="w-full accent-[var(--win10-accent)] cursor-pointer"
+              />
+
+              <p className="text-[10px] text-[var(--win10-text-muted)] pt-0.5">
+                {t('settings.sidebarDragHint')}
+              </p>
+            </div>
           </div>
 
           {/* 6. 날씨 설정 (Windows 10 UWP 시그니처) */}

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webFrame } from 'electron';
 
 export interface UpdateStatusPayload {
   status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
@@ -21,6 +21,8 @@ export interface ElectronAPI {
   checkForUpdates?: () => Promise<any>;
   quitAndInstallUpdate?: () => void;
   onUpdateStatus?: (callback: (payload: UpdateStatusPayload) => void) => () => void;
+  setZoomFactor?: (factor: number) => void;
+  getZoomFactor?: () => number;
 }
 
 const electronAPI: ElectronAPI = {
@@ -45,6 +47,12 @@ const electronAPI: ElectronAPI = {
     return () => {
       ipcRenderer.removeListener('window-state-change', handler);
     };
+  },
+  setZoomFactor: (factor: number) => {
+    webFrame.setZoomFactor(factor);
+  },
+  getZoomFactor: () => {
+    return webFrame.getZoomFactor();
   },
 };
 
