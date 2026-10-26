@@ -327,10 +327,18 @@ export const MonthView: React.FC = () => {
                             ? 'text-[var(--win10-text-secondary)] opacity-95'
                             : 'text-[var(--win10-text-muted)] opacity-40 group-hover:opacity-90'
                         }`}
-                        title={`${cell.weather.locationName ? `[${cell.weather.locationName}] ` : ''}${cell.weather.label} (${cell.weather.tempMax}° / ${cell.weather.tempMin}°)`}
+                        title={
+                          cell.isToday && typeof cell.weather.currentTemp === 'number'
+                            ? `${cell.weather.locationName ? `[${cell.weather.locationName}] ` : ''}${cell.weather.label} (${language === 'en' ? 'Now' : '현재'} ${cell.weather.currentTemp}°, ${language === 'en' ? 'High' : '최고'} ${cell.weather.tempMax}° / ${language === 'en' ? 'Low' : '최저'} ${cell.weather.tempMin}°)`
+                            : `${cell.weather.locationName ? `[${cell.weather.locationName}] ` : ''}${cell.weather.label} (${cell.weather.tempMax}° / ${cell.weather.tempMin}°)`
+                        }
                       >
                         {renderWeatherIcon(cell.weather)}
-                        <span className="font-semibold text-xs md:text-[13px]">{cell.weather.tempMax}°</span>
+                        <span className="font-semibold text-xs md:text-[13px]">
+                          {cell.isToday && typeof cell.weather.currentTemp === 'number'
+                            ? `${cell.weather.currentTemp}°`
+                            : `${cell.weather.tempMax}°`}
+                        </span>
                       </div>
                     )}
                   </div>
