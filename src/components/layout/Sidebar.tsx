@@ -4,7 +4,6 @@ import {
   Settings,
   Mail,
   Users,
-  CheckSquare,
   Check,
   FolderPlus,
   Cloud,
@@ -14,6 +13,7 @@ import {
   CloudSun,
   CloudRain,
   CloudSnow,
+  StickyNote,
 } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
 import { MiniCalendar } from '../sidebar/MiniCalendar';
@@ -40,6 +40,9 @@ export const Sidebar: React.FC = () => {
   const currentWeather = useCalendarStore((s) => s.currentWeather);
   const refreshWeather = useCalendarStore((s) => s.refreshWeather);
   const isWeatherLoading = useCalendarStore((s) => s.isWeatherLoading);
+  const memos = useCalendarStore((s) => s.memos);
+  const isMemoPanelOpen = useCalendarStore((s) => s.isMemoPanelOpen);
+  const toggleMemoPanel = useCalendarStore((s) => s.toggleMemoPanel);
 
   const { t, language } = useTranslation();
 
@@ -328,10 +331,26 @@ export const Sidebar: React.FC = () => {
               </div>
             ))}
           </div>
+
+          {/* 스티커 메모 섹션 바로가기 */}
+          <div className="pt-2 border-t border-[var(--win10-border)]">
+            <div
+              onClick={() => toggleMemoPanel()}
+              className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-[var(--win10-button-hover)] cursor-pointer text-xs text-[var(--win10-text-primary)] transition-colors group"
+            >
+              <div className="flex items-center space-x-2">
+                <StickyNote className="w-4 h-4 text-[#f59e0b] group-hover:scale-110 transition-transform" />
+                <span className="font-medium text-xs">{t('sidebar.memo')}</span>
+              </div>
+              <span className="text-[10px] px-1.5 py-0.2 bg-[var(--win10-card-bg)] border border-[var(--win10-border)] rounded-full text-[var(--win10-text-secondary)] font-medium">
+                {memos.length}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 사이드바 최하단: 윈도우 10 메일/피플/할일/설정 숏컷 바 */}
+      {/* 사이드바 최하단: 윈도우 10 메일/피플/메모/설정 숏컷 바 */}
       <div className="h-10 border-t border-[var(--win10-border)] bg-[var(--win10-sidebar-bottom)] flex items-center justify-between px-3 text-[var(--win10-text-secondary)] relative z-10">
         <div className="flex items-center space-x-3">
           <button
@@ -349,10 +368,13 @@ export const Sidebar: React.FC = () => {
             <Users className="w-4 h-4" />
           </button>
           <button
-            className="p-1 hover:text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)] rounded transition-colors"
-            title={t('sidebar.todo')}
+            onClick={() => toggleMemoPanel()}
+            className={`p-1 hover:text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)] rounded transition-colors ${
+              isMemoPanelOpen ? 'text-[var(--win10-accent)] bg-[var(--win10-button-hover)]' : ''
+            }`}
+            title={t('sidebar.memo')}
           >
-            <CheckSquare className="w-4 h-4" />
+            <StickyNote className="w-4 h-4" />
           </button>
         </div>
 

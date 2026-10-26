@@ -2,6 +2,11 @@ import React, { useRef, useEffect } from 'react';
 import { Search, X, Calendar as CalIcon, MapPin, Clock, StickyNote, Pin } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
 import { searchEvents } from '../../core/recurrence';
+import {
+  getEventDisplayTitle,
+  getMemoDisplayTitle,
+  getMemoDisplayContent,
+} from '../../core/calendar';
 import { CalendarEvent, CalendarMemo } from '../../types';
 import { MEMO_COLORS } from '../../constants/memo';
 import { useTranslation } from '../../locales';
@@ -63,6 +68,16 @@ export const SearchOverlay: React.FC = () => {
       ? '검색어를 입력하시면 일정 및 메모를 실시간으로 찾아드립니다.'
       : 'Type to search scheduled events and sticky notes in real-time.';
 
+  const getCategoryDisplayName = (id: string, name: string) => {
+    if (language === 'en') {
+      if (id === 'default-personal') return 'Personal';
+      if (id === 'default-work') return 'Work';
+      if (id === 'default-holiday') return 'Holidays';
+      if (id === 'default-birthday') return 'Birthdays';
+    }
+    return name;
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex justify-center items-start pt-16 bg-black/50 backdrop-blur-xs select-none">
       <div className="w-[520px] bg-[#292929] border border-[#444444] rounded shadow-2xl overflow-hidden text-white flex flex-col max-h-[500px]">
@@ -109,10 +124,11 @@ export const SearchOverlay: React.FC = () => {
               {eventResults.length > 0 && (
                 <div className="space-y-1">
                   <div className="px-2 py-0.5 text-[10.5px] font-semibold text-[#888888] uppercase tracking-wider flex items-center justify-between">
-                    <span>일정 ({eventResults.length})</span>
+                    <span>{t('search.eventsCount', { count: eventResults.length })}</span>
                   </div>
                   {eventResults.map((evt) => {
                     const cat = categories.find((c) => c.id === evt.categoryId);
+                    const displayTitle = getEventDisplayTitle(evt, language);
                     return (
                       <div
                         key={evt.id}
@@ -121,9 +137,9 @@ export const SearchOverlay: React.FC = () => {
                         style={{ borderLeftColor: cat?.color || '#0078D7' }}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-medium text-xs text-white">{evt.title}</span>
+                          <span className="font-medium text-xs text-white">{displayTitle}</span>
                           <span className="text-[10px] text-[#aaaaaa]">
-                            {cat?.name || t('calendar.allDay')}
+                            {cat ? getCategoryDisplayName(cat.id, cat.name) : t('calendar.allDay')}
                           </span>
                         </div>
 
@@ -157,10 +173,12 @@ export const SearchOverlay: React.FC = () => {
               {memoResults.length > 0 && (
                 <div className="space-y-1 pt-1 border-t border-[#383838]">
                   <div className="px-2 py-0.5 text-[10.5px] font-semibold text-[#888888] uppercase tracking-wider flex items-center justify-between">
-                    <span>스티커 메모 ({memoResults.length})</span>
+                    <span>{t('search.memosCount', { count: memoResults.length })}</span>
                   </div>
                   {memoResults.map((memo) => {
                     const colorOpt = MEMO_COLORS.find((c) => c.id === memo.color) || MEMO_COLORS[0];
+                    const memoTitle = getMemoDisplayTitle(memo, language);
+                    const memoContent = getMemoDisplayContent(memo, language);
                     return (
                       <div
                         key={memo.id}
@@ -171,7 +189,7 @@ export const SearchOverlay: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-1.5 font-medium text-xs text-white">
                             <StickyNote className="w-3 h-3 text-[#ffb900]" />
-                            <span>{memo.title || '제목 없음'}</span>
+                            <span>{memoTitle || t('memo.untitled')}</span>
                             {memo.isPinned && <Pin className="w-2.5 h-2.5 fill-current text-[var(--win10-accent)]" />}
                           </div>
                           {memo.date && (
@@ -182,7 +200,7 @@ export const SearchOverlay: React.FC = () => {
                         </div>
 
                         <div className="text-[11px] text-[#bbbbbb] line-clamp-2 leading-relaxed">
-                          {memo.content || '(내용 없음)'}
+                          {memoContent || t('memo.noContent')}
                         </div>
                       </div>
                     );

@@ -283,5 +283,104 @@ describe('CalendarStore Extended', () => {
     useCalendarStore.getState().resetSidebarWidth();
     expect(useCalendarStore.getState().settings.sidebarWidth).toBe(260);
   });
+
+  describe('Sticky Notes (스티커 메모) 기능', () => {
+    it('초기 메모 목록이 존재하고 배열 형태여야 한다', () => {
+      const memos = useCalendarStore.getState().memos;
+      expect(Array.isArray(memos)).toBe(true);
+      expect(memos.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('addMemo를 통해 새 메모를 생성하고 저장할 수 있어야 한다', () => {
+      const initialCount = useCalendarStore.getState().memos.length;
+
+      const newMemo = useCalendarStore.getState().addMemo({
+        title: '신규 프로젝트 기획',
+        content: '플루언트 디자인 적용 메모',
+        color: 'pink',
+        isPinned: false,
+        date: '2026-10-26',
+      });
+
+      const updatedMemos = useCalendarStore.getState().memos;
+      expect(updatedMemos.length).toBe(initialCount + 1);
+      expect(newMemo.id).toBeDefined();
+      expect(newMemo.title).toBe('신규 프로젝트 기획');
+      expect(newMemo.color).toBe('pink');
+      expect(newMemo.date).toBe('2026-10-26');
+      expect(updatedMemos[0].id).toBe(newMemo.id);
+    });
+
+    it('updateMemo를 통해 메모의 내용, 제목, 색상, 날짜를 수정할 수 있어야 한다', () => {
+      const target = useCalendarStore.getState().memos[0];
+
+      useCalendarStore.getState().updateMemo({
+        id: target.id,
+        title: '수정된 메모 제목',
+        content: '수정된 메모 내용입니다.',
+        color: 'green',
+      });
+
+      const updated = useCalendarStore.getState().memos.find((m) => m.id === target.id);
+      expect(updated?.title).toBe('수정된 메모 제목');
+      expect(updated?.content).toBe('수정된 메모 내용입니다.');
+      expect(updated?.color).toBe('green');
+    });
+
+    it('togglePinMemo를 통해 메모의 상단 고정 상태를 토글할 수 있어야 한다', () => {
+      const target = useCalendarStore.getState().memos[0];
+      const initialPinned = !!target.isPinned;
+
+      useCalendarStore.getState().togglePinMemo(target.id);
+      const afterFirstToggle = useCalendarStore.getState().memos.find((m) => m.id === target.id);
+      expect(afterFirstToggle?.isPinned).toBe(!initialPinned);
+
+      useCalendarStore.getState().togglePinMemo(target.id);
+      const afterSecondToggle = useCalendarStore.getState().memos.find((m) => m.id === target.id);
+      expect(afterSecondToggle?.isPinned).toBe(initialPinned);
+    });
+
+    it('deleteMemo를 통해 메모를 삭제할 수 있어야 한다', () => {
+      const target = useCalendarStore.getState().memos[0];
+      const prevCount = useCalendarStore.getState().memos.length;
+
+      useCalendarStore.getState().deleteMemo(target.id);
+      const updated = useCalendarStore.getState().memos;
+      expect(updated.length).toBe(prevCount - 1);
+      expect(updated.some((m) => m.id === target.id)).toBe(false);
+    });
+
+    it('메모 패널 토글 및 열기/닫기 액션이 정확해야 한다', () => {
+      useCalendarStore.getState().closeMemoPanel();
+      expect(useCalendarStore.getState().isMemoPanelOpen).toBe(false);
+
+      useCalendarStore.getState().openMemoPanel('2026-11-01');
+      expect(useCalendarStore.getState().isMemoPanelOpen).toBe(true);
+      expect(useCalendarStore.getState().memoFilterDate).toBe('2026-11-01');
+
+      useCalendarStore.getState().toggleMemoPanel();
+      expect(useCalendarStore.getState().isMemoPanelOpen).toBe(false);
+    });
+
+    it('JSON 백업 및 복원에 메모(memos)가 포함되어야 한다', () => {
+      useCalendarStore.getState().addMemo({
+        title: '백업 테스트 메모',
+        content: '백업 및 복원 확인용',
+        color: 'purple',
+        isPinned: true,
+      });
+
+      const exportedJson = useCalendarStore.getState().exportDataJSON();
+      const parsed = JSON.parse(exportedJson);
+      expect(Array.isArray(parsed.memos)).toBe(true);
+      expect(parsed.memos.some((m: any) => m.title === '백업 테스트 메모')).toBe(true);
+
+      // 새 메모 추가 후 복원 시 이전 데이터로 원복 검증
+      const restoreSuccess = useCalendarStore.getState().importDataJSON(exportedJson);
+      expect(restoreSuccess).toBe(true);
+      const restoredMemos = useCalendarStore.getState().memos;
+      expect(restoredMemos.some((m) => m.title === '백업 테스트 메모')).toBe(true);
+    });
+  });
 });
 

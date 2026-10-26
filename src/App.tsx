@@ -3,6 +3,7 @@ import { ZoomIn } from 'lucide-react';
 import { HeaderControls } from './components/layout/HeaderControls';
 import { Sidebar } from './components/layout/Sidebar';
 import { SettingsPanel } from './components/layout/SettingsPanel';
+import { SearchOverlay } from './components/layout/SearchOverlay';
 import { MemoPanel } from './components/memo/MemoPanel';
 import { MonthView } from './views/MonthView';
 import { WeekView } from './views/WeekView';
@@ -182,7 +183,7 @@ export const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToToday, navigateViewDate, openEventModal, setViewType, toggleSearch, toggleSettings, zoomIn, zoomOut, resetZoom]);
+  }, [goToToday, navigateViewDate, openEventModal, setViewType, toggleSearch, toggleMemoPanel, toggleSettings, zoomIn, zoomOut, resetZoom]);
 
   // 배경 테마 스타일 계산
   const activeWallpaper = WALLPAPER_THEMES.find((w) => w.id === settings.backgroundTheme);
@@ -229,6 +230,9 @@ export const App: React.FC = () => {
 
       {/* 4. 전역 모달 (이벤트 추가/수정) */}
       <EventModal />
+
+      {/* 4-1. 전역 일정 및 메모 실시간 검색 오버레이 */}
+      <SearchOverlay />
 
       {/* 5. 계정 선택 및 OAuth2 동기화 모달 */}
       <AccountModal />

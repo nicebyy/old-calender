@@ -5,6 +5,8 @@ import {
   getMonthGrid,
   getWeekDays,
   getNavigatedDate,
+  getEventDisplayTitle,
+  getEventDisplayDescription,
 } from './calendar';
 import { CalendarEvent } from '../types';
 
@@ -85,5 +87,41 @@ describe('Calendar Core Logic', () => {
     // 1년 후 -> 2027년 10월 26일
     const nextYear = getNavigatedDate(baseDate, 'year', 'next');
     expect(nextYear.getFullYear()).toBe(2027);
+  });
+
+  it('getMonthGrid 옵션의 lang 파라미터에 따라 공휴일 명칭이 다국어로 제공되어야 한다', () => {
+    const selectedDate = new Date(2026, 9, 3);
+    const gridKo = getMonthGrid(2026, 9, selectedDate, [], { lang: 'ko' });
+    const oct3Ko = gridKo.find((c) => c.dateString === '2026-10-03');
+    expect(oct3Ko?.holidayName).toBe('개천절');
+
+    const gridEn = getMonthGrid(2026, 9, selectedDate, [], { lang: 'en' });
+    const oct3En = gridEn.find((c) => c.dateString === '2026-10-03');
+    expect(oct3En?.holidayName).toBe('National Foundation Day');
+  });
+
+  it('기본 샘플 일정 및 메모의 언어별 표시 변환이 정상 동작해야 한다', () => {
+    const sampleEvt: CalendarEvent = {
+      id: 'sample-1',
+      title: 'Windows 10 캘린더 프로젝트 킥오프',
+      description: '반응성 1위 초고속 네이티브 캘린더 앱 개발',
+      startDate: '2026-10-26T10:00:00',
+      endDate: '2026-10-26T11:30:00',
+      isAllDay: false,
+      categoryId: 'default-work',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    expect(getEventDisplayTitle(sampleEvt, 'ko')).toBe('Windows 10 캘린더 프로젝트 킥오프');
+    expect(getEventDisplayTitle(sampleEvt, 'en')).toBe('Windows 10 Calendar Project Kickoff');
+    expect(getEventDisplayDescription(sampleEvt, 'en')).toBe('Top-responsiveness native calendar app development');
+
+    // 사용자가 직접 수정한 일정의 경우 사용자 입력값 유지
+    const customEvt: CalendarEvent = {
+      ...sampleEvt,
+      title: '내 커스텀 프로젝트 회의',
+    };
+    expect(getEventDisplayTitle(customEvt, 'en')).toBe('내 커스텀 프로젝트 회의');
   });
 });

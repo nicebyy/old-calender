@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sun, CloudSun, Cloud, CloudRain, CloudSnow } from 'lucide-react';
+import { Sun, CloudSun, Cloud, CloudRain, CloudSnow, StickyNote } from 'lucide-react';
 import { useCalendarStore } from '../storage/calendarStore';
-import { getMonthGrid } from '../core/calendar';
+import { getMonthGrid, getEventDisplayTitle } from '../core/calendar';
 import { useTranslation } from '../locales';
 import { CalendarEvent, DayCellData, WeatherInfo } from '../types';
 
@@ -16,8 +16,10 @@ export const MonthView: React.FC = () => {
   const openEventModal = useCalendarStore((s) => s.openEventModal);
   const getExpandedEvents = useCalendarStore((s) => s.getExpandedEvents);
   const rescheduleEvent = useCalendarStore((s) => s.rescheduleEvent);
+  const memos = useCalendarStore((s) => s.memos);
+  const openMemoPanel = useCalendarStore((s) => s.openMemoPanel);
 
-  const { weekdays, language, months } = useTranslation();
+  const { t, weekdays, language, months } = useTranslation();
 
   // 드래그 앤 드롭 상태
   const [draggedEventId, setDraggedEventId] = useState<string | null>(null);
@@ -221,6 +223,8 @@ export const MonthView: React.FC = () => {
                 ? `${monthIndex + 1}월`
                 : (months[monthIndex]?.slice(0, 3) || `${monthIndex + 1}`);
 
+            const cellMemos = memos.filter((m) => m.date === cell.dateString);
+
             return (
               <div
                 key={`${cell.dateString}-${idx}`}
@@ -288,20 +292,39 @@ export const MonthView: React.FC = () => {
                     )}
                   </div>
 
-                  {/* 우상단 날씨 위젯 (Windows 10 UWP 시그니처) */}
-                  {cell.weather && (
-                    <div
-                      className={`flex items-center space-x-1 text-xs shrink-0 pl-1 transition-opacity ${
-                        isCurrent
-                          ? 'text-[var(--win10-text-secondary)] opacity-95'
-                          : 'text-[var(--win10-text-muted)] opacity-40 group-hover:opacity-90'
-                      }`}
-                      title={`${cell.weather.locationName ? `[${cell.weather.locationName}] ` : ''}${cell.weather.label} (${cell.weather.tempMax}° / ${cell.weather.tempMin}°)`}
-                    >
-                      {renderWeatherIcon(cell.weather)}
-                      <span className="font-semibold text-xs md:text-[13px]">{cell.weather.tempMax}°</span>
-                    </div>
-                  )}
+                  {/* 우상단 위젯 영역: 메모 배지 및 날씨 위젯 */}
+                  <div className="flex items-center space-x-1 shrink-0">
+                    {/* 날짜 연결 메모 인디케이터 배지 */}
+                    {cellMemos.length > 0 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedDate(cell.date);
+                          openMemoPanel(cell.dateString);
+                        }}
+                        className="flex items-center space-x-0.5 px-1 py-0.5 rounded hover:bg-[var(--win10-button-hover)] text-[#ffb900] transition-colors cursor-pointer"
+                        title={t('memo.badgeTooltip', { count: cellMemos.length })}
+                      >
+                        <StickyNote className="w-3.5 h-3.5 fill-amber-400/30" />
+                        <span className="text-[10px] font-bold leading-none">{cellMemos.length}</span>
+                      </button>
+                    )}
+
+                    {/* 우상단 날씨 위젯 (Windows 10 UWP 시그니처) */}
+                    {cell.weather && (
+                      <div
+                        className={`flex items-center space-x-1 text-xs shrink-0 pl-0.5 transition-opacity ${
+                          isCurrent
+                            ? 'text-[var(--win10-text-secondary)] opacity-95'
+                            : 'text-[var(--win10-text-muted)] opacity-40 group-hover:opacity-90'
+                        }`}
+                        title={`${cell.weather.locationName ? `[${cell.weather.locationName}] ` : ''}${cell.weather.label} (${cell.weather.tempMax}° / ${cell.weather.tempMin}°)`}
+                      >
+                        {renderWeatherIcon(cell.weather)}
+                        <span className="font-semibold text-xs md:text-[13px]">{cell.weather.tempMax}°</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* 일정 목록 (최대 3개 표시, 드래그 가능) */}
@@ -309,6 +332,7 @@ export const MonthView: React.FC = () => {
                   {cell.events.slice(0, 3).map((evt) => {
                     const cat = categories.find((c) => c.id === evt.categoryId);
                     const color = cat?.color || '#0078D7';
+                    const displayTitle = getEventDisplayTitle(evt, language);
 
                     return (
                       <div
@@ -320,10 +344,10 @@ export const MonthView: React.FC = () => {
                           isCurrent ? 'opacity-100' : 'opacity-65 group-hover:opacity-100'
                         }`}
                         style={{ borderLeftColor: color }}
-                        title={`${evt.title} (${evt.startDate.slice(11, 16)}~${evt.endDate.slice(11, 16)}) - 드래그하여 날짜 이동 가능`}
+                        title={`${displayTitle} (${evt.startDate.slice(11, 16)}~${evt.endDate.slice(11, 16)}) ${t('calendar.dragToReschedule')}`}
                       >
                         <span className="font-medium text-[var(--win10-text-primary)] truncate flex-1">
-                          {evt.title}
+                          {displayTitle}
                         </span>
                         {!evt.isAllDay && (
                           <span className="text-[9.5px] text-[var(--win10-text-secondary)] shrink-0 font-normal">
@@ -340,7 +364,7 @@ export const MonthView: React.FC = () => {
                         isCurrent ? 'opacity-100' : 'opacity-65 group-hover:opacity-100'
                       }`}
                     >
-                      +{cell.events.length - 3}개 더보기
+                      {t('calendar.moreEvents', { count: cell.events.length - 3 })}
                     </div>
                   )}
                 </div>

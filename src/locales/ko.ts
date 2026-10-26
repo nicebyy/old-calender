@@ -82,6 +82,8 @@ export const ko = {
     noEvents: '예정된 일정이 없습니다.',
     prevMonth: '이전 달',
     nextMonth: '다음 달',
+    dragToReschedule: '- 드래그하여 날짜 이동 가능',
+    moreEvents: '+{count}개 더보기',
   },
   event: {
     newTitle: '새 이벤트',
@@ -119,12 +121,16 @@ export const ko = {
     delete: '삭제',
     cancel: '취소',
     deleteConfirm: '정말로 이 일정을 삭제하시겠습니까?',
+    testReminderTitle: '미리 알림 테스트 일정',
+    testReminderButton: '지금 즉시 알림 토스트 테스트 발송',
   },
   search: {
     placeholder: '일정 검색 (제목, 위치, 메모)...',
     noResults: '일치하는 일정을 찾을 수 없습니다.',
     resultsCount: '{count}개의 일정을 찾았습니다.',
     allDay: '종일',
+    eventsCount: '일정 ({count})',
+    memosCount: '스티커 메모 ({count})',
   },
   settings: {
     title: '설정 및 개인 설정',
@@ -241,6 +247,22 @@ export const ko = {
     addDayMemo: '이 날에 메모 추가',
     memoCount: '{count}개의 메모',
     badgeTooltip: '메모 {count}개',
+    freeMemo: '자유 메모',
+    setDate: '{date} 설정',
+    untitled: '제목 없음',
+    noContent: '(내용 없음)',
+  },
+  notifications: {
+    header: '일정 알림',
+    allDay: '종일 일정',
+    startsNow: '지금 시작',
+    daysBefore: '{days}일 후 시작',
+    hoursBefore: '{hours}시간 후 시작',
+    minutesBefore: '{minutes}분 후 시작',
+    location: '장소: {loc}',
+    snooze5m: '다시 알림 (5분)',
+    snoozeTooltip: '5분 뒤 다시 알림',
+    dismiss: '해제',
   },
   themePresets: {
     'classic-dark': {

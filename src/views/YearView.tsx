@@ -11,7 +11,7 @@ export const YearView: React.FC = () => {
   const setViewType = useCalendarStore((s) => s.setViewType);
   const navigateViewDate = useCalendarStore((s) => s.navigateViewDate);
 
-  const { months, weekdays } = useTranslation();
+  const { months, weekdays, language } = useTranslation();
 
   const year = viewDate.getFullYear();
 
@@ -43,7 +43,7 @@ export const YearView: React.FC = () => {
     <div onWheel={handleWheel} className="flex-1 overflow-y-auto p-4 bg-[var(--win10-bg)] select-none transition-colors">
       <div className="grid grid-cols-4 gap-4 max-w-6xl mx-auto">
         {Array.from({ length: 12 }, (_, monthIdx) => {
-          const grid = getMonthGrid(year, monthIdx, selectedDate);
+          const grid = getMonthGrid(year, monthIdx, selectedDate, undefined, { lang: language });
 
           return (
             <div

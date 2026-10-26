@@ -330,7 +330,7 @@ export const MemoPanel: React.FC = () => {
                                 }}
                                 className="flex-1 py-1 px-1.5 bg-[var(--win10-accent)] text-white rounded text-[10.5px] font-medium"
                               >
-                                {targetDateStr.slice(5)} 설정
+                                {t('memo.setDate', { date: targetDateStr.slice(5) })}
                               </button>
                               {memo.date && (
                                 <button
@@ -454,7 +454,7 @@ export const MemoPanel: React.FC = () => {
                           <span>📅 {memo.date}</span>
                         </button>
                       ) : (
-                        <span>자유 메모</span>
+                        <span>{t('memo.freeMemo')}</span>
                       )}
                     </div>
 
@@ -485,7 +485,7 @@ export const MemoPanel: React.FC = () => {
                 onClick={() => handleCreateMemo(colorOpt.id)}
                 style={{ backgroundColor: colorOpt.accent }}
                 className="w-4 h-4 rounded-full hover:scale-125 transition-transform shadow-xs cursor-pointer"
-                title={`+ ${language === 'ko' ? colorOpt.nameKo : colorOpt.nameEn} 메모`}
+                title={`+ ${language === 'ko' ? colorOpt.nameKo : colorOpt.nameEn} ${language === 'ko' ? '메모' : 'Note'}`}
               />
             ))}
           </div>

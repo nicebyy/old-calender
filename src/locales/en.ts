@@ -84,6 +84,8 @@ export const en: TranslationSchema = {
     noEvents: 'No scheduled events.',
     prevMonth: 'Previous month',
     nextMonth: 'Next month',
+    dragToReschedule: '- Drag to reschedule',
+    moreEvents: '+{count} more',
   },
   event: {
     newTitle: 'New event',
@@ -121,12 +123,16 @@ export const en: TranslationSchema = {
     delete: 'Delete',
     cancel: 'Cancel',
     deleteConfirm: 'Are you sure you want to delete this event?',
+    testReminderTitle: 'Reminder Test Event',
+    testReminderButton: 'Send test reminder toast notification now',
   },
   search: {
     placeholder: 'Search events (title, location, notes)...',
     noResults: 'No events found.',
     resultsCount: 'Found {count} event(s).',
     allDay: 'All day',
+    eventsCount: 'Events ({count})',
+    memosCount: 'Sticky Notes ({count})',
   },
   settings: {
     title: 'Settings & Personalization',
@@ -243,6 +249,22 @@ export const en: TranslationSchema = {
     addDayMemo: 'Add note for this day',
     memoCount: '{count} notes',
     badgeTooltip: '{count} notes',
+    freeMemo: 'General Note',
+    setDate: 'Set {date}',
+    untitled: 'Untitled',
+    noContent: '(No content)',
+  },
+  notifications: {
+    header: 'Calendar Reminder',
+    allDay: 'All day',
+    startsNow: 'Starts now',
+    daysBefore: 'Starts in {days}d',
+    hoursBefore: 'Starts in {hours}h',
+    minutesBefore: 'Starts in {minutes}m',
+    location: 'Location: {loc}',
+    snooze5m: 'Snooze (5m)',
+    snoozeTooltip: 'Snooze for 5 minutes',
+    dismiss: 'Dismiss',
   },
   themePresets: {
     'classic-dark': {

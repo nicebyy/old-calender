@@ -9,7 +9,7 @@ export const MiniCalendar: React.FC = () => {
   const setSelectedDate = useCalendarStore((s) => s.setSelectedDate);
   const viewDate = useCalendarStore((s) => s.viewDate);
 
-  const { t, weekdays, formatYearMonth } = useTranslation();
+  const { t, weekdays, formatYearMonth, language } = useTranslation();
 
   const [miniYear, setMiniYear] = useState(viewDate.getFullYear());
   const [miniMonth, setMiniMonth] = useState(viewDate.getMonth());
@@ -38,7 +38,7 @@ export const MiniCalendar: React.FC = () => {
     }
   };
 
-  const grid = getMonthGrid(miniYear, miniMonth, selectedDate);
+  const grid = getMonthGrid(miniYear, miniMonth, selectedDate, undefined, { lang: language });
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);

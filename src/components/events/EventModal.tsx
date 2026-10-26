@@ -140,7 +140,7 @@ export const EventModal: React.FC = () => {
 
     triggerReminderNotification({
       id: editingEvent?.id || `preview-${Date.now()}`,
-      title: title.trim() || '미리 알림 테스트 일정',
+      title: title.trim() || t('event.testReminderTitle'),
       startDate: startISO,
       endDate: endISO,
       isAllDay,
@@ -380,7 +380,7 @@ export const EventModal: React.FC = () => {
                 type="button"
                 onClick={handleTestReminder}
                 className="p-1.5 rounded bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)] border border-[var(--win10-border)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-accent)] transition-colors shrink-0"
-                title="지금 즉시 알림 토스트 테스트 발송"
+                title={t('event.testReminderButton')}
               >
                 <BellRing className="w-3.5 h-3.5" />
               </button>

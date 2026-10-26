@@ -852,7 +852,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
             ? {
                 ...a,
                 syncStatus: 'error',
-                errorMessage: err?.message || '동기화 실패',
+                errorMessage:
+                  err?.message ||
+                  (get().settings.language === 'en' ? 'Sync failed' : '동기화 실패'),
               }
             : a
         ),
@@ -896,7 +898,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   },
 
   triggerReminderNotification: (event: CalendarEvent) => {
-    const { title, body } = formatReminderMessage(event);
+    const { title, body } = formatReminderMessage(event, get().settings.language);
     const toastId = `toast-${event.id}-${Date.now()}`;
     const newToast: ActiveToast = {
       id: toastId,
@@ -936,8 +938,8 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   },
 
   checkDueReminders: () => {
-    const { events, notifiedReminderMap, triggerReminderNotification } = get();
-    const dueList = getDueReminders(events, new Date(), notifiedReminderMap);
+    const { events, settings, notifiedReminderMap, triggerReminderNotification } = get();
+    const dueList = getDueReminders(events, new Date(), notifiedReminderMap, settings.language);
     for (const item of dueList) {
       triggerReminderNotification(item.event);
     }
