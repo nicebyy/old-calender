@@ -86,3 +86,38 @@
   background-color: rgba(38, 38, 38, 0.88);
   backdrop-filter: blur(20px);
 }
+
+/* 인쇄용 최적화 스타일 (Ctrl+P 지원) */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  header, aside, .app-drag-region {
+    display: none !important;
+  }
+
+  main {
+    width: 100vw !important;
+    height: 100vh !important;
+    background-color: #ffffff !important;
+  }
+
+  .border-\[\#2d2d2d\], .border-\[\#333333\] {
+    border-color: #cccccc !important;
+  }
+
+  .bg-\[\#1f1f1f\], .bg-\[\#222222\], .bg-\[\#181818\] {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .text-white {
+    color: #000000 !important;
+  }
+}

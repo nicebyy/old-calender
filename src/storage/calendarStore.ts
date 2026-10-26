@@ -9,6 +9,7 @@ import {
 import { DEFAULT_CATEGORIES } from '../constants/calendar';
 import { getNavigatedDate } from '../core/calendar';
 import { expandEventsForRange } from '../core/recurrence';
+import { exportEventsToICS, parseICSToEvents } from '../core/ical';
 
 const STORAGE_KEY_EVENTS = 'win10_calendar_events';
 const STORAGE_KEY_CATEGORIES = 'win10_calendar_categories';
@@ -18,6 +19,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   themeMode: 'dark',
   accentColor: '#0078D7',
   firstDayOfWeek: 0,
+  showWeather: true,
+  temperatureUnit: 'C',
+  showLunarCalendar: true,
 };
 
 function loadStoredEvents(): CalendarEvent[] {
@@ -133,9 +137,17 @@ interface CalendarState {
   openQuickPopover: (x: number, y: number, date?: Date, event?: CalendarEvent) => void;
   closeQuickPopover: () => void;
 
-  // 데이터 백업 및 복원
+  // 카테고리 관리
+  addCategory: (name: string, color: string) => void;
+
+  // 일정 일정 변경 (드래그 앤 드롭 이동)
+  rescheduleEvent: (id: string, newDateStr: string, newStartTime?: string) => void;
+
+  // 데이터 백업 및 복원 (JSON & iCal)
   exportDataJSON: () => string;
   importDataJSON: (jsonString: string) => boolean;
+  exportEventsToICSFile: () => string;
+  importEventsFromICS: (icsContent: string) => number;
 
   // 헬퍼
   getExpandedEvents: (rangeStart: Date, rangeEnd: Date) => CalendarEvent[];
@@ -342,6 +354,74 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     } catch {
       return false;
     }
+  },
+
+  addCategory: (name, color) => {
+    const newCat: CalendarCategory = {
+      id: `cat-${Date.now()}`,
+      name: name.trim(),
+      color,
+      isVisible: true,
+    };
+    set((state) => {
+      const updated = [...state.categories, newCat];
+      localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(updated));
+      return { categories: updated };
+    });
+  },
+
+  rescheduleEvent: (id, newDateStr, newStartTime) => {
+    const realId = id.includes('_instance_') ? id.split('_instance_')[0] : id;
+    set((state) => {
+      const target = state.events.find((e) => e.id === realId);
+      if (!target) return state;
+
+      const durationMs =
+        new Date(target.endDate).getTime() - new Date(target.startDate).getTime();
+
+      let newStartISO = `${newDateStr}${target.startDate.slice(10)}`;
+      if (newStartTime) {
+        newStartISO = `${newDateStr}T${newStartTime}:00`;
+      }
+      const newEndISO = new Date(new Date(newStartISO).getTime() + durationMs)
+        .toISOString()
+        .slice(0, 19);
+
+      const updatedEvents = state.events.map((e) =>
+        e.id === realId
+          ? { ...e, startDate: newStartISO, endDate: newEndISO, updatedAt: Date.now() }
+          : e
+      );
+
+      localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(updatedEvents));
+      return { events: updatedEvents };
+    });
+  },
+
+  exportEventsToICSFile: () => {
+    return exportEventsToICS(get().events);
+  },
+
+  importEventsFromICS: (icsContent) => {
+    const defaultCat = get().categories[0]?.id || 'default-personal';
+    const parsed = parseICSToEvents(icsContent, defaultCat);
+    if (parsed.length === 0) return 0;
+
+    const now = Date.now();
+    const newEvents: CalendarEvent[] = parsed.map((item, idx) => ({
+      ...item,
+      id: `evt-ics-${now}-${idx}`,
+      createdAt: now,
+      updatedAt: now,
+    }));
+
+    set((state) => {
+      const updated = [...state.events, ...newEvents];
+      localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(updated));
+      return { events: updated };
+    });
+
+    return newEvents.length;
   },
 
   getExpandedEvents: (rangeStart, rangeEnd) => {

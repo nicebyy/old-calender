@@ -1,5 +1,7 @@
 import { CalendarEvent, DayCellData } from '../types';
 import { DAYS_IN_WEEK, WEEKS_IN_MONTH_GRID } from '../constants/calendar';
+import { getHolidayName, getApproxLunarDateString } from './holidays';
+import { getWeatherForDate } from './weather';
 
 /**
  * 두 날짜가 같은 날(연/월/일)인지 확인
@@ -29,7 +31,12 @@ export function getMonthGrid(
   year: number,
   month: number, // 0-indexed (0 = 1월, 11 = 12월)
   selectedDate: Date,
-  events: CalendarEvent[] = []
+  events: CalendarEvent[] = [],
+  options?: {
+    showWeather?: boolean;
+    tempUnit?: 'C' | 'F';
+    showLunar?: boolean;
+  }
 ): DayCellData[] {
   const today = new Date();
   const firstDayOfMonth = new Date(year, month, 1);
@@ -56,6 +63,10 @@ export function getMonthGrid(
       return dateString >= evtStart && dateString <= evtEnd;
     });
 
+    const holidayName = getHolidayName(cellDate);
+    const lunarDateString = options?.showLunar ? getApproxLunarDateString(cellDate) : undefined;
+    const weather = options?.showWeather ? getWeatherForDate(cellDate, options.tempUnit || 'C') : undefined;
+
     cells.push({
       date: cellDate,
       dateString,
@@ -64,6 +75,9 @@ export function getMonthGrid(
       isToday: isSameDay(cellDate, today),
       isSelected: isSameDay(cellDate, selectedDate),
       events: dayEvents,
+      holidayName,
+      lunarDateString,
+      weather,
     });
   }
 
