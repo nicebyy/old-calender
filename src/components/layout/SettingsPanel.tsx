@@ -580,42 +580,42 @@ export const SettingsPanel: React.FC = () => {
                         {t('settings.selectCity')}
                       </option>
                       <optgroup label={language === 'ko' ? '특별시 / 광역시 / 특별자치시' : 'Metropolitan Cities'}>
-                        {WEATHER_CITY_PRESETS.slice(0, 8).map((preset) => (
+                        {WEATHER_CITY_PRESETS.slice(0, 9).map((preset) => (
                           <option key={preset.id} value={preset.id}>
                             {language === 'ko' ? preset.nameKo : preset.nameEn}
                           </option>
                         ))}
                       </optgroup>
                       <optgroup label={language === 'ko' ? '경상북도 / 대구경북' : 'Gyeongsangbuk-do'}>
-                        {WEATHER_CITY_PRESETS.slice(8, 14).map((preset) => (
+                        {WEATHER_CITY_PRESETS.slice(9, 15).map((preset) => (
                           <option key={preset.id} value={preset.id}>
                             {language === 'ko' ? preset.nameKo : preset.nameEn}
                           </option>
                         ))}
                       </optgroup>
                       <optgroup label={language === 'ko' ? '경상남도 / 부산경남' : 'Gyeongsangnam-do'}>
-                        {WEATHER_CITY_PRESETS.slice(14, 18).map((preset) => (
+                        {WEATHER_CITY_PRESETS.slice(15, 19).map((preset) => (
                           <option key={preset.id} value={preset.id}>
                             {language === 'ko' ? preset.nameKo : preset.nameEn}
                           </option>
                         ))}
                       </optgroup>
                       <optgroup label={language === 'ko' ? '경기도 (수도권)' : 'Gyeonggi-do'}>
-                        {WEATHER_CITY_PRESETS.slice(18, 26).map((preset) => (
+                        {WEATHER_CITY_PRESETS.slice(19, 27).map((preset) => (
                           <option key={preset.id} value={preset.id}>
                             {language === 'ko' ? preset.nameKo : preset.nameEn}
                           </option>
                         ))}
                       </optgroup>
                       <optgroup label={language === 'ko' ? '강원 / 충청 / 전라 / 제주' : 'Gangwon, Chungcheong, Jeolla, Jeju'}>
-                        {WEATHER_CITY_PRESETS.slice(26, 39).map((preset) => (
+                        {WEATHER_CITY_PRESETS.slice(27, 40).map((preset) => (
                           <option key={preset.id} value={preset.id}>
                             {language === 'ko' ? preset.nameKo : preset.nameEn}
                           </option>
                         ))}
                       </optgroup>
                       <optgroup label={language === 'ko' ? '해외 주요 거점' : 'Global Cities'}>
-                        {WEATHER_CITY_PRESETS.slice(39).map((preset) => (
+                        {WEATHER_CITY_PRESETS.slice(40).map((preset) => (
                           <option key={preset.id} value={preset.id}>
                             {language === 'ko' ? preset.nameKo : preset.nameEn}
                           </option>

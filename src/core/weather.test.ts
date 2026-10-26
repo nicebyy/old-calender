@@ -122,6 +122,11 @@ describe('Location-based Weather Core Module', () => {
     const gumiNear = findNearestPresetCity(36.11, 128.34);
     expect(gumiNear.id).toBe('gumi');
     expect(gumiNear.nameKo).toContain('구미');
+
+    // 대구 달서구 본동 부근 (35.8336, 128.5386) -> daegu-dalseo
+    const dalseoNear = findNearestPresetCity(35.8336, 128.5386);
+    expect(dalseoNear.id).toBe('daegu-dalseo');
+    expect(dalseoNear.nameKo).toContain('달서구 본동');
   });
 
   it('searchLocations 함수는 빈 쿼리나 유효하지 않은 입력 시 빈 배열을 안전하게 반환해야 한다', async () => {
