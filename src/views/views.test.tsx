@@ -29,6 +29,12 @@ describe('Calendar Views & HeaderControls Test Suite', () => {
     expect(screen.getByText('26')).toBeInTheDocument();
   });
 
+  it('MonthView에서 1일인 날짜는 월 구분 라벨(예: 10월, 11월)이 함께 렌더링되어야 한다', () => {
+    render(<MonthView />);
+    expect(screen.getByText('10월')).toBeInTheDocument();
+    expect(screen.getByText('11월')).toBeInTheDocument();
+  });
+
   it('MonthView에서 마우스 휠 스크롤 시 월 단위로 이전/다음 달로 이동해야 한다', () => {
     const { container, unmount } = render(<MonthView />);
     expect(useCalendarStore.getState().viewDate.getMonth()).toBe(9); // 10월
