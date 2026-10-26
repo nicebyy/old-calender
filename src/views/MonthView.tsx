@@ -11,6 +11,7 @@ export const MonthView: React.FC = () => {
   const setSelectedDate = useCalendarStore((s) => s.setSelectedDate);
   const categories = useCalendarStore((s) => s.categories);
   const settings = useCalendarStore((s) => s.settings);
+  const weatherDailyCache = useCalendarStore((s) => s.weatherDailyCache);
   const openEventModal = useCalendarStore((s) => s.openEventModal);
   const getExpandedEvents = useCalendarStore((s) => s.getExpandedEvents);
   const rescheduleEvent = useCalendarStore((s) => s.rescheduleEvent);
@@ -26,7 +27,7 @@ export const MonthView: React.FC = () => {
   const endOfGrid = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 15);
   const visibleEvents = getExpandedEvents(startOfGrid, endOfGrid);
 
-  // 월간 그리드 42개 셀 계산 (공휴일, 음력, 날씨 옵션 반영)
+  // 월간 그리드 42개 셀 계산 (공휴일, 음력, 위치 기반 날씨 옵션 반영)
   const grid = getMonthGrid(
     viewDate.getFullYear(),
     viewDate.getMonth(),
@@ -36,6 +37,9 @@ export const MonthView: React.FC = () => {
       showWeather: settings.showWeather,
       tempUnit: settings.temperatureUnit,
       showLunar: settings.showLunarCalendar,
+      location: settings.weatherLocation,
+      weatherCache: weatherDailyCache,
+      lang: settings.language,
     }
   );
 
@@ -171,7 +175,7 @@ export const MonthView: React.FC = () => {
                 {cell.weather && (
                   <div
                     className="flex items-center space-x-1 text-[9.5px] text-[#999999] pr-1"
-                    title={`${cell.weather.label} (${cell.weather.tempMax}° / ${cell.weather.tempMin}°)`}
+                    title={`${cell.weather.locationName ? `[${cell.weather.locationName}] ` : ''}${cell.weather.label} (${cell.weather.tempMax}° / ${cell.weather.tempMin}°)`}
                   >
                     {renderWeatherIcon(cell.weather)}
                     <span className="hidden xl:inline">{cell.weather.tempMax}°</span>

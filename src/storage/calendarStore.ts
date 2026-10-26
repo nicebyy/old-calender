@@ -9,19 +9,24 @@ import {
   SyncedAccount,
   ThemePreset,
   ActiveToast,
+  WeatherInfo,
+  WeatherLocation,
 } from '../types';
 import { DEFAULT_CATEGORIES } from '../constants/calendar';
+import { DEFAULT_WEATHER_LOCATION } from '../constants/weather';
 import { getNavigatedDate } from '../core/calendar';
 import { expandEventsForRange } from '../core/recurrence';
 import { exportEventsToICS, parseICSToEvents } from '../core/ical';
 import { generateRemoteEventsForProvider, mergeRemoteEvents } from '../core/oauthSync';
 import { getDueReminders, formatReminderMessage } from '../core/notifications';
+import { fetchRealWeather, detectUserLocation, getFallbackWeather } from '../core/weather';
 
 const STORAGE_KEY_EVENTS = 'win10_calendar_events';
 const STORAGE_KEY_CATEGORIES = 'win10_calendar_categories';
 const STORAGE_KEY_SETTINGS = 'win10_calendar_settings';
 const STORAGE_KEY_ACCOUNTS = 'win10_calendar_synced_accounts';
 const STORAGE_KEY_NOTIFIED = 'win10_calendar_notified_reminders';
+const STORAGE_KEY_WEATHER_CACHE = 'win10_calendar_weather_cache';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   language: 'ko',
@@ -30,6 +35,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   firstDayOfWeek: 0,
   showWeather: true,
   temperatureUnit: 'C',
+  weatherLocation: DEFAULT_WEATHER_LOCATION,
   showLunarCalendar: true,
   backgroundTheme: 'none',
   backgroundFill: 'sidebar',
@@ -151,12 +157,28 @@ function loadStoredCategories(): CalendarCategory[] {
 function loadStoredSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SETTINGS);
-    const loaded = raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
+    const parsed = raw ? JSON.parse(raw) : {};
+    const loaded: AppSettings = {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      weatherLocation: parsed.weatherLocation
+        ? { ...DEFAULT_WEATHER_LOCATION, ...parsed.weatherLocation }
+        : DEFAULT_WEATHER_LOCATION,
+    };
     applyThemeToDOM(loaded);
     return loaded;
   } catch {
     applyThemeToDOM(DEFAULT_SETTINGS);
     return DEFAULT_SETTINGS;
+  }
+}
+
+function loadStoredWeatherCache(): { current: WeatherInfo | null; daily: Record<string, WeatherInfo> } {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_WEATHER_CACHE);
+    return raw ? JSON.parse(raw) : { current: null, daily: {} };
+  } catch {
+    return { current: null, daily: {} };
   }
 }
 
@@ -239,9 +261,20 @@ interface CalendarState {
   triggerReminderNotification: (event: CalendarEvent) => void;
   checkDueReminders: () => void;
 
+  // 위치 기반 실시간 날씨 상태 및 액션
+  currentWeather: WeatherInfo | null;
+  weatherDailyCache: Record<string, WeatherInfo>;
+  isWeatherLoading: boolean;
+  refreshWeather: () => Promise<void>;
+  setWeatherLocation: (location: WeatherLocation) => Promise<void>;
+  autoDetectLocation: () => Promise<void>;
+
   // 헬퍼
   getExpandedEvents: (rangeStart: Date, rangeEnd: Date) => CalendarEvent[];
 }
+
+const initialStoredSettings = loadStoredSettings();
+const initialWeatherCache = loadStoredWeatherCache();
 
 export const useCalendarStore = create<CalendarState>((set, get) => ({
   selectedDate: new Date(),
@@ -250,7 +283,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   isSidebarOpen: true,
   events: loadStoredEvents(),
   categories: loadStoredCategories(),
-  settings: loadStoredSettings(),
+  settings: initialStoredSettings,
 
   isSettingsOpen: false,
   isSearchOpen: false,
@@ -263,6 +296,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   isSyncing: false,
   activeToasts: [],
   notifiedReminderMap: loadStoredNotifiedMap(),
+  currentWeather: initialWeatherCache.current || getFallbackWeather(new Date(), initialStoredSettings.weatherLocation, initialStoredSettings.temperatureUnit, initialStoredSettings.language),
+  weatherDailyCache: initialWeatherCache.daily,
+  isWeatherLoading: false,
 
   setSelectedDate: (date: Date) =>
     set({
@@ -380,6 +416,16 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
 
       // 동적 액센트 컬러 및 테마 DOM 반영
       applyThemeToDOM(updated);
+
+      if (
+        newSettings.temperatureUnit !== undefined ||
+        newSettings.weatherLocation !== undefined ||
+        newSettings.showWeather !== undefined
+      ) {
+        setTimeout(() => {
+          get().refreshWeather();
+        }, 0);
+      }
 
       return { settings: updated };
     });
@@ -743,6 +789,48 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     const dueList = getDueReminders(events, new Date(), notifiedReminderMap);
     for (const item of dueList) {
       triggerReminderNotification(item.event);
+    }
+  },
+
+  // 위치 기반 실시간 날씨 액션 구현
+  refreshWeather: async () => {
+    const { settings } = get();
+    if (!settings.showWeather) return;
+
+    set({ isWeatherLoading: true });
+    try {
+      const { current, daily } = await fetchRealWeather(
+        settings.weatherLocation,
+        settings.temperatureUnit,
+        settings.language
+      );
+      set({
+        currentWeather: current,
+        weatherDailyCache: daily,
+        isWeatherLoading: false,
+      });
+      localStorage.setItem(
+        STORAGE_KEY_WEATHER_CACHE,
+        JSON.stringify({ current, daily })
+      );
+    } catch {
+      set({ isWeatherLoading: false });
+    }
+  },
+
+  setWeatherLocation: async (location: WeatherLocation) => {
+    get().updateSettings({ weatherLocation: location });
+    await get().refreshWeather();
+  },
+
+  autoDetectLocation: async () => {
+    set({ isWeatherLoading: true });
+    try {
+      const detected = await detectUserLocation();
+      get().updateSettings({ weatherLocation: detected });
+      await get().refreshWeather();
+    } catch {
+      set({ isWeatherLoading: false });
     }
   },
 }));
