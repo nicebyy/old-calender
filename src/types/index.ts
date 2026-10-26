@@ -53,13 +53,36 @@ export interface DayCellData {
   weather?: WeatherInfo;
 }
 
-export interface AppSettings {
+export type ThemeMode = 'dark' | 'light' | 'system';
+export type BackgroundFillOption = 'window' | 'sidebar' | 'none';
+
+export interface WallpaperOption {
+  id: string;
+  name: string;
+  thumbnail: string;
+  cssBackground: string;
+}
+
+export interface ThemePreset {
+  id: string;
+  name: string;
   themeMode: 'dark' | 'light';
+  accentColor: string;
+  backgroundTheme: string;
+  backgroundFill: BackgroundFillOption;
+  description: string;
+}
+
+export interface AppSettings {
+  themeMode: ThemeMode;
   accentColor: string;
   firstDayOfWeek: 0 | 1; // 0: 일요일, 1: 월요일
   showWeather: boolean; // Windows 10 날씨 표시 여부
   temperatureUnit: 'C' | 'F'; // 섭씨/화씨
   showLunarCalendar: boolean; // 대체 캘린더 (음력 표시)
+  backgroundTheme: string; // 'none' | 'alps' | 'lake' | 'city' | 'bloom' | 'aurora' | 'sunset' | 'windows' | custom url/data
+  backgroundFill: BackgroundFillOption;
+  backgroundOpacity: number; // 0.1 ~ 1.0
 }
 
 /**

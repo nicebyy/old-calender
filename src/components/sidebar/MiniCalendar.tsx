@@ -97,10 +97,10 @@ export const MiniCalendar: React.FC = () => {
               key={`${cell.dateString}-${idx}`}
               onClick={() => handleDateClick(cell.date)}
               className={`h-6 w-6 mx-auto flex items-center justify-center rounded-full transition-colors relative text-xs
-                ${isSelected ? 'bg-[#0078d7] text-white font-bold' : ''}
-                ${!isSelected && isToday ? 'border border-[#0078d7] text-white font-bold' : ''}
-                ${!isSelected && !isToday && isCurrent ? 'text-[#dddddd] hover:bg-[#3a3a3a]' : ''}
-                ${!isSelected && !isToday && !isCurrent ? 'text-[#666666] hover:bg-[#333333]' : ''}
+                ${isSelected ? 'bg-[var(--win10-accent)] text-white font-bold' : ''}
+                ${!isSelected && isToday ? 'border border-[var(--win10-accent)] text-[var(--win10-text-primary)] font-bold' : ''}
+                ${!isSelected && !isToday && isCurrent ? 'text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)]' : ''}
+                ${!isSelected && !isToday && !isCurrent ? 'text-[var(--win10-text-muted)] hover:bg-[var(--win10-button-hover)]' : ''}
               `}
             >
               {cell.dayNumber}

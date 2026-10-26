@@ -107,4 +107,34 @@ describe('OAuth2 Calendar Sync Core Engine', () => {
     expect(merged.some((e) => e.id === 'new-google-2')).toBe(true);
     expect(merged.length).toBe(2);
   });
+
+  it('공급자별 원격 일정(Google, Microsoft)을 정상적으로 생성 및 변환해야 한다', () => {
+    const googleAcc: SyncedAccount = {
+      id: 'g-1',
+      provider: 'google',
+      email: 'user@gmail.com',
+      displayName: '홍길동',
+      syncStatus: 'idle',
+      color: '#EA4335',
+      isEnabled: true,
+    };
+
+    const msAcc: SyncedAccount = {
+      id: 'm-1',
+      provider: 'microsoft',
+      email: 'user@outlook.com',
+      displayName: '홍길동',
+      syncStatus: 'idle',
+      color: '#0078D7',
+      isEnabled: true,
+    };
+
+    const googleEvents = generateRemoteEventsForProvider(googleAcc, new Date(2026, 9, 26));
+    expect(googleEvents.length).toBeGreaterThan(0);
+    expect(googleEvents[0].accountId).toBe('g-1');
+
+    const msEvents = generateRemoteEventsForProvider(msAcc, new Date(2026, 9, 26));
+    expect(msEvents.length).toBeGreaterThan(0);
+    expect(msEvents[0].accountId).toBe('m-1');
+  });
 });

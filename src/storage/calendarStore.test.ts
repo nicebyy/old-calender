@@ -77,4 +77,34 @@ describe('CalendarStore Extended', () => {
     const count = useCalendarStore.getState().importEventsFromICS(icsContent);
     expect(count).toBeGreaterThan(0);
   });
+
+  it('OAuth2 동기화 계정 추가 및 동기화, 제거가 정상 작동해야 한다', async () => {
+    const prevAccCount = useCalendarStore.getState().syncedAccounts.length;
+
+    // 계정 추가
+    useCalendarStore
+      .getState()
+      .addSyncedAccount('google', 'work@company.com', '회사 구글 계정');
+
+    const accounts = useCalendarStore.getState().syncedAccounts;
+    expect(accounts.length).toBe(prevAccCount + 1);
+
+    const added = accounts.find((a) => a.email === 'work@company.com');
+    expect(added).toBeDefined();
+
+    // 동기화 실행
+    if (added) {
+      await useCalendarStore.getState().syncAccount(added.id);
+      const syncedAcc = useCalendarStore
+        .getState()
+        .syncedAccounts.find((a) => a.id === added.id);
+      expect(syncedAcc?.syncStatus).toBe('success');
+      expect(syncedAcc?.lastSyncTime).toBeDefined();
+
+      // 계정 삭제
+      useCalendarStore.getState().removeSyncedAccount(added.id);
+      const remainingAccounts = useCalendarStore.getState().syncedAccounts;
+      expect(remainingAccounts.some((a) => a.id === added.id)).toBe(false);
+    }
+  });
 });

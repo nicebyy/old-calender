@@ -9,15 +9,20 @@ import {
   CloudSun,
   FileText,
   Moon,
+  Image as ImageIcon,
+  Sparkles,
 } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
-import { WIN10_ACCENT_COLORS, FIRST_DAY_OPTIONS, THEME_MODES } from '../../constants/settings';
+import { WIN10_ACCENT_COLORS, FIRST_DAY_OPTIONS, THEME_MODES, BACKGROUND_FILL_OPTIONS } from '../../constants/settings';
+import { WALLPAPER_THEMES, THEME_PRESETS } from '../../constants/theme';
+import { ThemePreset } from '../../types';
 
 export const SettingsPanel: React.FC = () => {
   const isSettingsOpen = useCalendarStore((s) => s.isSettingsOpen);
   const toggleSettings = useCalendarStore((s) => s.toggleSettings);
   const settings = useCalendarStore((s) => s.settings);
   const updateSettings = useCalendarStore((s) => s.updateSettings);
+  const applyThemePreset = useCalendarStore((s) => s.applyThemePreset);
   const exportDataJSON = useCalendarStore((s) => s.exportDataJSON);
   const importDataJSON = useCalendarStore((s) => s.importDataJSON);
   const exportEventsToICSFile = useCalendarStore((s) => s.exportEventsToICSFile);
@@ -25,6 +30,7 @@ export const SettingsPanel: React.FC = () => {
 
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
   const icsFileInputRef = useRef<HTMLInputElement>(null);
+  const imageFileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isSettingsOpen) return null;
 
@@ -89,31 +95,114 @@ export const SettingsPanel: React.FC = () => {
     e.target.value = '';
   };
 
+  // 사용자 지정 배경 이미지 업로드
+  const handleCustomImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        updateSettings({
+          backgroundTheme: dataUrl,
+          backgroundFill: settings.backgroundFill === 'none' ? 'sidebar' : settings.backgroundFill,
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end select-none bg-black/40 backdrop-blur-xs print:hidden">
       {/* 바깥 배경 클릭 시 닫기 */}
       <div className="flex-1" onClick={toggleSettings} />
 
       {/* 우측 슬라이드인 패널 */}
-      <div className="w-[380px] h-full bg-[#262626] border-l border-[#3a3a3a] shadow-2xl flex flex-col text-white animate-in slide-in-from-right duration-200">
+      <div className="w-[400px] h-full bg-[var(--win10-sidebar)] border-l border-[var(--win10-border)] shadow-2xl flex flex-col text-[var(--win10-text-primary)] animate-in slide-in-from-right duration-200">
         {/* 헤더 */}
-        <div className="h-12 border-b border-[#333333] px-4 flex items-center justify-between">
-          <span className="font-semibold text-sm">설정</span>
+        <div className="h-12 border-b border-[var(--win10-border)] px-4 flex items-center justify-between">
+          <span className="font-semibold text-sm">설정 및 개인 설정</span>
           <button
             onClick={toggleSettings}
-            className="p-1.5 hover:bg-[#383838] active:bg-[#444444] rounded text-[#cccccc] hover:text-white transition-colors"
+            className="p-1.5 hover:bg-[var(--win10-button-hover)] rounded text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* 설정 본문 */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-5 text-xs">
-          {/* 1. 강조 색상 (Accent Color) 타일 그리드 */}
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2 font-medium text-[13px] text-[#dddddd]">
-              <Palette className="w-4 h-4 text-[#0078d7]" />
-              <span>강조 색상 (Accent Color)</span>
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 text-xs">
+          {/* 1. 원클릭 완성형 멀티 테마 프리셋 */}
+          <div className="space-y-2.5">
+            <div className="flex items-center space-x-2 font-medium text-[13px] text-[var(--win10-text-primary)]">
+              <Sparkles className="w-4 h-4 text-[var(--win10-accent)]" />
+              <span>완성형 테마 프리셋 (1-Click)</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {THEME_PRESETS.map((preset: ThemePreset) => {
+                const isActive =
+                  settings.themeMode === preset.themeMode &&
+                  settings.accentColor.toLowerCase() === preset.accentColor.toLowerCase() &&
+                  settings.backgroundTheme === preset.backgroundTheme;
+
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => applyThemePreset(preset)}
+                    className={`p-2.5 rounded-sm border text-left transition-all relative overflow-hidden flex flex-col justify-between h-20 ${
+                      isActive
+                        ? 'border-[var(--win10-accent)] ring-1 ring-[var(--win10-accent)] bg-[var(--win10-cell-hover)]'
+                        : 'border-[var(--win10-border)] bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center space-x-1.5">
+                        <span
+                          className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs border border-black/20"
+                          style={{ backgroundColor: preset.accentColor }}
+                        />
+                        <span className="font-semibold text-[11px] truncate">{preset.name}</span>
+                      </div>
+                      {isActive && <Check className="w-3.5 h-3.5 text-[var(--win10-accent)] stroke-[3]" />}
+                    </div>
+                    <span className="text-[10px] text-[var(--win10-text-secondary)] line-clamp-2 leading-tight">
+                      {preset.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. 테마 모드 (Dark, Light, System) */}
+          <div className="space-y-2 pt-3 border-t border-[var(--win10-border)]">
+            <span className="font-medium text-[13px] text-[var(--win10-text-primary)] block">테마 모드</span>
+            <div className="space-y-1.5">
+              {THEME_MODES.map((mode) => (
+                <label
+                  key={mode.id}
+                  className="flex items-center space-x-2.5 p-1.5 rounded hover:bg-[var(--win10-button-hover)] cursor-pointer text-[var(--win10-text-primary)] transition-colors"
+                >
+                  <input
+                    type="radio"
+                    name="themeMode"
+                    checked={settings.themeMode === mode.id}
+                    onChange={() => updateSettings({ themeMode: mode.id })}
+                    className="accent-[var(--win10-accent)]"
+                  />
+                  <span>{mode.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* 3. 시스템 강조 색상 (12가지 Accent Colors) */}
+          <div className="space-y-2 pt-3 border-t border-[var(--win10-border)]">
+            <div className="flex items-center space-x-2 font-medium text-[13px] text-[var(--win10-text-primary)]">
+              <Palette className="w-4 h-4 text-[var(--win10-accent)]" />
+              <span>Windows 시스템 강조 색상 (12종)</span>
             </div>
             <div className="grid grid-cols-4 gap-2 pt-1">
               {WIN10_ACCENT_COLORS.map((accent) => {
@@ -136,53 +225,130 @@ export const SettingsPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* 2. 테마 모드 */}
-          <div className="space-y-1.5 pt-2 border-t border-[#333333]">
-            <span className="font-medium text-[13px] text-[#dddddd]">테마</span>
-            <div className="space-y-1">
-              {THEME_MODES.map((mode) => (
-                <label
-                  key={mode.id}
-                  className="flex items-center space-x-2.5 p-1 rounded hover:bg-[#333333] cursor-pointer text-[#cccccc]"
-                >
-                  <input
-                    type="radio"
-                    name="themeMode"
-                    checked={settings.themeMode === mode.id}
-                    onChange={() => updateSettings({ themeMode: mode.id as 'dark' | 'light' })}
-                    className="accent-[#0078d7]"
-                  />
-                  <span>{mode.label}</span>
-                </label>
-              ))}
+          {/* 4. 캘린더 배경 테마 (Windows 10 시그니처 개인 설정) */}
+          <div className="space-y-3 pt-3 border-t border-[var(--win10-border)]">
+            <div className="flex items-center space-x-2 font-medium text-[13px] text-[var(--win10-text-primary)]">
+              <ImageIcon className="w-4 h-4 text-[var(--win10-accent)]" />
+              <span>배경 테마 및 월페이퍼</span>
             </div>
+
+            {/* 배경 채우기 위치 */}
+            <div className="space-y-1">
+              <span className="text-[11px] text-[var(--win10-text-secondary)] block">배경 채우기 위치</span>
+              <div className="grid grid-cols-3 gap-1.5">
+                {BACKGROUND_FILL_OPTIONS.map((fill) => (
+                  <button
+                    key={fill.id}
+                    onClick={() => updateSettings({ backgroundFill: fill.id })}
+                    className={`py-1 px-1.5 rounded-sm border text-[10.5px] text-center transition-all ${
+                      settings.backgroundFill === fill.id
+                        ? 'border-[var(--win10-accent)] bg-[var(--win10-accent)] text-white font-medium'
+                        : 'border-[var(--win10-border)] bg-[var(--win10-card-bg)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)]'
+                    }`}
+                  >
+                    {fill.id === 'sidebar' ? '사이드바' : fill.id === 'window' ? '창 전체' : '없음'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 배경 프리셋 타일 목록 */}
+            <div className="grid grid-cols-4 gap-2 pt-1">
+              {WALLPAPER_THEMES.map((wp) => {
+                const isSelected = settings.backgroundTheme === wp.id;
+                return (
+                  <button
+                    key={wp.id}
+                    onClick={() =>
+                      updateSettings({
+                        backgroundTheme: wp.id,
+                        backgroundFill: settings.backgroundFill === 'none' ? 'sidebar' : settings.backgroundFill,
+                      })
+                    }
+                    className="h-14 rounded-sm border relative overflow-hidden flex flex-col justify-end p-1 text-left transition-all hover:scale-105 active:scale-95 group shadow-xs"
+                    style={{
+                      background: wp.cssBackground === 'none' ? 'var(--win10-cell-other)' : wp.cssBackground,
+                      borderColor: isSelected ? 'var(--win10-accent)' : 'var(--win10-border)',
+                      boxShadow: isSelected ? '0 0 0 1px var(--win10-accent)' : 'none',
+                    }}
+                    title={wp.name}
+                  >
+                    <span className="text-[9.5px] text-white font-medium drop-shadow-md truncate z-10">
+                      {wp.name}
+                    </span>
+                    {isSelected && (
+                      <div className="absolute top-1 right-1 bg-[var(--win10-accent)] rounded-full p-0.5 shadow-sm">
+                        <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 사용자 정의 이미지 업로드 버튼 */}
+            <div className="pt-1 flex space-x-2">
+              <button
+                onClick={() => imageFileInputRef.current?.click()}
+                className="flex-1 flex items-center justify-center space-x-1.5 py-1.5 px-3 bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)] border border-[var(--win10-border)] rounded text-[var(--win10-text-primary)] transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>내 사진/이미지 업로드...</span>
+              </button>
+              <input
+                ref={imageFileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCustomImageUpload}
+                className="hidden"
+              />
+            </div>
+
+            {/* 배경 불투명도 조절 슬라이더 */}
+            {settings.backgroundTheme !== 'none' && settings.backgroundFill !== 'none' && (
+              <div className="space-y-1 pt-1 bg-[var(--win10-card-bg)] p-2.5 rounded border border-[var(--win10-border)]">
+                <div className="flex items-center justify-between text-[11px] text-[var(--win10-text-secondary)]">
+                  <span>배경 투명도 / 블렌딩</span>
+                  <span>{Math.round((settings.backgroundOpacity ?? 0.35) * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="0.85"
+                  step="0.05"
+                  value={settings.backgroundOpacity ?? 0.35}
+                  onChange={(e) => updateSettings({ backgroundOpacity: parseFloat(e.target.value) })}
+                  className="w-full accent-[var(--win10-accent)] cursor-pointer"
+                />
+              </div>
+            )}
           </div>
 
-          {/* 3. 날씨 설정 (Windows 10 UWP 시그니처) */}
-          <div className="space-y-2 pt-2 border-t border-[#333333]">
-            <div className="flex items-center space-x-2 font-medium text-[13px] text-[#dddddd]">
-              <CloudSun className="w-4 h-4 text-[#0078d7]" />
+          {/* 5. 날씨 설정 (Windows 10 UWP 시그니처) */}
+          <div className="space-y-2 pt-3 border-t border-[var(--win10-border)]">
+            <div className="flex items-center space-x-2 font-medium text-[13px] text-[var(--win10-text-primary)]">
+              <CloudSun className="w-4 h-4 text-[var(--win10-accent)]" />
               <span>날씨 연동 (MSN Weather 스타일)</span>
             </div>
-            <label className="flex items-center space-x-2 p-1 rounded hover:bg-[#333333] cursor-pointer text-[#cccccc]">
+            <label className="flex items-center space-x-2 p-1 rounded hover:bg-[var(--win10-button-hover)] cursor-pointer text-[var(--win10-text-primary)]">
               <input
                 type="checkbox"
                 checked={settings.showWeather}
                 onChange={(e) => updateSettings({ showWeather: e.target.checked })}
-                className="accent-[#0078d7]"
+                className="accent-[var(--win10-accent)]"
               />
               <span>캘린더에 날씨 및 일일 기온 표시</span>
             </label>
             {settings.showWeather && (
               <div className="flex items-center space-x-3 pl-6 pt-1">
-                <span className="text-[#aaaaaa]">온도 단위:</span>
+                <span className="text-[var(--win10-text-secondary)]">온도 단위:</span>
                 <label className="flex items-center space-x-1 cursor-pointer">
                   <input
                     type="radio"
                     name="tempUnit"
                     checked={settings.temperatureUnit === 'C'}
                     onChange={() => updateSettings({ temperatureUnit: 'C' })}
-                    className="accent-[#0078d7]"
+                    className="accent-[var(--win10-accent)]"
                   />
                   <span>섭씨 (°C)</span>
                 </label>
@@ -192,7 +358,7 @@ export const SettingsPanel: React.FC = () => {
                     name="tempUnit"
                     checked={settings.temperatureUnit === 'F'}
                     onChange={() => updateSettings({ temperatureUnit: 'F' })}
-                    className="accent-[#0078d7]"
+                    className="accent-[var(--win10-accent)]"
                   />
                   <span>화씨 (°F)</span>
                 </label>
@@ -200,34 +366,34 @@ export const SettingsPanel: React.FC = () => {
             )}
           </div>
 
-          {/* 4. 대체 캘린더 (음력) 및 캘린더 표시 */}
-          <div className="space-y-2 pt-2 border-t border-[#333333]">
-            <div className="flex items-center space-x-2 font-medium text-[13px] text-[#dddddd]">
-              <CalIcon className="w-4 h-4 text-[#0078d7]" />
+          {/* 6. 대체 캘린더 (음력) 및 첫째 날 설정 */}
+          <div className="space-y-2 pt-3 border-t border-[var(--win10-border)]">
+            <div className="flex items-center space-x-2 font-medium text-[13px] text-[var(--win10-text-primary)]">
+              <CalIcon className="w-4 h-4 text-[var(--win10-accent)]" />
               <span>캘린더 표시 및 대체 캘린더</span>
             </div>
-            <label className="flex items-center space-x-2 p-1 rounded hover:bg-[#333333] cursor-pointer text-[#cccccc]">
+            <label className="flex items-center space-x-2 p-1 rounded hover:bg-[var(--win10-button-hover)] cursor-pointer text-[var(--win10-text-primary)]">
               <input
                 type="checkbox"
                 checked={settings.showLunarCalendar}
                 onChange={(e) => updateSettings({ showLunarCalendar: e.target.checked })}
-                className="accent-[#0078d7]"
+                className="accent-[var(--win10-accent)]"
               />
-              <Moon className="w-3.5 h-3.5 text-[#aaaaaa]" />
+              <Moon className="w-3.5 h-3.5 text-[var(--win10-text-secondary)]" />
               <span>음력 일자 표시 (초하루, 보름 등)</span>
             </label>
 
             <div className="pt-1">
-              <span className="text-[#aaaaaa] block mb-1">주의 첫째 날</span>
+              <span className="text-[var(--win10-text-secondary)] block mb-1">주의 첫째 날</span>
               <div className="flex space-x-4">
                 {FIRST_DAY_OPTIONS.map((opt) => (
-                  <label key={opt.id} className="flex items-center space-x-1.5 cursor-pointer text-[#cccccc]">
+                  <label key={opt.id} className="flex items-center space-x-1.5 cursor-pointer text-[var(--win10-text-primary)]">
                     <input
                       type="radio"
                       name="firstDayOfWeek"
                       checked={settings.firstDayOfWeek === opt.id}
                       onChange={() => updateSettings({ firstDayOfWeek: opt.id as 0 | 1 })}
-                      className="accent-[#0078d7]"
+                      className="accent-[var(--win10-accent)]"
                     />
                     <span>{opt.label}</span>
                   </label>
@@ -236,16 +402,16 @@ export const SettingsPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* 5. iCalendar (.ics) 연동 및 JSON 백업 */}
-          <div className="space-y-2 pt-2 border-t border-[#333333]">
-            <div className="flex items-center space-x-2 font-medium text-[13px] text-[#dddddd]">
-              <FileText className="w-4 h-4 text-[#0078d7]" />
+          {/* 7. iCalendar (.ics) 연동 및 JSON 백업 */}
+          <div className="space-y-2 pt-3 border-t border-[var(--win10-border)]">
+            <div className="flex items-center space-x-2 font-medium text-[13px] text-[var(--win10-text-primary)]">
+              <FileText className="w-4 h-4 text-[var(--win10-accent)]" />
               <span>iCalendar (.ics) 및 데이터 연동</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={handleExportICS}
-                className="flex items-center justify-center space-x-1 py-1.5 px-2 bg-[#333333] hover:bg-[#444444] rounded text-white transition-colors border border-[#444444]"
+                className="flex items-center justify-center space-x-1 py-1.5 px-2 bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)] rounded text-[var(--win10-text-primary)] transition-colors border border-[var(--win10-border)]"
                 title="Google, Outlook 호환 .ics 파일로 내보내기"
               >
                 <Download className="w-3 h-3" />
@@ -254,7 +420,7 @@ export const SettingsPanel: React.FC = () => {
 
               <button
                 onClick={() => icsFileInputRef.current?.click()}
-                className="flex items-center justify-center space-x-1 py-1.5 px-2 bg-[#333333] hover:bg-[#444444] rounded text-white transition-colors border border-[#444444]"
+                className="flex items-center justify-center space-x-1 py-1.5 px-2 bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)] rounded text-[var(--win10-text-primary)] transition-colors border border-[var(--win10-border)]"
                 title="외부 .ics 일정 파일 가져오기"
               >
                 <Upload className="w-3 h-3" />
@@ -272,7 +438,7 @@ export const SettingsPanel: React.FC = () => {
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
                 onClick={handleExportJSON}
-                className="flex items-center justify-center space-x-1 py-1.5 px-2 bg-[#2a2a2a] hover:bg-[#383838] rounded text-[#cccccc] transition-colors border border-[#383838]"
+                className="flex items-center justify-center space-x-1 py-1.5 px-2 bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)] rounded text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors border border-[var(--win10-border)]"
               >
                 <Download className="w-3 h-3" />
                 <span>JSON 전체 백업</span>
@@ -280,7 +446,7 @@ export const SettingsPanel: React.FC = () => {
 
               <button
                 onClick={() => jsonFileInputRef.current?.click()}
-                className="flex items-center justify-center space-x-1 py-1.5 px-2 bg-[#2a2a2a] hover:bg-[#383838] rounded text-[#cccccc] transition-colors border border-[#383838]"
+                className="flex items-center justify-center space-x-1 py-1.5 px-2 bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)] rounded text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors border border-[var(--win10-border)]"
               >
                 <Upload className="w-3 h-3" />
                 <span>JSON 복원</span>
@@ -297,8 +463,8 @@ export const SettingsPanel: React.FC = () => {
         </div>
 
         {/* 버전 및 정보 */}
-        <div className="p-3 border-t border-[#333333] bg-[#222222] text-[11px] text-[#777777] text-center">
-          Windows 10 Classic Calendar Replica v0.2.0
+        <div className="p-3 border-t border-[var(--win10-border)] bg-[var(--win10-surface)] text-[11px] text-[var(--win10-text-secondary)] text-center">
+          Windows 10 Classic Calendar Replica v0.3.0 (Multi-Theme Support)
         </div>
       </div>
     </div>

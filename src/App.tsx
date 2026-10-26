@@ -7,7 +7,9 @@ import { WeekView } from './views/WeekView';
 import { DayView } from './views/DayView';
 import { YearView } from './views/YearView';
 import { EventModal } from './components/events/EventModal';
-import { useCalendarStore } from './storage/calendarStore';
+import { AccountModal } from './components/sync/AccountModal';
+import { useCalendarStore, applyThemeToDOM } from './storage/calendarStore';
+import { WALLPAPER_THEMES } from './constants/theme';
 
 export const App: React.FC = () => {
   const viewType = useCalendarStore((s) => s.viewType);
@@ -17,6 +19,19 @@ export const App: React.FC = () => {
   const setViewType = useCalendarStore((s) => s.setViewType);
   const toggleSearch = useCalendarStore((s) => s.toggleSearch);
   const toggleSettings = useCalendarStore((s) => s.toggleSettings);
+  const settings = useCalendarStore((s) => s.settings);
+
+  // 시스템 테마 및 전역 DOM 테마 속성 연동
+  useEffect(() => {
+    applyThemeToDOM(settings);
+
+    if (settings.themeMode === 'system' && typeof window !== 'undefined' && window.matchMedia) {
+      const media = window.matchMedia('(prefers-color-scheme: light)');
+      const listener = () => applyThemeToDOM(settings);
+      media.addEventListener('change', listener);
+      return () => media.removeEventListener('change', listener);
+    }
+  }, [settings]);
 
   // Windows 10 캘린더 전역 단축키 등록
   useEffect(() => {
@@ -72,13 +87,33 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goToToday, navigateViewDate, openEventModal, setViewType, toggleSearch, toggleSettings]);
 
+  // 배경 테마 스타일 계산
+  const activeWallpaper = WALLPAPER_THEMES.find((w) => w.id === settings.backgroundTheme);
+  const isCustomImage = settings.backgroundTheme && settings.backgroundTheme !== 'none' && !activeWallpaper;
+  const wallpaperStyle = activeWallpaper
+    ? activeWallpaper.cssBackground
+    : isCustomImage
+    ? `url(${settings.backgroundTheme}) center / cover no-repeat`
+    : 'none';
+
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#1f1f1f] text-white">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[var(--win10-bg)] text-[var(--win10-text-primary)] transition-colors duration-150 relative">
+      {/* 창 전체 채우기 배경 레이어 (Fluent 아크릴 블렌딩) */}
+      {settings.backgroundFill === 'window' && wallpaperStyle !== 'none' && (
+        <div
+          className="absolute inset-0 pointer-events-none transition-all duration-300 z-0"
+          style={{
+            background: wallpaperStyle,
+            opacity: settings.backgroundOpacity ?? 0.35,
+          }}
+        />
+      )}
+
       {/* 1. Windows 10 Fluent 통합 타이틀바 & 헤더 컨트롤 */}
       <HeaderControls />
 
       {/* 2. 본문 영역: 사이드바 + 캘린더 뷰 */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative z-10">
         <Sidebar />
         <main className="flex-1 flex flex-col overflow-hidden relative">
           {viewType === 'month' && <MonthView />}
@@ -94,6 +129,9 @@ export const App: React.FC = () => {
 
       {/* 4. 전역 모달 (이벤트 추가/수정) */}
       <EventModal />
+
+      {/* 5. 계정 선택 및 OAuth2 동기화 모달 */}
+      <AccountModal />
     </div>
   );
 };

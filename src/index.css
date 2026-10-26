@@ -2,23 +2,70 @@
 
 @layer base {
   :root {
+    /* 기본 액센트 컬러 */
     --win10-accent: #0078d7;
     --win10-accent-hover: #1a86d9;
     --win10-accent-active: #0063b1;
+    --win10-bg-opacity: 0.35;
+
+    /* 다크 테마 기본 토큰 (Dark Mode) */
     --win10-bg: #1f1f1f;
+    --win10-surface: #222222;
     --win10-sidebar: #262626;
-    --win10-border: #333333;
-    --win10-card-hover: rgba(255, 255, 255, 0.05);
+    --win10-sidebar-bottom: #202020;
+    --win10-header: #1f1f1f;
+    --win10-cell-bg: #1f1f1f;
+    --win10-cell-other: #171717;
+    --win10-cell-hover: #282828;
+    --win10-border: #2d2d2d;
+    --win10-border-subtle: #383838;
+    --win10-border-strong: #555555;
+    --win10-text-primary: #ffffff;
+    --win10-text-secondary: #aaaaaa;
+    --win10-text-muted: #666666;
+    --win10-card-bg: #2a2a2a;
+    --win10-card-hover: #383838;
+    --win10-button-hover: #333333;
+    --win10-button-active: #444444;
+    --win10-modal-bg: #262626;
+    --win10-input-bg: #292929;
+    --win10-acrylic: rgba(38, 38, 38, 0.88);
+  }
+
+  [data-theme="light"] {
+    /* 라이트 테마 토큰 (Light Mode) */
+    --win10-bg: #f3f3f3;
+    --win10-surface: #eaeaea;
+    --win10-sidebar: #e6e6e6;
+    --win10-sidebar-bottom: #dedede;
+    --win10-header: #f3f3f3;
+    --win10-cell-bg: #ffffff;
+    --win10-cell-other: #f9f9f9;
+    --win10-cell-hover: #f0f0f0;
+    --win10-border: #dcdcdc;
+    --win10-border-subtle: #d0d0d0;
+    --win10-border-strong: #aaaaaa;
+    --win10-text-primary: #1f1f1f;
+    --win10-text-secondary: #555555;
+    --win10-text-muted: #888888;
+    --win10-card-bg: #ffffff;
+    --win10-card-hover: #f5f5f5;
+    --win10-button-hover: #e0e0e0;
+    --win10-button-active: #d0d0d0;
+    --win10-modal-bg: #ffffff;
+    --win10-input-bg: #eaeaea;
+    --win10-acrylic: rgba(243, 243, 243, 0.92);
   }
 
   body {
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
     user-select: none;
     background-color: var(--win10-bg);
-    color: #ffffff;
+    color: var(--win10-text-primary);
     margin: 0;
     padding: 0;
     overflow: hidden;
+    transition: background-color 0.15s ease, color 0.15s ease;
   }
 }
 
@@ -33,12 +80,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(128, 128, 128, 0.3);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(128, 128, 128, 0.5);
 }
 
 /* 타이틀바 드래그 영역 */
@@ -57,33 +104,16 @@
 }
 
 .win10-reveal:hover {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: var(--win10-button-hover);
 }
 
 .win10-reveal:active {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Windows 10 버튼 공통 스타일 */
-.win10-button {
-  background-color: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  transition: all 0.1s ease;
-}
-
-.win10-button:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.25);
-}
-
-.win10-button:active {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--win10-button-active);
 }
 
 /* Windows 10 아크릴 반투명 배경 */
 .win10-acrylic {
-  background-color: rgba(38, 38, 38, 0.88);
+  background-color: var(--win10-acrylic);
   backdrop-filter: blur(20px);
 }
 

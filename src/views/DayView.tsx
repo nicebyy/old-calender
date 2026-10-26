@@ -44,34 +44,36 @@ export const DayView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#1f1f1f] select-none overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-[var(--win10-bg)] select-none overflow-hidden transition-colors">
       {/* 헤더 날짜 요약 */}
-      <div className="h-14 border-b border-[#2d2d2d] bg-[#222222] flex items-center px-6 space-x-3 shrink-0">
+      <div className="h-14 border-b border-[var(--win10-border)] bg-[var(--win10-surface)] flex items-center px-6 space-x-3 shrink-0">
         <div
           className={`w-9 h-9 flex items-center justify-center text-sm font-bold rounded-full ${
-            isToday ? 'bg-[#0078d7] text-white shadow' : 'text-white border border-[#444444]'
+            isToday
+              ? 'bg-[var(--win10-accent)] text-white shadow'
+              : 'text-[var(--win10-text-primary)] border border-[var(--win10-border-strong)]'
           }`}
         >
           {selectedDate.getDate()}
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-semibold text-white">
+          <span className="text-sm font-semibold text-[var(--win10-text-primary)]">
             {selectedDate.getFullYear()}년 {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일
           </span>
-          <span className="text-xs text-[#888888]">
+          <span className="text-xs text-[var(--win10-text-secondary)]">
             {WEEKDAYS_FULL_KO[selectedDate.getDay()]}
           </span>
         </div>
       </div>
 
       {/* 24시간 타임라인 */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto flex relative">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto flex relative bg-[var(--win10-bg)]">
         {/* 시간 라벨 열 */}
-        <div className="w-16 border-r border-[#2d2d2d] bg-[#1d1d1d] shrink-0">
+        <div className="w-16 border-r border-[var(--win10-border)] bg-[var(--win10-surface)] shrink-0">
           {HOURS.map((hour) => (
             <div
               key={hour}
-              className="h-[56px] border-b border-[#282828] pr-3 text-right text-xs text-[#777777] flex items-start justify-end pt-1"
+              className="h-[56px] border-b border-[var(--win10-border)] pr-3 text-right text-xs text-[var(--win10-text-secondary)] flex items-start justify-end pt-1"
             >
               {hour === 0 ? '자정' : hour === 12 ? '정오' : `${hour}:00`}
             </div>
@@ -79,12 +81,12 @@ export const DayView: React.FC = () => {
         </div>
 
         {/* 이벤트 및 슬롯 영역 */}
-        <div className="flex-1 relative bg-[#1f1f1f]">
+        <div className="flex-1 relative bg-[var(--win10-bg)]">
           {HOURS.map((hour) => (
             <div
               key={hour}
               onClick={() => handleSlotClick(hour)}
-              className="h-[56px] border-b border-[#282828] hover:bg-[#252525] cursor-pointer transition-colors"
+              className="h-[56px] border-b border-[var(--win10-border)] hover:bg-[var(--win10-cell-hover)] cursor-pointer transition-colors"
             />
           ))}
 
@@ -109,7 +111,7 @@ export const DayView: React.FC = () => {
               <div
                 key={evt.id}
                 onClick={(e) => handleEventClick(e, evt)}
-                className="absolute left-3 right-6 rounded px-3 py-2 text-xs border-l-4 shadow-lg hover:brightness-110 cursor-pointer z-10 transition-all bg-[#2a2a2a] text-white"
+                className="absolute left-3 right-6 rounded px-3 py-2 text-xs border-l-4 shadow-lg hover:brightness-110 cursor-pointer z-10 transition-all bg-[var(--win10-card-bg)] text-[var(--win10-text-primary)]"
                 style={{
                   top: `${top}px`,
                   height: `${Math.max(height - 4, 28)}px`,
@@ -118,12 +120,12 @@ export const DayView: React.FC = () => {
               >
                 <div className="font-semibold text-sm truncate">{evt.title}</div>
                 {evt.description && (
-                  <div className="text-[11px] text-[#aaaaaa] truncate mt-0.5">
+                  <div className="text-[11px] text-[var(--win10-text-secondary)] truncate mt-0.5">
                     {evt.description}
                   </div>
                 )}
                 {!evt.isAllDay && (
-                  <div className="text-[10px] text-[#888888] mt-0.5">
+                  <div className="text-[10px] text-[var(--win10-text-muted)] mt-0.5">
                     {evt.startDate.slice(11, 16)} ~ {evt.endDate.slice(11, 16)}
                   </div>
                 )}
