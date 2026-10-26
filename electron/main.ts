@@ -2,7 +2,11 @@ import { app, BrowserWindow, ipcMain, Notification } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
-import { autoUpdater } from 'electron-updater';
+import { createRequire } from 'module';
+import type { AppUpdater } from 'electron-updater';
+
+const require = createRequire(import.meta.url);
+const { autoUpdater } = require('electron-updater') as { autoUpdater: AppUpdater };
 
 
 const __filename = fileURLToPath(import.meta.url);
