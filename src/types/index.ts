@@ -150,8 +150,28 @@ export interface WindowState {
   isMaximized: boolean;
 }
 
+export type UpdateStateStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error';
+
+export interface UpdateStatusPayload {
+  status: UpdateStateStatus;
+  version?: string;
+  percent?: number;
+  transferred?: number;
+  total?: number;
+  bytesPerSecond?: number;
+  error?: string;
+}
+
 declare global {
   interface Window {
     electronAPI?: import('../../electron/preload.cts').ElectronAPI;
   }
 }
+
