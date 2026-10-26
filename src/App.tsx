@@ -8,6 +8,7 @@ import { DayView } from './views/DayView';
 import { YearView } from './views/YearView';
 import { EventModal } from './components/events/EventModal';
 import { AccountModal } from './components/sync/AccountModal';
+import { ToastContainer } from './components/notifications/ToastContainer';
 import { useCalendarStore, applyThemeToDOM } from './storage/calendarStore';
 import { WALLPAPER_THEMES } from './constants/theme';
 
@@ -20,6 +21,21 @@ export const App: React.FC = () => {
   const toggleSearch = useCalendarStore((s) => s.toggleSearch);
   const toggleSettings = useCalendarStore((s) => s.toggleSettings);
   const settings = useCalendarStore((s) => s.settings);
+  const checkDueReminders = useCalendarStore((s) => s.checkDueReminders);
+
+  // 실시간 알림 스케줄러 (매 10초마다 도래한 일정 검사 및 브라우저 Notification 권한 요청)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+
+    checkDueReminders();
+    const timer = setInterval(() => {
+      checkDueReminders();
+    }, 10000);
+
+    return () => clearInterval(timer);
+  }, [checkDueReminders]);
 
   // 시스템 테마 및 전역 DOM 테마 속성 연동
   useEffect(() => {
@@ -132,6 +148,9 @@ export const App: React.FC = () => {
 
       {/* 5. 계정 선택 및 OAuth2 동기화 모달 */}
       <AccountModal />
+
+      {/* 6. Windows 10 액션 센터 스타일 실시간 알림 배너 */}
+      <ToastContainer />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useCalendarStore } from '../storage/calendarStore';
 import { getMonthGrid, isSameDay } from '../core/calendar';
-import { MONTH_NAMES_KO, WEEKDAYS_KO } from '../constants/calendar';
+import { useTranslation } from '../locales';
 
 export const YearView: React.FC = () => {
   const viewDate = useCalendarStore((s) => s.viewDate);
@@ -9,6 +9,8 @@ export const YearView: React.FC = () => {
   const setSelectedDate = useCalendarStore((s) => s.setSelectedDate);
   const setViewDate = useCalendarStore((s) => s.setViewDate);
   const setViewType = useCalendarStore((s) => s.setViewType);
+
+  const { months, weekdays } = useTranslation();
 
   const year = viewDate.getFullYear();
   const today = new Date();
@@ -41,12 +43,12 @@ export const YearView: React.FC = () => {
             >
               {/* 월 타이틀 */}
               <div className="font-semibold text-xs text-[var(--win10-text-primary)] group-hover:text-[var(--win10-accent)] transition-colors mb-2 px-1">
-                {MONTH_NAMES_KO[monthIdx]}
+                {months[monthIdx]}
               </div>
 
               {/* 요일 헤더 */}
               <div className="grid grid-cols-7 text-center text-[9px] text-[var(--win10-text-secondary)] mb-1">
-                {WEEKDAYS_KO.map((day, idx) => (
+                {weekdays.map((day, idx) => (
                   <div
                     key={day}
                     className={
@@ -62,21 +64,19 @@ export const YearView: React.FC = () => {
               <div className="grid grid-cols-7 gap-y-0.5 text-center text-[10px]">
                 {grid.map((cell, idx) => {
                   const isCurrent = cell.isCurrentMonth;
-                  const isToday = isSameDay(cell.date, today);
-
-                  if (!isCurrent) {
-                    return <div key={idx} className="h-4" />;
-                  }
+                  const isToday = cell.isToday;
+                  const isSelected = cell.isSelected;
 
                   return (
                     <div
                       key={idx}
                       onClick={(e) => handleDayClick(e, cell.date)}
-                      className={`h-4.5 w-4.5 mx-auto flex items-center justify-center rounded-full text-[10px] transition-colors ${
-                        isToday
-                          ? 'bg-[var(--win10-accent)] text-white font-bold'
-                          : 'text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)]'
-                      }`}
+                      className={`h-5 w-5 mx-auto flex items-center justify-center rounded-full transition-colors cursor-pointer
+                        ${isSelected ? 'bg-[var(--win10-accent)] text-white font-bold' : ''}
+                        ${!isSelected && isToday ? 'border border-[var(--win10-accent)] text-[var(--win10-text-primary)] font-bold' : ''}
+                        ${!isSelected && !isToday && isCurrent ? 'text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)]' : ''}
+                        ${!isSelected && !isToday && !isCurrent ? 'text-[var(--win10-text-muted)] hover:bg-[var(--win10-button-hover)]' : ''}
+                      `}
                     >
                       {cell.dayNumber}
                     </div>

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useCalendarStore } from '../storage/calendarStore';
 import { formatDateKey, isSameDay } from '../core/calendar';
-import { WEEKDAYS_FULL_KO } from '../constants/calendar';
+import { useTranslation } from '../locales';
 import { CalendarEvent } from '../types';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -12,6 +12,8 @@ export const DayView: React.FC = () => {
   const categories = useCalendarStore((s) => s.categories);
   const openEventModal = useCalendarStore((s) => s.openEventModal);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const { t, weekdaysFull, months, language } = useTranslation();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -43,6 +45,11 @@ export const DayView: React.FC = () => {
     openEventModal(event);
   };
 
+  const formattedDateTitle =
+    language === 'ko'
+      ? `${selectedDate.getFullYear()}년 ${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일`
+      : `${months[selectedDate.getMonth()]} ${selectedDate.getDate()}, ${selectedDate.getFullYear()}`;
+
   return (
     <div className="flex-1 flex flex-col h-full bg-[var(--win10-bg)] select-none overflow-hidden transition-colors">
       {/* 헤더 날짜 요약 */}
@@ -58,10 +65,10 @@ export const DayView: React.FC = () => {
         </div>
         <div className="flex flex-col">
           <span className="text-sm font-semibold text-[var(--win10-text-primary)]">
-            {selectedDate.getFullYear()}년 {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일
+            {formattedDateTitle}
           </span>
           <span className="text-xs text-[var(--win10-text-secondary)]">
-            {WEEKDAYS_FULL_KO[selectedDate.getDay()]}
+            {weekdaysFull[selectedDate.getDay()]}
           </span>
         </div>
       </div>
@@ -75,7 +82,15 @@ export const DayView: React.FC = () => {
               key={hour}
               className="h-[56px] border-b border-[var(--win10-border)] pr-3 text-right text-xs text-[var(--win10-text-secondary)] flex items-start justify-end pt-1"
             >
-              {hour === 0 ? '자정' : hour === 12 ? '정오' : `${hour}:00`}
+              {hour === 0
+                ? language === 'ko'
+                  ? '자정'
+                  : '12 AM'
+                : hour === 12
+                ? language === 'ko'
+                  ? '정오'
+                  : '12 PM'
+                : `${hour}:00`}
             </div>
           ))}
         </div>
@@ -90,7 +105,7 @@ export const DayView: React.FC = () => {
             />
           ))}
 
-          {/* 일정 카드들 */}
+          {/* 등록된 이벤트 블록 렌더링 */}
           {dayEvents.map((evt) => {
             const cat = categories.find((c) => c.id === evt.categoryId);
             const color = cat?.color || '#0078D7';
@@ -101,34 +116,25 @@ export const DayView: React.FC = () => {
             const endMin = parseInt(evt.endDate.slice(14, 16) || '0', 10);
 
             const top = (startHour + startMin / 60) * 56;
-            const duration = Math.max(
-              (endHour - startHour) * 60 + (endMin - startMin),
-              30
-            );
+            const duration = Math.max((endHour - startHour) * 60 + (endMin - startMin), 30);
             const height = (duration / 60) * 56;
 
             return (
               <div
                 key={evt.id}
                 onClick={(e) => handleEventClick(e, evt)}
-                className="absolute left-3 right-6 rounded px-3 py-2 text-xs border-l-4 shadow-lg hover:brightness-110 cursor-pointer z-10 transition-all bg-[var(--win10-card-bg)] text-[var(--win10-text-primary)]"
+                className="absolute left-4 right-4 rounded px-3 py-1.5 text-xs border-l-4 shadow-md hover:brightness-110 cursor-pointer z-10 transition-all bg-[var(--win10-card-bg)] text-[var(--win10-text-primary)]"
                 style={{
                   top: `${top}px`,
-                  height: `${Math.max(height - 4, 28)}px`,
+                  height: `${Math.max(height - 2, 28)}px`,
                   borderLeftColor: color,
                 }}
               >
                 <div className="font-semibold text-sm truncate">{evt.title}</div>
-                {evt.description && (
-                  <div className="text-[11px] text-[var(--win10-text-secondary)] truncate mt-0.5">
-                    {evt.description}
-                  </div>
-                )}
-                {!evt.isAllDay && (
-                  <div className="text-[10px] text-[var(--win10-text-muted)] mt-0.5">
-                    {evt.startDate.slice(11, 16)} ~ {evt.endDate.slice(11, 16)}
-                  </div>
-                )}
+                <div className="text-xs text-[var(--win10-text-secondary)]">
+                  {evt.isAllDay ? t('calendar.allDay') : `${evt.startDate.slice(11, 16)} ~ ${evt.endDate.slice(11, 16)}`}
+                  {evt.location && ` • ${evt.location}`}
+                </div>
               </div>
             );
           })}

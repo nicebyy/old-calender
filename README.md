@@ -54,17 +54,26 @@ Windows 10 시절의 미려하고 가벼웠던 **클래식 일정(Calendar) 데�
   - 상단 헤더의 **동기화(Sync) 버튼**을 통해 원클릭 즉시 동기화 (`RotateCw` 회전 애니메이션).
   - 계정별 개별 동기화, 가시성 온/오프 토글 및 연동 해제 지원.
 
-### 4. 고급 일정 관리 및 표준 호환
+### 4. 실시간 일정 알림 & Windows 10 UWP 토스트 시스템 (Reminder Notifications)
+- **실시간 알림 스케줄러**: 10초 주기 백그라운드 폴러가 등록된 일정의 알림 도래 시각(`startDate - reminderMinutes`)을 모니터링하여 자동 발송.
+- **다중 계층 알림 전달 (Triple-Layer Delivery)**:
+  1. **Electron 데스크톱 네이티브 알림**: Windows 10 Action Center OS 토스트 팝업.
+  2. **브라우저 Web Notification**: 표준 웹 알림 API 연동.
+  3. **앱 내 Windows 10 UWP 토스트 배너**: 화면 우측 하단 슬라이드인 알림 배너, 일정 정보 표기 및 [해제] / [다시 알림 (5분 스누즈)] 기능 지원.
+- **모달 내 즉시 알림 테스트**: 이벤트 편집 모달에서 `BellRing` 버튼을 클릭하여 즉각 알림 동작 검증 가능.
+- **중복 발송 방지**: `notifiedReminderMap` 캐싱을 통해 이미 울린 알림의 반복 트리거 방지.
+
+### 5. 고급 일정 관리 및 표준 호환
 - **iCalendar (.ics) 양방향 호환**: Google Calendar, Apple Calendar 등과 완벽 호환되는 표준 `.ics` 파일 내보내기 및 가져오기 지원.
 - **일정 상세 속성**: 종일 여부, 참석자 초대(이메일), 비공개(Private) 일정 토글, 상태 표시(약속 있음/한가함/자리비움/임시).
 - **반복 일정 (Recurrence)**: 매일, 매주, 매월, 매년 반복 일정 자동 전개 및 표시.
-- **미리 알림 (Reminders)**: 정각, 15분 전, 30분 전, 1시간 전, 1일 전 알림 및 Windows 네이티브 토스트 알림 연동.
+- **미리 알림 주기 옵션**: 없음, 정각, 15분 전, 30분 전, 1시간 전, 1일 전.
 
-### 5. 실시간 검색 (Search Overlay)
+### 6. 실시간 검색 (Search Overlay)
 - `Ctrl + F` 또는 상단 검색 아이콘 클릭 시 실시간 검색 오버레이 오픈.
 - 제목, 설명, 위치 실시간 키워드 매칭 및 클릭 시 해당 날짜로 즉시 이동.
 
-### 6. 멀티 테마 & 개인 설정 시스템 (Multi-Theme Personalization)
+### 7. 멀티 테마 & 개인 설정 시스템 (Multi-Theme Personalization)
 - **테마 모드 3종**:
   - **어둡게 (Dark Mode)**: Windows 10 UWP 시그니처 딥 다크 아크릴 테마.
   - **밝게 (Light Mode)**: 눈이 편안한 깔끔한 모던 라이트 톤.
@@ -100,7 +109,8 @@ old-calendar/
 │   │   ├── holidays.ts       # 대한민국 법정 공휴일 & 음력 계산
 │   │   ├── weather.ts        # MSN 날씨 시뮬레이션 및 예보 생성
 │   │   ├── ical.ts           # iCalendar (.ics) 양방향 파서 및 생성기
-│   │   └── oauthSync.ts      # OAuth2 공급자 연동 및 원격 일정 병합 엔진
+│   │   ├── oauthSync.ts      # OAuth2 공급자 연동 및 원격 일정 병합 엔진
+│   │   └── notifications.ts  # 실시간 일정 알림 계산 및 메시지 포맷터
 │   ├── storage/              # Zustand 스토어 및 로컬 스토리지 영속화
 │   │   └── calendarStore.ts  # Zero-Latency In-Memory 스토어
 │   ├── constants/            # 테마 토큰, 액센트 컬러, 설정, OAuth 상수
@@ -112,7 +122,8 @@ old-calendar/
 │   │   ├── layout/           # TitleBar, HeaderControls, Sidebar, SettingsPanel, SearchOverlay
 │   │   ├── sidebar/          # MiniCalendar
 │   │   ├── events/           # EventModal (일정 등록/수정/삭제)
-│   │   └── sync/             # AccountModal (Windows 10 계정 선택 다이얼로그)
+│   │   ├── sync/             # AccountModal (Windows 10 계정 선택 다이얼로그)
+│   │   └── notifications/    # ToastContainer (Windows 10 UWP 토스트 배너)
 │   ├── views/                # MonthView, WeekView, DayView, YearView
 │   ├── types/                # TypeScript 전역 타입 정의
 │   ├── App.tsx               # 최상위 뷰 및 전역 단축키 핸들러

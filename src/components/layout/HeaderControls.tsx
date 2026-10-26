@@ -12,7 +12,8 @@ import {
   RotateCw,
 } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
-import { CALENDAR_VIEWS, MONTH_NAMES_KO } from '../../constants/calendar';
+import { CALENDAR_VIEWS } from '../../constants/calendar';
+import { useTranslation } from '../../locales';
 
 export const HeaderControls: React.FC = () => {
   const isSidebarOpen = useCalendarStore((s) => s.isSidebarOpen);
@@ -25,6 +26,8 @@ export const HeaderControls: React.FC = () => {
   const toggleSearch = useCalendarStore((s) => s.toggleSearch);
   const isSyncing = useCalendarStore((s) => s.isSyncing);
   const syncAllAccounts = useCalendarStore((s) => s.syncAllAccounts);
+
+  const { t, language, formatYearMonth } = useTranslation();
 
   const [isMaximized, setIsMaximized] = useState(false);
 
@@ -67,6 +70,15 @@ export const HeaderControls: React.FC = () => {
     window.print();
   };
 
+  const zoomHint =
+    viewType === 'year'
+      ? language === 'ko'
+        ? '▲ 줌인'
+        : '▲ Zoom in'
+      : language === 'ko'
+      ? '▼ 줌아웃'
+      : '▼ Zoom out';
+
   return (
     <div className="h-12 bg-[var(--win10-header)] border-b border-[var(--win10-border)] text-[var(--win10-text-primary)] flex items-center justify-between select-none app-drag-region print:hidden transition-colors">
       {/* 좌측: 햄버거 메뉴 및 년/월 타이틀, 네비게이션 */}
@@ -77,7 +89,7 @@ export const HeaderControls: React.FC = () => {
           className={`p-1.5 rounded hover:bg-[var(--win10-button-hover)] transition-colors ${
             !isSidebarOpen ? 'text-[var(--win10-accent)]' : 'text-[var(--win10-text-primary)]'
           }`}
-          title="사이드바 열기/닫기"
+          title={t('header.toggleSidebar')}
         >
           <Menu className="w-5 h-5 stroke-[1.8]" />
         </button>
@@ -86,12 +98,11 @@ export const HeaderControls: React.FC = () => {
         <div
           onClick={handleTitleClick}
           className="text-lg font-light text-[var(--win10-text-primary)] tracking-tight flex items-baseline space-x-1.5 cursor-pointer hover:text-[var(--win10-accent)] transition-colors group"
-          title="클릭하여 연간 뷰로 전환 (시맨틱 줌)"
+          title={t('calendar.yearMonthFormat', { year, month: month + 1 })}
         >
-          <span>{year}년</span>
-          <span className="font-semibold">{MONTH_NAMES_KO[month]}</span>
+          <span className="font-semibold">{formatYearMonth(year, month)}</span>
           <span className="text-[10.5px] text-[var(--win10-text-muted)] group-hover:text-[var(--win10-accent)] font-normal pl-1">
-            {viewType === 'year' ? '▲ 줌인' : '▼ 줌아웃'}
+            {zoomHint}
           </span>
         </div>
 
@@ -100,14 +111,14 @@ export const HeaderControls: React.FC = () => {
           <button
             onClick={() => navigateViewDate('prev')}
             className="p-1 rounded hover:bg-[var(--win10-button-hover)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors"
-            title="이전 (Ctrl+Left)"
+            title={`${t('header.prev')} (Ctrl+Left)`}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={() => navigateViewDate('next')}
             className="p-1 rounded hover:bg-[var(--win10-button-hover)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors"
-            title="다음 (Ctrl+Right)"
+            title={`${t('header.next')} (Ctrl+Right)`}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -117,9 +128,9 @@ export const HeaderControls: React.FC = () => {
         <button
           onClick={goToToday}
           className="ml-1 px-2.5 py-0.5 text-xs font-medium border border-[var(--win10-border-strong)] hover:border-[var(--win10-accent)] hover:bg-[var(--win10-button-hover)] rounded transition-all text-[var(--win10-text-primary)]"
-          title="오늘로 이동 (Ctrl+T)"
+          title={`${t('header.today')} (Ctrl+T)`}
         >
-          오늘
+          {t('header.today')}
         </button>
       </div>
 
@@ -129,6 +140,7 @@ export const HeaderControls: React.FC = () => {
         <div className="flex items-center bg-[var(--win10-input-bg)] rounded p-0.5 border border-[var(--win10-border-subtle)] mr-2">
           {CALENDAR_VIEWS.map((tab) => {
             const isActive = viewType === tab.type;
+            const tabLabel = t(`views.${tab.type}`);
             return (
               <button
                 key={tab.type}
@@ -139,7 +151,7 @@ export const HeaderControls: React.FC = () => {
                     : 'text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)]'
                 }`}
               >
-                {tab.label}
+                {tabLabel}
               </button>
             );
           })}
@@ -149,17 +161,17 @@ export const HeaderControls: React.FC = () => {
         <button
           onClick={() => syncAllAccounts()}
           disabled={isSyncing}
-          className="p-1.5 rounded hover:bg-[#333333] active:bg-[#444444] text-[#cccccc] hover:text-white transition-colors mr-0.5"
-          title="클라우드 캘린더 동기화"
+          className="p-1.5 rounded hover:bg-[var(--win10-button-hover)] active:bg-[var(--win10-button-active)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors mr-0.5"
+          title={isSyncing ? t('header.syncing') : t('header.sync')}
         >
-          <RotateCw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-[#0078d7]' : ''}`} />
+          <RotateCw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-[var(--win10-accent)]' : ''}`} />
         </button>
 
         {/* 인쇄 버튼 */}
         <button
           onClick={handlePrint}
-          className="p-1.5 rounded hover:bg-[#333333] active:bg-[#444444] text-[#cccccc] hover:text-white transition-colors mr-0.5"
-          title="캘린더 인쇄 / PDF 저장 (Ctrl+P)"
+          className="p-1.5 rounded hover:bg-[var(--win10-button-hover)] active:bg-[var(--win10-button-active)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors mr-0.5"
+          title={t('header.print')}
         >
           <Printer className="w-4 h-4" />
         </button>
@@ -167,8 +179,8 @@ export const HeaderControls: React.FC = () => {
         {/* 검색 버튼 */}
         <button
           onClick={toggleSearch}
-          className="p-1.5 rounded hover:bg-[#333333] active:bg-[#444444] text-[#cccccc] hover:text-white transition-colors mr-2"
-          title="일정 검색 (Ctrl+F)"
+          className="p-1.5 rounded hover:bg-[var(--win10-button-hover)] active:bg-[var(--win10-button-active)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors mr-2"
+          title={t('header.search')}
         >
           <Search className="w-4 h-4" />
         </button>
@@ -178,32 +190,30 @@ export const HeaderControls: React.FC = () => {
           <button
             onClick={handleMinimize}
             className="w-[46px] h-full flex items-center justify-center hover:bg-[var(--win10-button-hover)] text-[var(--win10-text-primary)] transition-colors"
-            title="최소화"
-            aria-label="최소화"
+            title={t('header.minimize')}
+            aria-label={t('header.minimize')}
           >
             <Minus className="w-3.5 h-3.5 stroke-[1.5]" />
           </button>
-
           <button
             onClick={handleMaximize}
             className="w-[46px] h-full flex items-center justify-center hover:bg-[var(--win10-button-hover)] text-[var(--win10-text-primary)] transition-colors"
-            title={isMaximized ? '이전 크기로 복원' : '최대화'}
-            aria-label={isMaximized ? '이전 크기로 복원' : '최대화'}
+            title={isMaximized ? t('header.restore') : t('header.maximize')}
+            aria-label={isMaximized ? t('header.restore') : t('header.maximize')}
           >
             {isMaximized ? (
-              <Copy className="w-3 h-3 stroke-[1.5] -rotate-90" />
+              <Copy className="w-3 h-3 stroke-[1.5]" />
             ) : (
               <Square className="w-3 h-3 stroke-[1.5]" />
             )}
           </button>
-
           <button
             onClick={handleClose}
-            className="w-[46px] h-full flex items-center justify-center hover:bg-[#e81123] active:bg-[#c4101e] text-[var(--win10-text-primary)] hover:text-white transition-colors group"
-            title="닫기"
-            aria-label="닫기"
+            className="w-[46px] h-full flex items-center justify-center hover:bg-[#e81123] hover:text-white text-[var(--win10-text-primary)] transition-colors"
+            title={t('header.close')}
+            aria-label={t('header.close')}
           >
-            <X className="w-3.5 h-3.5 stroke-[1.5]" />
+            <X className="w-4 h-4 stroke-[1.5]" />
           </button>
         </div>
       </div>

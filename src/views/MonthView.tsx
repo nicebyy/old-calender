@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Sun, CloudSun, Cloud, CloudRain, CloudSnow } from 'lucide-react';
 import { useCalendarStore } from '../storage/calendarStore';
 import { getMonthGrid } from '../core/calendar';
-import { WEEKDAYS_KO } from '../constants/calendar';
+import { useTranslation } from '../locales';
 import { CalendarEvent, DayCellData, WeatherInfo } from '../types';
 
 export const MonthView: React.FC = () => {
@@ -14,6 +14,8 @@ export const MonthView: React.FC = () => {
   const openEventModal = useCalendarStore((s) => s.openEventModal);
   const getExpandedEvents = useCalendarStore((s) => s.getExpandedEvents);
   const rescheduleEvent = useCalendarStore((s) => s.rescheduleEvent);
+
+  const { weekdays } = useTranslation();
 
   // 드래그 앤 드롭 상태
   const [draggedEventId, setDraggedEventId] = useState<string | null>(null);
@@ -99,7 +101,7 @@ export const MonthView: React.FC = () => {
     <div className="flex-1 flex flex-col h-full bg-[var(--win10-bg)] select-none overflow-hidden transition-colors">
       {/* 요일 헤더 */}
       <div className="grid grid-cols-7 border-b border-[var(--win10-border)] bg-[var(--win10-surface)] text-xs font-semibold text-[var(--win10-text-secondary)]">
-        {WEEKDAYS_KO.map((day, idx) => (
+        {weekdays.map((day, idx) => (
           <div
             key={day}
             className={`py-2 px-3 text-left ${

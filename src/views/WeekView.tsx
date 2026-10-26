@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useCalendarStore } from '../storage/calendarStore';
 import { getWeekDays, formatDateKey, isSameDay } from '../core/calendar';
-import { WEEKDAYS_KO } from '../constants/calendar';
+import { useTranslation } from '../locales';
 import { CalendarEvent } from '../types';
 
 interface WeekViewProps {
@@ -18,6 +18,8 @@ export const WeekView: React.FC<WeekViewProps> = ({ isWorkWeek = false }) => {
   const categories = useCalendarStore((s) => s.categories);
   const openEventModal = useCalendarStore((s) => s.openEventModal);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const { t, weekdays, language } = useTranslation();
 
   // 현재 주의 날짜 목록 계산
   const fullWeekDays = getWeekDays(viewDate, false);
@@ -80,7 +82,7 @@ export const WeekView: React.FC<WeekViewProps> = ({ isWorkWeek = false }) => {
                       : 'text-[var(--win10-text-secondary)]'
                   }`}
                 >
-                  {WEEKDAYS_KO[dayOfWeek]}
+                  {weekdays[dayOfWeek]}
                 </span>
                 <div
                   className={`w-7 h-7 flex items-center justify-center text-xs font-semibold rounded-full transition-all ${
@@ -108,7 +110,15 @@ export const WeekView: React.FC<WeekViewProps> = ({ isWorkWeek = false }) => {
               key={hour}
               className="h-[50px] border-b border-[var(--win10-border)] pr-2 text-right text-[11px] text-[var(--win10-text-secondary)] flex items-start justify-end pt-1"
             >
-              {hour === 0 ? '자정' : hour === 12 ? '정오' : `${hour}:00`}
+              {hour === 0
+                ? language === 'ko'
+                  ? '자정'
+                  : '12 AM'
+                : hour === 12
+                ? language === 'ko'
+                  ? '정오'
+                  : '12 PM'
+                : `${hour}:00`}
             </div>
           ))}
         </div>

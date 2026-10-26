@@ -8,19 +8,23 @@ import {
   OAuthProvider,
   SyncedAccount,
   ThemePreset,
+  ActiveToast,
 } from '../types';
 import { DEFAULT_CATEGORIES } from '../constants/calendar';
 import { getNavigatedDate } from '../core/calendar';
 import { expandEventsForRange } from '../core/recurrence';
 import { exportEventsToICS, parseICSToEvents } from '../core/ical';
 import { generateRemoteEventsForProvider, mergeRemoteEvents } from '../core/oauthSync';
+import { getDueReminders, formatReminderMessage } from '../core/notifications';
 
 const STORAGE_KEY_EVENTS = 'win10_calendar_events';
 const STORAGE_KEY_CATEGORIES = 'win10_calendar_categories';
 const STORAGE_KEY_SETTINGS = 'win10_calendar_settings';
 const STORAGE_KEY_ACCOUNTS = 'win10_calendar_synced_accounts';
+const STORAGE_KEY_NOTIFIED = 'win10_calendar_notified_reminders';
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  language: 'ko',
   themeMode: 'dark',
   accentColor: '#0078D7',
   firstDayOfWeek: 0,
@@ -72,6 +76,15 @@ function loadStoredAccounts(): SyncedAccount[] {
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
+  }
+}
+
+function loadStoredNotifiedMap(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_NOTIFIED);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
   }
 }
 
@@ -218,6 +231,14 @@ interface CalendarState {
   exportEventsToICSFile: () => string;
   importEventsFromICS: (icsContent: string) => number;
 
+  // 실시간 일정 알림(Toast Notification) 상태 및 액션
+  activeToasts: ActiveToast[];
+  notifiedReminderMap: Record<string, number>;
+  dismissToast: (id: string) => void;
+  snoozeToast: (id: string, minutes?: number) => void;
+  triggerReminderNotification: (event: CalendarEvent) => void;
+  checkDueReminders: () => void;
+
   // 헬퍼
   getExpandedEvents: (rangeStart: Date, rangeEnd: Date) => CalendarEvent[];
 }
@@ -240,6 +261,8 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   syncedAccounts: loadStoredAccounts(),
   isAccountModalOpen: false,
   isSyncing: false,
+  activeToasts: [],
+  notifiedReminderMap: loadStoredNotifiedMap(),
 
   setSelectedDate: (date: Date) =>
     set({
@@ -655,5 +678,71 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     );
     const visible = events.filter((e) => visibleCategoryIds.has(e.categoryId));
     return expandEventsForRange(visible, rangeStart, rangeEnd);
+  },
+
+  // 실시간 알림 액션 구현
+  dismissToast: (id: string) => {
+    set((state) => ({
+      activeToasts: state.activeToasts.filter((t) => t.id !== id),
+    }));
+  },
+
+  snoozeToast: (id: string, minutes = 5) => {
+    const toast = get().activeToasts.find((t) => t.id === id);
+    if (!toast) return;
+
+    // 해당 토스트를 화면에서 닫고 minutes분 뒤 다시 알림 발생
+    get().dismissToast(id);
+    setTimeout(() => {
+      get().triggerReminderNotification(toast.event);
+    }, minutes * 60 * 1000);
+  },
+
+  triggerReminderNotification: (event: CalendarEvent) => {
+    const { title, body } = formatReminderMessage(event);
+    const toastId = `toast-${event.id}-${Date.now()}`;
+    const newToast: ActiveToast = {
+      id: toastId,
+      event,
+      title,
+      body,
+      timestamp: Date.now(),
+    };
+
+    // 1. Electron 네이티브 알림 발송
+    if (typeof window !== 'undefined' && window.electronAPI?.showNotification) {
+      window.electronAPI.showNotification({ title, body });
+    } else if (
+      typeof window !== 'undefined' &&
+      'Notification' in window &&
+      Notification.permission === 'granted'
+    ) {
+      try {
+        new Notification(title, { body });
+      } catch {
+        // 브라우저 샌드박스 정책 무시
+      }
+    }
+
+    // 2. 앱 내 UWP 토스트 추가 및 발송 기록 업데이트
+    set((state) => {
+      const updatedMap = {
+        ...state.notifiedReminderMap,
+        [event.id]: Date.now(),
+      };
+      localStorage.setItem(STORAGE_KEY_NOTIFIED, JSON.stringify(updatedMap));
+      return {
+        activeToasts: [...state.activeToasts.filter((t) => t.event.id !== event.id), newToast],
+        notifiedReminderMap: updatedMap,
+      };
+    });
+  },
+
+  checkDueReminders: () => {
+    const { events, notifiedReminderMap, triggerReminderNotification } = get();
+    const dueList = getDueReminders(events, new Date(), notifiedReminderMap);
+    for (const item of dueList) {
+      triggerReminderNotification(item.event);
+    }
   },
 }));

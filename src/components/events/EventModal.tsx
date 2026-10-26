@@ -8,6 +8,7 @@ import {
   AlignLeft,
   RotateCw,
   Bell,
+  BellRing,
   Users,
   Lock,
   Activity,
@@ -33,6 +34,7 @@ export const EventModal: React.FC = () => {
   const updateEvent = useCalendarStore((s) => s.updateEvent);
   const deleteEvent = useCalendarStore((s) => s.deleteEvent);
   const closeModal = useCalendarStore((s) => s.closeEventModal);
+  const triggerReminderNotification = useCalendarStore((s) => s.triggerReminderNotification);
 
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -129,6 +131,25 @@ export const EventModal: React.FC = () => {
     if (editingEvent) {
       deleteEvent(editingEvent.id);
     }
+  };
+
+  const handleTestReminder = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startISO = isAllDay ? `${startDate}T00:00:00` : `${startDate}T${startTime}:00`;
+    const endISO = isAllDay ? `${endDate}T23:59:59` : `${endDate}T${endTime}:00`;
+
+    triggerReminderNotification({
+      id: editingEvent?.id || `preview-${Date.now()}`,
+      title: title.trim() || '미리 알림 테스트 일정',
+      startDate: startISO,
+      endDate: endISO,
+      isAllDay,
+      categoryId,
+      location: location.trim() || undefined,
+      reminderMinutes,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
   };
 
   return (
@@ -286,7 +307,7 @@ export const EventModal: React.FC = () => {
               <select
                 value={reminderMinutes}
                 onChange={(e) => setReminderMinutes(Number(e.target.value))}
-                className="flex-1 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] px-2 py-1.5 rounded text-[var(--win10-text-primary)] outline-none cursor-pointer"
+                className="flex-1 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] px-2 py-1.5 rounded text-[var(--win10-text-primary)] outline-none cursor-pointer text-xs"
               >
                 {REMINDER_OPTIONS.map((opt) => (
                   <option key={opt.minutes} value={opt.minutes} className="bg-[var(--win10-surface)] text-[var(--win10-text-primary)]">
@@ -294,6 +315,14 @@ export const EventModal: React.FC = () => {
                   </option>
                 ))}
               </select>
+              <button
+                type="button"
+                onClick={handleTestReminder}
+                className="p-1.5 rounded bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)] border border-[var(--win10-border)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-accent)] transition-colors shrink-0"
+                title="지금 즉시 알림 토스트 테스트 발송"
+              >
+                <BellRing className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 

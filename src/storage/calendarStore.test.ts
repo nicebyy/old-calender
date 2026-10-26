@@ -172,5 +172,34 @@ describe('CalendarStore Extended', () => {
     expect(parsed.backgroundTheme).toBe('lake');
     expect(parsed.backgroundFill).toBe('sidebar');
   });
+
+  it('일정 알림(triggerReminderNotification) 발생 시 activeToasts에 등록되고 해제(dismissToast)되어야 한다', () => {
+    const testEvt = {
+      id: 'test-reminder-evt',
+      title: '알림 테스트 회의',
+      startDate: '2026-10-26T16:00:00',
+      endDate: '2026-10-26T17:00:00',
+      isAllDay: false,
+      categoryId: 'default-work',
+      reminderMinutes: 15,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    useCalendarStore.getState().triggerReminderNotification(testEvt);
+
+    const toasts = useCalendarStore.getState().activeToasts;
+    expect(toasts.length).toBeGreaterThan(0);
+    const toast = toasts.find((t) => t.event.id === testEvt.id);
+    expect(toast).toBeDefined();
+    expect(toast?.title).toContain('알림 테스트 회의');
+
+    // 토스트 해제
+    if (toast) {
+      useCalendarStore.getState().dismissToast(toast.id);
+      const remaining = useCalendarStore.getState().activeToasts;
+      expect(remaining.some((t) => t.id === toast.id)).toBe(false);
+    }
+  });
 });
 
