@@ -15,6 +15,15 @@ import {
 } from '../types';
 import { DEFAULT_CATEGORIES } from '../constants/calendar';
 import { DEFAULT_WEATHER_LOCATION } from '../constants/weather';
+import {
+  ZOOM_DEFAULT,
+  ZOOM_MIN,
+  ZOOM_MAX,
+  ZOOM_STEP,
+  SIDEBAR_DEFAULT_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+  SIDEBAR_MAX_WIDTH,
+} from '../constants/settings';
 import { getNavigatedDate } from '../core/calendar';
 import { expandEventsForRange } from '../core/recurrence';
 import { exportEventsToICS, parseICSToEvents } from '../core/ical';
@@ -41,10 +50,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   backgroundTheme: 'none',
   backgroundFill: 'sidebar',
   backgroundOpacity: 0.35,
+  zoomLevel: ZOOM_DEFAULT,
+  sidebarWidth: SIDEBAR_DEFAULT_WIDTH,
 };
 
 /**
- * 테마 설정(다크/라이트 모드, 액센트 컬러, 배경 불투명도)을 DOM에 실시간 반영
+ * 테마 설정(다크/라이트 모드, 액센트 컬러, 배경 불투명도, 전역 배율)을 DOM에 실시간 반영
  */
 export function applyThemeToDOM(settings: AppSettings) {
   if (typeof document === 'undefined') return;
@@ -74,6 +85,20 @@ export function applyThemeToDOM(settings: AppSettings) {
       '--win10-bg-opacity',
       String(settings.backgroundOpacity)
     );
+  }
+
+  // 4. Zoom factor application (Electron webFrame & CSS fallback)
+  const zoom = settings.zoomLevel ?? ZOOM_DEFAULT;
+  document.documentElement.style.setProperty('--win10-zoom', String(zoom));
+  if (typeof window !== 'undefined' && window.electronAPI?.setZoomFactor) {
+    try {
+      window.electronAPI.setZoomFactor(zoom);
+      document.documentElement.style.zoom = '1';
+    } catch {
+      document.documentElement.style.zoom = String(zoom);
+    }
+  } else {
+    document.documentElement.style.zoom = String(zoom);
   }
 }
 
@@ -162,6 +187,14 @@ function loadStoredSettings(): AppSettings {
     const loaded: AppSettings = {
       ...DEFAULT_SETTINGS,
       ...parsed,
+      zoomLevel:
+        typeof parsed.zoomLevel === 'number'
+          ? Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, parsed.zoomLevel)) * 100) / 100
+          : DEFAULT_SETTINGS.zoomLevel,
+      sidebarWidth:
+        typeof parsed.sidebarWidth === 'number'
+          ? Math.round(Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, parsed.sidebarWidth)))
+          : DEFAULT_SETTINGS.sidebarWidth,
       weatherLocation: parsed.weatherLocation
         ? { ...DEFAULT_WEATHER_LOCATION, ...parsed.weatherLocation }
         : DEFAULT_WEATHER_LOCATION,
@@ -221,6 +254,12 @@ interface CalendarState {
   toggleSettings: () => void;
   toggleSearch: () => void;
   setSearchQuery: (query: string) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
+  setZoomLevel: (zoom: number) => void;
+  setSidebarWidth: (width: number) => void;
+  resetSidebarWidth: () => void;
 
   // 모달 및 팝오버 액션
   openEventModal: (event?: CalendarEvent, defaultDate?: Date) => void;
@@ -436,6 +475,51 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
 
       return { settings: updated };
     });
+  },
+
+  setZoomLevel: (newZoom) => {
+    const clamped = Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, newZoom)) * 100) / 100;
+    set((state) => {
+      const updated = { ...state.settings, zoomLevel: clamped };
+      try {
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(updated));
+      } catch (err) {
+        console.error('Failed to persist zoomLevel:', err);
+      }
+      applyThemeToDOM(updated);
+      return { settings: updated };
+    });
+  },
+
+  zoomIn: () => {
+    const current = get().settings.zoomLevel ?? ZOOM_DEFAULT;
+    get().setZoomLevel(current + ZOOM_STEP);
+  },
+
+  zoomOut: () => {
+    const current = get().settings.zoomLevel ?? ZOOM_DEFAULT;
+    get().setZoomLevel(current - ZOOM_STEP);
+  },
+
+  resetZoom: () => {
+    get().setZoomLevel(ZOOM_DEFAULT);
+  },
+
+  setSidebarWidth: (width) => {
+    const clamped = Math.round(Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width)));
+    set((state) => {
+      const updated = { ...state.settings, sidebarWidth: clamped };
+      try {
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(updated));
+      } catch (err) {
+        console.error('Failed to persist sidebarWidth:', err);
+      }
+      return { settings: updated };
+    });
+  },
+
+  resetSidebarWidth: () => {
+    get().setSidebarWidth(SIDEBAR_DEFAULT_WIDTH);
   },
 
   applyThemePreset: (preset) => {

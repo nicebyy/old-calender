@@ -38,6 +38,9 @@ export const MonthView: React.FC = () => {
   }, []);
 
   const handleWheel = (e: React.WheelEvent) => {
+    // Ctrl 키를 누른 상태에서는 전역 UI 확대/축소로 통과
+    if (e.ctrlKey) return;
+
     // 수평 스크롤이 지배적인 경우 무시
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
 

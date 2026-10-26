@@ -97,6 +97,8 @@ export interface AppSettings {
   backgroundTheme: string; // 'none' | 'alps' | 'lake' | 'city' | 'bloom' | 'aurora' | 'sunset' | 'windows' | custom url/data
   backgroundFill: BackgroundFillOption;
   backgroundOpacity: number; // 0.1 ~ 1.0
+  zoomLevel?: number; // 0.70 ~ 1.60 (기본 1.0)
+  sidebarWidth?: number; // 200 ~ 480 (기본 260)
 }
 
 /**

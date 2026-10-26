@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Plus,
   Settings,
@@ -18,6 +18,11 @@ import {
 import { useCalendarStore } from '../../storage/calendarStore';
 import { MiniCalendar } from '../sidebar/MiniCalendar';
 import { WALLPAPER_THEMES } from '../../constants/theme';
+import {
+  SIDEBAR_DEFAULT_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+  SIDEBAR_MAX_WIDTH,
+} from '../../constants/settings';
 import { useTranslation } from '../../locales';
 
 export const Sidebar: React.FC = () => {
@@ -29,11 +34,54 @@ export const Sidebar: React.FC = () => {
   const addCategory = useCalendarStore((s) => s.addCategory);
   const openAccountModal = useCalendarStore((s) => s.openAccountModal);
   const settings = useCalendarStore((s) => s.settings);
+  const setSidebarWidth = useCalendarStore((s) => s.setSidebarWidth);
+  const resetSidebarWidth = useCalendarStore((s) => s.resetSidebarWidth);
   const currentWeather = useCalendarStore((s) => s.currentWeather);
   const refreshWeather = useCalendarStore((s) => s.refreshWeather);
   const isWeatherLoading = useCalendarStore((s) => s.isWeatherLoading);
 
   const { t, language } = useTranslation();
+
+  const asideRef = useRef<HTMLElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const sidebarWidth = settings.sidebarWidth ?? SIDEBAR_DEFAULT_WIDTH;
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      moveEvent.preventDefault();
+      const deltaX = moveEvent.clientX - startX;
+      const newWidth = Math.round(
+        Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, startWidth + deltaX))
+      );
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleDoubleClickReset = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resetSidebarWidth();
+  };
 
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCatName, setNewCatName] = useState('');
@@ -84,8 +132,13 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside
-      className={`h-full bg-[var(--win10-sidebar)] border-r border-[var(--win10-border)] text-[var(--win10-text-primary)] flex flex-col justify-between transition-all duration-150 ease-out select-none overflow-hidden z-20 print:hidden relative ${
-        isSidebarOpen ? 'w-[250px]' : 'w-0 border-r-0'
+      ref={asideRef}
+      style={{
+        width: isSidebarOpen ? `${sidebarWidth}px` : 0,
+        transition: isDragging ? 'none' : 'width 150ms ease-out',
+      }}
+      className={`h-full bg-[var(--win10-sidebar)] border-r border-[var(--win10-border)] text-[var(--win10-text-primary)] flex flex-col justify-between select-none overflow-hidden z-20 print:hidden relative ${
+        !isSidebarOpen ? 'border-r-0' : ''
       }`}
     >
       {/* 사이드바 배경 채우기 레이어 */}
@@ -278,6 +331,27 @@ export const Sidebar: React.FC = () => {
           <Settings className="w-4 h-4" />
         </button>
       </div>
+
+      {/* 윈도우 10 UWP 사이드바 너비 조절 드래그 핸들 (Splitter) */}
+      {isSidebarOpen && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-valuenow={sidebarWidth}
+          aria-valuemin={SIDEBAR_MIN_WIDTH}
+          aria-valuemax={SIDEBAR_MAX_WIDTH}
+          title={t('sidebar.dragResizeTooltip')}
+          onMouseDown={handleMouseDown}
+          onDoubleClick={handleDoubleClickReset}
+          className="absolute top-0 right-0 w-2.5 h-full cursor-col-resize hover:bg-[var(--win10-accent)]/20 transition-colors z-30 group flex items-center justify-center select-none"
+        >
+          <div
+            className={`w-[2px] h-full transition-colors ${
+              isDragging ? 'bg-[var(--win10-accent)]' : 'bg-transparent group-hover:bg-[var(--win10-accent)]'
+            }`}
+          />
+        </div>
+      )}
     </aside>
   );
 };
