@@ -15,6 +15,7 @@ export const Sidebar: React.FC = () => {
   const categories = useCalendarStore((s) => s.categories);
   const toggleCategory = useCalendarStore((s) => s.toggleCategoryVisibility);
   const openEventModal = useCalendarStore((s) => s.openEventModal);
+  const toggleSettings = useCalendarStore((s) => s.toggleSettings);
 
   return (
     <aside
@@ -90,6 +91,7 @@ export const Sidebar: React.FC = () => {
         </div>
 
         <button
+          onClick={toggleSettings}
           className="p-1 hover:text-white hover:bg-[#333333] rounded transition-colors"
           title="설정"
         >

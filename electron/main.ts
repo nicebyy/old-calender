@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, Notification } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -17,7 +17,7 @@ function createWindow() {
     backgroundColor: '#1f1f1f',
     show: false, // 깜빡임 방지용 ready-to-show 패턴
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
@@ -70,6 +70,16 @@ ipcMain.on('window-close', () => {
 
 ipcMain.handle('is-window-maximized', () => {
   return mainWindow?.isMaximized() ?? false;
+});
+
+// Windows 10 네이티브 토스트 알림 표시 핸들러
+ipcMain.on('show-notification', (_event, { title, body }) => {
+  if (Notification.isSupported()) {
+    new Notification({
+      title: title || '일정 알림',
+      body: body || '',
+    }).show();
+  }
 });
 
 app.whenReady().then(() => {

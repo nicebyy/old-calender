@@ -8,16 +8,14 @@ export const MonthView: React.FC = () => {
   const viewDate = useCalendarStore((s) => s.viewDate);
   const selectedDate = useCalendarStore((s) => s.selectedDate);
   const setSelectedDate = useCalendarStore((s) => s.setSelectedDate);
-  const allEvents = useCalendarStore((s) => s.events);
   const categories = useCalendarStore((s) => s.categories);
   const openEventModal = useCalendarStore((s) => s.openEventModal);
-  const openQuickAdd = useCalendarStore((s) => s.openQuickAdd);
+  const getExpandedEvents = useCalendarStore((s) => s.getExpandedEvents);
 
-  // 숨김 처리된 카테고리의 이벤트 필터링
-  const visibleCategoryIds = new Set(
-    categories.filter((c) => c.isVisible).map((c) => c.id)
-  );
-  const visibleEvents = allEvents.filter((e) => visibleCategoryIds.has(e.categoryId));
+  // 해당 월의 앞뒤 여유를 두고 반복 일정 전개
+  const startOfGrid = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 15);
+  const endOfGrid = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 15);
+  const visibleEvents = getExpandedEvents(startOfGrid, endOfGrid);
 
   // 월간 그리드 42개 셀 계산
   const grid = getMonthGrid(
@@ -29,7 +27,7 @@ export const MonthView: React.FC = () => {
 
   const handleCellClick = (cell: DayCellData) => {
     setSelectedDate(cell.date);
-    openQuickAdd(cell.date);
+    openEventModal(undefined, cell.date);
   };
 
   const handleEventClick = (e: React.MouseEvent, event: CalendarEvent) => {

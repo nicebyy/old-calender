@@ -1,16 +1,29 @@
 import { create } from 'zustand';
-import { CalendarCategory, CalendarEvent, CalendarViewType } from '../types';
+import {
+  AppSettings,
+  CalendarCategory,
+  CalendarEvent,
+  CalendarViewType,
+  QuickPopoverState,
+} from '../types';
 import { DEFAULT_CATEGORIES } from '../constants/calendar';
 import { getNavigatedDate } from '../core/calendar';
+import { expandEventsForRange } from '../core/recurrence';
 
 const STORAGE_KEY_EVENTS = 'win10_calendar_events';
 const STORAGE_KEY_CATEGORIES = 'win10_calendar_categories';
+const STORAGE_KEY_SETTINGS = 'win10_calendar_settings';
+
+const DEFAULT_SETTINGS: AppSettings = {
+  themeMode: 'dark',
+  accentColor: '#0078D7',
+  firstDayOfWeek: 0,
+};
 
 function loadStoredEvents(): CalendarEvent[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_EVENTS);
     if (!raw) {
-      // 초기 기본 샘플 일정 생성 (오늘 기준)
       const now = new Date();
       const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       return [
@@ -23,6 +36,7 @@ function loadStoredEvents(): CalendarEvent[] {
           isAllDay: false,
           categoryId: 'default-work',
           location: '온라인 회의실',
+          reminderMinutes: 15,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         },
@@ -30,10 +44,22 @@ function loadStoredEvents(): CalendarEvent[] {
           id: 'sample-2',
           title: '팀 주간 회고 및 계획',
           description: '스프린트 진행상황 공유',
-          startDate: `${todayStr}T15:00:00`,
-          endDate: `${todayStr}T16:00:00`,
+          startDate: `${todayStr}T14:00:00`,
+          endDate: `${todayStr}T15:00:00`,
           isAllDay: false,
           categoryId: 'default-personal',
+          recurrence: 'weekly',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+        {
+          id: 'sample-3',
+          title: '프로젝트 릴리스 데이',
+          description: '데스크톱 앱 패키징 및 최종 검증',
+          startDate: `${todayStr}T00:00:00`,
+          endDate: `${todayStr}T23:59:59`,
+          isAllDay: true,
+          categoryId: 'default-holiday',
           createdAt: Date.now(),
           updatedAt: Date.now(),
         },
@@ -54,6 +80,15 @@ function loadStoredCategories(): CalendarCategory[] {
   }
 }
 
+function loadStoredSettings(): AppSettings {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_SETTINGS);
+    return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
 interface CalendarState {
   // 상태
   selectedDate: Date;
@@ -62,11 +97,17 @@ interface CalendarState {
   isSidebarOpen: boolean;
   events: CalendarEvent[];
   categories: CalendarCategory[];
+  settings: AppSettings;
+
+  // 패널 및 팝업 상태
+  isSettingsOpen: boolean;
+  isSearchOpen: boolean;
+  searchQuery: string;
   isEventModalOpen: boolean;
   editingEvent: CalendarEvent | null;
-  quickAddDate: Date | null;
+  quickPopover: QuickPopoverState;
 
-  // 액션
+  // 네비게이션 및 뷰 액션
   setSelectedDate: (date: Date) => void;
   setViewDate: (date: Date) => void;
   setViewType: (viewType: CalendarViewType) => void;
@@ -74,17 +115,30 @@ interface CalendarState {
   navigateViewDate: (direction: 'prev' | 'next') => void;
   goToToday: () => void;
 
-  // 이벤트 액션
+  // 이벤트 CRUD 액션
   addEvent: (event: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateEvent: (event: CalendarEvent) => void;
   deleteEvent: (id: string) => void;
   toggleCategoryVisibility: (categoryId: string) => void;
 
-  // 모달 제어
+  // 설정 액션
+  updateSettings: (newSettings: Partial<AppSettings>) => void;
+  toggleSettings: () => void;
+  toggleSearch: () => void;
+  setSearchQuery: (query: string) => void;
+
+  // 모달 및 팝오버 액션
   openEventModal: (event?: CalendarEvent, defaultDate?: Date) => void;
   closeEventModal: () => void;
-  openQuickAdd: (date: Date) => void;
-  closeQuickAdd: () => void;
+  openQuickPopover: (x: number, y: number, date?: Date, event?: CalendarEvent) => void;
+  closeQuickPopover: () => void;
+
+  // 데이터 백업 및 복원
+  exportDataJSON: () => string;
+  importDataJSON: (jsonString: string) => boolean;
+
+  // 헬퍼
+  getExpandedEvents: (rangeStart: Date, rangeEnd: Date) => CalendarEvent[];
 }
 
 export const useCalendarStore = create<CalendarState>((set, get) => ({
@@ -94,14 +148,19 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   isSidebarOpen: true,
   events: loadStoredEvents(),
   categories: loadStoredCategories(),
+  settings: loadStoredSettings(),
+
+  isSettingsOpen: false,
+  isSearchOpen: false,
+  searchQuery: '',
   isEventModalOpen: false,
   editingEvent: null,
-  quickAddDate: null,
+  quickPopover: { isOpen: false, x: 0, y: 0 },
 
   setSelectedDate: (date: Date) =>
     set({
       selectedDate: date,
-      viewDate: new Date(date), // 선택 시 해당 월로 뷰도 동기화
+      viewDate: new Date(date),
     }),
 
   setViewDate: (date: Date) => set({ viewDate: date }),
@@ -139,33 +198,53 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       } catch (err) {
         console.error('Failed to persist events:', err);
       }
-      return { events: updatedEvents, isEventModalOpen: false, quickAddDate: null };
+      return {
+        events: updatedEvents,
+        isEventModalOpen: false,
+        quickPopover: { isOpen: false, x: 0, y: 0 },
+      };
     });
   },
 
   updateEvent: (updated) => {
+    // 인스턴스 ID인 경우 원본 ID 추출
+    const realId = updated.id.includes('_instance_')
+      ? updated.id.split('_instance_')[0]
+      : updated.id;
+
     set((state) => {
       const updatedEvents = state.events.map((e) =>
-        e.id === updated.id ? { ...updated, updatedAt: Date.now() } : e
+        e.id === realId ? { ...updated, id: realId, updatedAt: Date.now() } : e
       );
       try {
         localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(updatedEvents));
       } catch (err) {
         console.error('Failed to persist events:', err);
       }
-      return { events: updatedEvents, isEventModalOpen: false, editingEvent: null };
+      return {
+        events: updatedEvents,
+        isEventModalOpen: false,
+        editingEvent: null,
+        quickPopover: { isOpen: false, x: 0, y: 0 },
+      };
     });
   },
 
   deleteEvent: (id) => {
+    const realId = id.includes('_instance_') ? id.split('_instance_')[0] : id;
     set((state) => {
-      const updatedEvents = state.events.filter((e) => e.id !== id);
+      const updatedEvents = state.events.filter((e) => e.id !== realId);
       try {
         localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(updatedEvents));
       } catch (err) {
         console.error('Failed to persist events:', err);
       }
-      return { events: updatedEvents, isEventModalOpen: false, editingEvent: null };
+      return {
+        events: updatedEvents,
+        isEventModalOpen: false,
+        editingEvent: null,
+        quickPopover: { isOpen: false, x: 0, y: 0 },
+      };
     });
   },
 
@@ -183,17 +262,94 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     });
   },
 
+  updateSettings: (newSettings) => {
+    set((state) => {
+      const updated = { ...state.settings, ...newSettings };
+      try {
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(updated));
+      } catch (err) {
+        console.error('Failed to persist settings:', err);
+      }
+
+      // 동적 액센트 컬러 CSS 변수 갱신
+      if (newSettings.accentColor) {
+        document.documentElement.style.setProperty('--win10-accent', newSettings.accentColor);
+      }
+
+      return { settings: updated };
+    });
+  },
+
+  toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
+
+  toggleSearch: () =>
+    set((state) => ({
+      isSearchOpen: !state.isSearchOpen,
+      searchQuery: state.isSearchOpen ? '' : state.searchQuery,
+    })),
+
+  setSearchQuery: (query) => set({ searchQuery: query }),
+
   openEventModal: (event, defaultDate) => {
     set({
       isEventModalOpen: true,
       editingEvent: event || null,
-      quickAddDate: defaultDate || null,
+      selectedDate: defaultDate || get().selectedDate,
+      quickPopover: { isOpen: false, x: 0, y: 0 },
     });
   },
 
   closeEventModal: () => set({ isEventModalOpen: false, editingEvent: null }),
 
-  openQuickAdd: (date: Date) => set({ quickAddDate: date }),
+  openQuickPopover: (x, y, date, event) => {
+    set({
+      quickPopover: {
+        isOpen: true,
+        x,
+        y,
+        date,
+        event,
+      },
+    });
+  },
 
-  closeQuickAdd: () => set({ quickAddDate: null }),
+  closeQuickPopover: () => set({ quickPopover: { isOpen: false, x: 0, y: 0 } }),
+
+  exportDataJSON: () => {
+    const { events, categories, settings } = get();
+    return JSON.stringify({ events, categories, settings }, null, 2);
+  },
+
+  importDataJSON: (jsonString) => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (Array.isArray(parsed.events)) {
+        set({
+          events: parsed.events,
+          categories: parsed.categories || get().categories,
+          settings: parsed.settings || get().settings,
+        });
+        localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(parsed.events));
+        if (parsed.categories) {
+          localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(parsed.categories));
+        }
+        if (parsed.settings) {
+          localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(parsed.settings));
+        }
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  },
+
+  getExpandedEvents: (rangeStart, rangeEnd) => {
+    const { events, categories } = get();
+    const visibleCategoryIds = new Set(
+      categories.filter((c) => c.isVisible).map((c) => c.id)
+    );
+    const visible = events.filter((e) => visibleCategoryIds.has(e.categoryId));
+    return expandEventsForRange(visible, rangeStart, rangeEnd);
+  },
 }));
