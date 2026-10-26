@@ -8,8 +8,19 @@ const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
 
+// Windows 작업 표시줄 및 알림 연동을 위한 AppUserModelId 설정
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.fluentcal.classic');
+}
+
 function createWindow() {
+  const iconPath = process.platform === 'win32'
+    ? path.join(__dirname, '../assets/icon.ico')
+    : path.join(__dirname, '../assets/icon.png');
+
   mainWindow = new BrowserWindow({
+    title: 'Classic Calendar',
+    icon: iconPath,
     width: 1024,
     height: 720,
     minWidth: 800,
@@ -76,9 +87,11 @@ ipcMain.handle('is-window-maximized', () => {
 // Windows 10 네이티브 토스트 알림 표시 핸들러
 ipcMain.on('show-notification', (_event, { title, body }) => {
   if (Notification.isSupported()) {
+    const notifIcon = path.join(__dirname, '../assets/icon.png');
     new Notification({
-      title: title || '일정 알림',
+      title: title || 'Classic Calendar',
       body: body || '',
+      icon: notifIcon,
     }).show();
   }
 });

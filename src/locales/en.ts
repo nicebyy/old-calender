@@ -172,7 +172,7 @@ export const en: TranslationSchema = {
     backupFail: 'Invalid JSON backup file.',
     icsImportSuccess: 'Successfully imported {count} event(s) from iCalendar file.',
     icsImportFail: 'No valid events found in iCal file.',
-    appInfo: 'Windows 10 Classic Calendar Replica v0.3.0 (i18n Multilingual)',
+    appInfo: 'Classic Calendar v1.0.0 (Fluent Edition)',
   },
   sync: {
     title: 'Manage Accounts (Cloud Accounts)',

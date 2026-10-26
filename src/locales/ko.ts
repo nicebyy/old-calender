@@ -170,7 +170,7 @@ export const ko = {
     backupFail: '올바른 JSON 백업 파일이 아닙니다.',
     icsImportSuccess: '{count}개의 일정을 iCalendar 파일에서 성공적으로 가져왔습니다.',
     icsImportFail: 'iCal 파일에서 유효한 일정을 찾을 수 없습니다.',
-    appInfo: 'Windows 10 Classic Calendar Replica v0.3.0 (i18n Multilingual)',
+    appInfo: 'Classic Calendar v1.0.0 (Fluent Edition)',
   },
   sync: {
     title: '계정 관리 (Cloud Accounts)',

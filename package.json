@@ -1,7 +1,8 @@
 {
-  "name": "old-calendar",
-  "version": "0.1.0",
-  "description": "Windows 10 Classic Calendar Desktop App Replica with High Responsiveness",
+  "name": "classic-calendar",
+  "productName": "Classic Calendar",
+  "version": "1.0.0",
+  "description": "Classic Calendar - Windows 10 Style High-Performance Desktop Calendar",
   "main": "dist-electron/main.js",
   "type": "module",
   "scripts": {
@@ -16,6 +17,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "keywords": [
+    "classic-calendar",
     "windows10",
     "calendar",
     "desktop-app",
@@ -23,8 +25,43 @@
     "react",
     "electron"
   ],
-  "author": "",
+  "author": "nicebyy",
   "license": "MIT",
+  "build": {
+    "appId": "com.fluentcal.classic",
+    "productName": "Classic Calendar",
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "appx",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Classic Calendar"
+    },
+    "appx": {
+      "identityName": "nicebyy.ClassicCalendar",
+      "applicationId": "ClassicCalendar",
+      "displayName": "Classic Calendar",
+      "publisher": "CN=nicebyy",
+      "publisherDisplayName": "nicebyy",
+      "backgroundColor": "#0078D7"
+    }
+  },
   "dependencies": {
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",
