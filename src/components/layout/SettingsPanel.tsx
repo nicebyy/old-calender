@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   X,
   Palette,
@@ -15,11 +15,14 @@ import {
   MapPin,
   Navigation,
   RotateCw,
+  Search,
+  Loader2,
 } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
 import { WIN10_ACCENT_COLORS, FIRST_DAY_OPTIONS, THEME_MODES, BACKGROUND_FILL_OPTIONS } from '../../constants/settings';
 import { WALLPAPER_THEMES, THEME_PRESETS } from '../../constants/theme';
 import { WEATHER_CITY_PRESETS } from '../../constants/weather';
+import { searchLocations, LocationSearchResult } from '../../core/weather';
 import { ThemePreset } from '../../types';
 import { useTranslation, SUPPORTED_LANGUAGES } from '../../locales';
 
@@ -43,6 +46,50 @@ export const SettingsPanel: React.FC = () => {
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
   const icsFileInputRef = useRef<HTMLInputElement>(null);
   const imageFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [searchQuery, setSearchQueryLocal] = useState('');
+  const [searchResults, setSearchResults] = useState<LocationSearchResult[]>([]);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleLocationSearch = (query: string) => {
+    setSearchQueryLocal(query);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
+    if (!query.trim() || query.trim().length < 2) {
+      setSearchResults([]);
+      setIsSearchDropdownOpen(false);
+      setIsSearchingLocation(false);
+      return;
+    }
+
+    setIsSearchingLocation(true);
+    setIsSearchDropdownOpen(true);
+
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const results = await searchLocations(query, language);
+        setSearchResults(results);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setIsSearchingLocation(false);
+      }
+    }, 350);
+  };
+
+  const handleSelectSearchResult = (result: LocationSearchResult) => {
+    setWeatherLocation({
+      city: result.city,
+      latitude: result.latitude,
+      longitude: result.longitude,
+      autoDetect: false,
+    });
+    setSearchQueryLocal('');
+    setSearchResults([]);
+    setIsSearchDropdownOpen(false);
+  };
 
   if (!isSettingsOpen) return null;
 
@@ -454,8 +501,8 @@ export const SettingsPanel: React.FC = () => {
                   </button>
                 </div>
 
-                {/* 위치 선택 컨트롤: GPS 자동 감지 버튼 및 도시 프리셋 드롭다운 */}
-                <div className="space-y-2">
+                {/* 위치 선택 컨트롤: GPS 자동 감지 버튼, 동네 직접 검색, 프리셋 드롭다운 */}
+                <div className="space-y-2.5">
                   <button
                     onClick={() => autoDetectLocation()}
                     disabled={isWeatherLoading}
@@ -465,6 +512,47 @@ export const SettingsPanel: React.FC = () => {
                     <span>{isWeatherLoading ? t('settings.detectingLocation') : t('settings.autoDetectLocation')}</span>
                   </button>
 
+                  {/* 지역 및 동네 직접 검색 입력창 */}
+                  <div className="relative space-y-1">
+                    <label className="block text-[11px] text-[var(--win10-text-secondary)]">
+                      {t('settings.searchLocationTitle')}
+                    </label>
+                    <div className="relative flex items-center">
+                      <Search className="w-3.5 h-3.5 absolute left-2 text-[var(--win10-text-muted)] pointer-events-none" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => handleLocationSearch(e.target.value)}
+                        onFocus={() => { if (searchResults.length > 0) setIsSearchDropdownOpen(true); }}
+                        placeholder={t('settings.searchLocationPlaceholder')}
+                        className="w-full text-xs pl-7 pr-7 py-1.5 rounded bg-[var(--win10-input-bg)] border border-[var(--win10-border)] text-[var(--win10-text-primary)] focus:outline-none focus:border-[var(--win10-accent)]"
+                      />
+                      {isSearchingLocation && (
+                        <Loader2 className="w-3.5 h-3.5 absolute right-2 text-[var(--win10-accent)] animate-spin" />
+                      )}
+                    </div>
+
+                    {/* 검색 결과 드롭다운 */}
+                    {isSearchDropdownOpen && searchResults.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto bg-[var(--win10-bg)] border border-[var(--win10-border)] rounded shadow-lg">
+                        {searchResults.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => handleSelectSearchResult(item)}
+                            className="w-full text-left px-2.5 py-1.5 text-xs hover:bg-[var(--win10-button-hover)] text-[var(--win10-text-primary)] flex items-center justify-between border-b border-[var(--win10-border)]/50 last:border-b-0 cursor-pointer"
+                          >
+                            <span className="truncate font-medium">{item.displayName}</span>
+                            <span className="text-[10px] text-[var(--win10-text-muted)] shrink-0 ml-2">
+                              {item.latitude.toFixed(2)}°, {item.longitude.toFixed(2)}°
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 도시/지역 프리셋 선택 */}
                   <div className="space-y-1">
                     <label className="block text-[11px] text-[var(--win10-text-secondary)]">
                       {t('settings.selectCity')}
@@ -491,15 +579,43 @@ export const SettingsPanel: React.FC = () => {
                       <option value="" disabled>
                         {t('settings.selectCity')}
                       </option>
-                      <optgroup label={language === 'ko' ? '대한민국 주요 거점 / 광역자치단체 (17)' : 'South Korea Major Cities (17)'}>
-                        {WEATHER_CITY_PRESETS.slice(0, 17).map((preset) => (
+                      <optgroup label={language === 'ko' ? '특별시 / 광역시 / 특별자치시' : 'Metropolitan Cities'}>
+                        {WEATHER_CITY_PRESETS.slice(0, 8).map((preset) => (
                           <option key={preset.id} value={preset.id}>
                             {language === 'ko' ? preset.nameKo : preset.nameEn}
                           </option>
                         ))}
                       </optgroup>
-                      <optgroup label={language === 'ko' ? '해외 주요 도시' : 'Global Major Cities'}>
-                        {WEATHER_CITY_PRESETS.slice(17).map((preset) => (
+                      <optgroup label={language === 'ko' ? '경상북도 / 대구경북' : 'Gyeongsangbuk-do'}>
+                        {WEATHER_CITY_PRESETS.slice(8, 14).map((preset) => (
+                          <option key={preset.id} value={preset.id}>
+                            {language === 'ko' ? preset.nameKo : preset.nameEn}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label={language === 'ko' ? '경상남도 / 부산경남' : 'Gyeongsangnam-do'}>
+                        {WEATHER_CITY_PRESETS.slice(14, 18).map((preset) => (
+                          <option key={preset.id} value={preset.id}>
+                            {language === 'ko' ? preset.nameKo : preset.nameEn}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label={language === 'ko' ? '경기도 (수도권)' : 'Gyeonggi-do'}>
+                        {WEATHER_CITY_PRESETS.slice(18, 26).map((preset) => (
+                          <option key={preset.id} value={preset.id}>
+                            {language === 'ko' ? preset.nameKo : preset.nameEn}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label={language === 'ko' ? '강원 / 충청 / 전라 / 제주' : 'Gangwon, Chungcheong, Jeolla, Jeju'}>
+                        {WEATHER_CITY_PRESETS.slice(26, 39).map((preset) => (
+                          <option key={preset.id} value={preset.id}>
+                            {language === 'ko' ? preset.nameKo : preset.nameEn}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label={language === 'ko' ? '해외 주요 거점' : 'Global Cities'}>
+                        {WEATHER_CITY_PRESETS.slice(39).map((preset) => (
                           <option key={preset.id} value={preset.id}>
                             {language === 'ko' ? preset.nameKo : preset.nameEn}
                           </option>

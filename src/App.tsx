@@ -22,6 +22,20 @@ export const App: React.FC = () => {
   const toggleSettings = useCalendarStore((s) => s.toggleSettings);
   const settings = useCalendarStore((s) => s.settings);
   const checkDueReminders = useCalendarStore((s) => s.checkDueReminders);
+  const autoDetectLocation = useCalendarStore((s) => s.autoDetectLocation);
+  const refreshWeather = useCalendarStore((s) => s.refreshWeather);
+
+  // 날씨 초기화 및 위치 자동 감지 (최초 로드 시 실제 사용자 위치로 자동 동기화)
+  useEffect(() => {
+    if (settings.showWeather) {
+      if (settings.weatherLocation.autoDetect || settings.weatherLocation.city === '서울') {
+        autoDetectLocation();
+      } else {
+        refreshWeather();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 실시간 알림 스케줄러 (매 10초마다 도래한 일정 검사 및 브라우저 Notification 권한 요청)
   useEffect(() => {

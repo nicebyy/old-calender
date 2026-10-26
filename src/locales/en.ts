@@ -153,6 +153,8 @@ export const en: TranslationSchema = {
     detectingLocation: 'Detecting location...',
     selectCity: 'Select City / Region',
     currentLocation: 'Current Location',
+    searchLocationTitle: 'Search City / Town',
+    searchLocationPlaceholder: 'Type location (e.g. Chilgok, Gumi, Bundang...)',
     refreshWeather: 'Refresh Weather',
     lunar: 'Calendar Display & Alternate Calendar',
     showLunar: 'Show lunar calendar dates',
