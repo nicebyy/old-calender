@@ -11,6 +11,8 @@
     "build:electron": "tsc -p tsconfig.electron.json",
     "electron:start": "npm run build:electron && electron .",
     "build": "tsc -b && vite build && npm run build:electron",
+    "dist": "npm run build && electron-builder",
+    "dist:dir": "npm run build && electron-builder --dir",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -33,6 +35,12 @@
     "directories": {
       "output": "release"
     },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
     "win": {
       "icon": "assets/icon.ico",
       "target": [
