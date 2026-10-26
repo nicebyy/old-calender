@@ -66,9 +66,9 @@ export function getMonthGrid(
       return dateString >= evtStart && dateString <= evtEnd;
     });
 
-    const holidayName = getHolidayName(cellDate);
+    const holidayName = getHolidayName(cellDate, options?.lang || 'ko');
     const lunarDateString = options?.showLunar
-      ? getApproxLunarDateString(cellDate)
+      ? getApproxLunarDateString(cellDate, options?.lang || 'ko')
       : undefined;
     const weather = options?.showWeather
       ? getWeatherForDate(

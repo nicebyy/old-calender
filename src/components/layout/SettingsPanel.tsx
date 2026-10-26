@@ -260,6 +260,11 @@ export const SettingsPanel: React.FC = () => {
                   settings.accentColor.toLowerCase() === preset.accentColor.toLowerCase() &&
                   settings.backgroundTheme === preset.backgroundTheme;
 
+                const presetName = t(`themePresets.${preset.id}.name`);
+                const presetDesc = t(`themePresets.${preset.id}.description`);
+                const displayName = presetName !== `themePresets.${preset.id}.name` ? presetName : preset.name;
+                const displayDesc = presetDesc !== `themePresets.${preset.id}.description` ? presetDesc : preset.description;
+
                 return (
                   <button
                     key={preset.id}
@@ -276,12 +281,12 @@ export const SettingsPanel: React.FC = () => {
                           className="w-3.5 h-3.5 rounded-full shrink-0 shadow-xs border border-black/20"
                           style={{ backgroundColor: preset.accentColor }}
                         />
-                        <span className="font-semibold text-[11px] truncate">{preset.name}</span>
+                        <span className="font-semibold text-[11px] truncate">{displayName}</span>
                       </div>
                       {isActive && <Check className="w-3.5 h-3.5 text-[var(--win10-accent)] stroke-[3]" />}
                     </div>
                     <span className="text-[10px] text-[var(--win10-text-secondary)] line-clamp-2 leading-tight">
-                      {preset.description}
+                      {displayDesc}
                     </span>
                   </button>
                 );
@@ -330,6 +335,8 @@ export const SettingsPanel: React.FC = () => {
             <div className="grid grid-cols-4 gap-2 pt-1">
               {WIN10_ACCENT_COLORS.map((accent) => {
                 const isSelected = settings.accentColor.toLowerCase() === accent.color.toLowerCase();
+                const accentName = t(`accentColors.${accent.id}`);
+                const displayAccentName = accentName !== `accentColors.${accent.id}` ? accentName : accent.name;
                 return (
                   <button
                     key={accent.id}
@@ -339,7 +346,7 @@ export const SettingsPanel: React.FC = () => {
                       backgroundColor: accent.color,
                       borderColor: isSelected ? '#ffffff' : 'transparent',
                     }}
-                    title={accent.name}
+                    title={displayAccentName}
                   >
                     {isSelected && <Check className="w-4 h-4 text-white stroke-[3] drop-shadow" />}
                   </button>
@@ -389,6 +396,8 @@ export const SettingsPanel: React.FC = () => {
             <div className="grid grid-cols-4 gap-2 pt-1">
               {WALLPAPER_THEMES.map((wp) => {
                 const isSelected = settings.backgroundTheme === wp.id;
+                const wpName = t(`wallpapers.${wp.id}`);
+                const displayWpName = wpName !== `wallpapers.${wp.id}` ? wpName : wp.name;
                 return (
                   <button
                     key={wp.id}
@@ -404,10 +413,10 @@ export const SettingsPanel: React.FC = () => {
                       borderColor: isSelected ? 'var(--win10-accent)' : 'var(--win10-border)',
                       boxShadow: isSelected ? '0 0 0 1px var(--win10-accent)' : 'none',
                     }}
-                    title={wp.name}
+                    title={displayWpName}
                   >
                     <span className="text-[9.5px] text-white font-medium drop-shadow-md truncate z-10">
-                      {wp.name}
+                      {displayWpName}
                     </span>
                     {isSelected && (
                       <div className="absolute top-1 right-1 bg-[var(--win10-accent)] rounded-full p-0.5 shadow-sm">
@@ -599,7 +608,12 @@ export const SettingsPanel: React.FC = () => {
                     <MapPin className="w-4 h-4 text-[var(--win10-accent)] shrink-0" />
                     <div>
                       <div className="font-semibold text-[var(--win10-text-primary)] flex items-center space-x-1.5">
-                        <span>{settings.weatherLocation?.city || '서울'}</span>
+                        <span>
+                          {language === 'en'
+                            ? WEATHER_CITY_PRESETS.find((p) => p.nameKo === settings.weatherLocation?.city || p.nameEn === settings.weatherLocation?.city)?.nameEn ||
+                              (settings.weatherLocation?.city === '서울' ? 'Seoul' : settings.weatherLocation?.city || 'Seoul')
+                            : settings.weatherLocation?.city || '서울'}
+                        </span>
                         {settings.weatherLocation?.autoDetect && (
                           <span className="px-1.5 py-0.5 bg-[var(--win10-accent)]/20 text-[var(--win10-accent)] text-[10px] rounded font-medium">
                             GPS

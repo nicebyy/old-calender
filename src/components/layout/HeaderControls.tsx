@@ -10,6 +10,7 @@ import {
   Copy,
   X,
   RotateCw,
+  StickyNote,
 } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
 import { CALENDAR_VIEWS } from '../../constants/calendar';
@@ -26,6 +27,9 @@ export const HeaderControls: React.FC = () => {
   const toggleSearch = useCalendarStore((s) => s.toggleSearch);
   const isSyncing = useCalendarStore((s) => s.isSyncing);
   const syncAllAccounts = useCalendarStore((s) => s.syncAllAccounts);
+  const isMemoPanelOpen = useCalendarStore((s) => s.isMemoPanelOpen);
+  const toggleMemoPanel = useCalendarStore((s) => s.toggleMemoPanel);
+  const memos = useCalendarStore((s) => s.memos);
 
   const { t, language, formatYearMonth } = useTranslation();
 
@@ -179,10 +183,26 @@ export const HeaderControls: React.FC = () => {
         {/* 검색 버튼 */}
         <button
           onClick={toggleSearch}
-          className="p-1.5 rounded hover:bg-[var(--win10-button-hover)] active:bg-[var(--win10-button-active)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors mr-2"
+          className="p-1.5 rounded hover:bg-[var(--win10-button-hover)] active:bg-[var(--win10-button-active)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors mr-0.5"
           title={t('header.search')}
         >
           <Search className="w-4 h-4" />
+        </button>
+
+        {/* 스티커 메모 버튼 */}
+        <button
+          onClick={() => toggleMemoPanel()}
+          className={`p-1.5 rounded hover:bg-[var(--win10-button-hover)] active:bg-[var(--win10-button-active)] transition-colors mr-2 relative ${
+            isMemoPanelOpen
+              ? 'text-[var(--win10-accent)] bg-[var(--win10-button-hover)]'
+              : 'text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)]'
+          }`}
+          title={t('header.memo')}
+        >
+          <StickyNote className="w-4 h-4" />
+          {memos.length > 0 && (
+            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[var(--win10-accent)]" />
+          )}
         </button>
 
         {/* Windows 10 UWP 통합 창 제어 버튼들 (표준 46px 규격) */}

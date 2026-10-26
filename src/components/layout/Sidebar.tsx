@@ -23,6 +23,7 @@ import {
   SIDEBAR_MIN_WIDTH,
   SIDEBAR_MAX_WIDTH,
 } from '../../constants/settings';
+import { WEATHER_CITY_PRESETS } from '../../constants/weather';
 import { useTranslation } from '../../locales';
 
 export const Sidebar: React.FC = () => {
@@ -173,7 +174,17 @@ export const Sidebar: React.FC = () => {
                 title={language === 'ko' ? '위치 변경 및 날씨 설정 열기' : 'Change location in Settings'}
               >
                 <MapPin className="w-3 h-3 shrink-0" />
-                <span className="truncate">{currentWeather.locationName || settings.weatherLocation.city}</span>
+                <span className="truncate">
+                  {(() => {
+                    const raw = currentWeather.locationName || settings.weatherLocation?.city || '서울';
+                    if (language === 'en') {
+                      const preset = WEATHER_CITY_PRESETS.find((p) => p.nameKo === raw || p.nameEn === raw);
+                      if (preset) return preset.nameEn;
+                      if (raw === '서울') return 'Seoul';
+                    }
+                    return raw;
+                  })()}
+                </span>
               </button>
               <button
                 onClick={() => refreshWeather()}
@@ -193,7 +204,29 @@ export const Sidebar: React.FC = () => {
                     {currentWeather.currentTemp ?? currentWeather.tempMax}°{settings.temperatureUnit}
                   </div>
                   <div className="text-[10px] text-[var(--win10-text-secondary)] truncate">
-                    {currentWeather.label}
+                    {language === 'en'
+                      ? currentWeather.condition === 'sunny'
+                        ? 'Clear Sky'
+                        : currentWeather.condition === 'partlyCloudy'
+                        ? 'Partly Cloudy'
+                        : currentWeather.condition === 'cloudy'
+                        ? 'Overcast'
+                        : currentWeather.condition === 'rainy'
+                        ? 'Rainy'
+                        : currentWeather.condition === 'snowy'
+                        ? 'Snowy'
+                        : currentWeather.label === '맑음'
+                        ? 'Clear Sky'
+                        : currentWeather.label === '구름 조금'
+                        ? 'Partly Cloudy'
+                        : currentWeather.label === '흐림'
+                        ? 'Overcast'
+                        : currentWeather.label === '비'
+                        ? 'Rainy'
+                        : currentWeather.label === '눈'
+                        ? 'Snowy'
+                        : currentWeather.label
+                      : currentWeather.label}
                   </div>
                 </div>
               </div>
