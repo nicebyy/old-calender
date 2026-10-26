@@ -11,6 +11,7 @@ export const HeaderControls: React.FC = () => {
   const setViewType = useCalendarStore((s) => s.setViewType);
   const navigateViewDate = useCalendarStore((s) => s.navigateViewDate);
   const goToToday = useCalendarStore((s) => s.goToToday);
+  const toggleSearch = useCalendarStore((s) => s.toggleSearch);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -88,6 +89,7 @@ export const HeaderControls: React.FC = () => {
 
         {/* 검색 버튼 */}
         <button
+          onClick={toggleSearch}
           className="p-2 ml-2 rounded hover:bg-[#333333] active:bg-[#444444] text-[#cccccc] hover:text-white transition-colors"
           title="일정 검색"
         >

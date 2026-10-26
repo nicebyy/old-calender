@@ -1,12 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, Calendar as CalendarIcon, Clock, MapPin, AlignLeft } from 'lucide-react';
+import {
+  X,
+  Trash2,
+  Calendar as CalendarIcon,
+  Clock,
+  MapPin,
+  AlignLeft,
+  RotateCw,
+  Bell,
+} from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
 import { formatDateKey } from '../../core/calendar';
+import { RECURRENCE_OPTIONS, REMINDER_OPTIONS } from '../../constants/settings';
+import { RecurrenceType } from '../../types';
 
 export const EventModal: React.FC = () => {
   const isOpen = useCalendarStore((s) => s.isEventModalOpen);
   const editingEvent = useCalendarStore((s) => s.editingEvent);
-  const defaultDate = useCalendarStore((s) => s.quickAddDate || s.selectedDate);
+  const defaultDate = useCalendarStore((s) => s.quickPopover.date || s.selectedDate);
   const categories = useCalendarStore((s) => s.categories);
   const addEvent = useCalendarStore((s) => s.addEvent);
   const updateEvent = useCalendarStore((s) => s.updateEvent);
@@ -22,6 +33,8 @@ export const EventModal: React.FC = () => {
   const [categoryId, setCategoryId] = useState(categories[0]?.id || 'default-personal');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
+  const [recurrence, setRecurrence] = useState<RecurrenceType>('none');
+  const [reminderMinutes, setReminderMinutes] = useState<number>(15);
 
   useEffect(() => {
     if (editingEvent) {
@@ -34,6 +47,10 @@ export const EventModal: React.FC = () => {
       setCategoryId(editingEvent.categoryId);
       setLocation(editingEvent.location || '');
       setDescription(editingEvent.description || '');
+      setRecurrence(editingEvent.recurrence || 'none');
+      setReminderMinutes(
+        editingEvent.reminderMinutes !== undefined ? editingEvent.reminderMinutes : 15
+      );
     } else {
       const dateStr = formatDateKey(defaultDate);
       setTitle('');
@@ -45,6 +62,8 @@ export const EventModal: React.FC = () => {
       setCategoryId(categories[0]?.id || 'default-personal');
       setLocation('');
       setDescription('');
+      setRecurrence('none');
+      setReminderMinutes(15);
     }
   }, [editingEvent, defaultDate, isOpen, categories]);
 
@@ -67,6 +86,8 @@ export const EventModal: React.FC = () => {
         categoryId,
         location: location.trim() || undefined,
         description: description.trim() || undefined,
+        recurrence,
+        reminderMinutes,
       });
     } else {
       addEvent({
@@ -77,6 +98,8 @@ export const EventModal: React.FC = () => {
         categoryId,
         location: location.trim() || undefined,
         description: description.trim() || undefined,
+        recurrence,
+        reminderMinutes,
       });
     }
   };
@@ -89,7 +112,7 @@ export const EventModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs select-none">
-      <div className="w-[460px] bg-[#2b2b2b] border border-[#444444] rounded shadow-2xl overflow-hidden flex flex-col text-white">
+      <div className="w-[480px] bg-[#2b2b2b] border border-[#444444] rounded shadow-2xl overflow-hidden flex flex-col text-white">
         {/* 모달 헤더 */}
         <div className="h-10 bg-[#252525] border-b border-[#383838] flex items-center justify-between px-3">
           <div className="text-xs font-semibold text-[#dddddd] flex items-center space-x-2">
@@ -173,17 +196,52 @@ export const EventModal: React.FC = () => {
             </div>
           </div>
 
-          {/* 캘린더 범주(카테고리) 선택 */}
+          {/* 캘린더 범주(카테고리) & 반복 옵션 */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center space-x-2">
+              <span className="w-12 text-[#aaaaaa]">캘린더:</span>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className="flex-1 bg-[#1f1f1f] border border-[#444444] px-2 py-1.5 rounded text-white outline-none cursor-pointer"
+              >
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 반복 옵션 */}
+            <div className="flex items-center space-x-2">
+              <RotateCw className="w-3.5 h-3.5 text-[#888888] shrink-0" />
+              <select
+                value={recurrence}
+                onChange={(e) => setRecurrence(e.target.value as RecurrenceType)}
+                className="flex-1 bg-[#1f1f1f] border border-[#444444] px-2 py-1.5 rounded text-white outline-none cursor-pointer"
+              >
+                {RECURRENCE_OPTIONS.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* 미리 알림 */}
           <div className="flex items-center space-x-2">
-            <span className="w-14 text-[#aaaaaa]">캘린더:</span>
+            <Bell className="w-3.5 h-3.5 text-[#888888] shrink-0" />
+            <span className="w-12 text-[#aaaaaa]">미리알림:</span>
             <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
+              value={reminderMinutes}
+              onChange={(e) => setReminderMinutes(Number(e.target.value))}
               className="flex-1 bg-[#1f1f1f] border border-[#444444] px-2 py-1.5 rounded text-white outline-none cursor-pointer"
             >
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
+              {REMINDER_OPTIONS.map((opt) => (
+                <option key={opt.minutes} value={opt.minutes}>
+                  {opt.label}
                 </option>
               ))}
             </select>

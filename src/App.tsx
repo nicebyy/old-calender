@@ -2,16 +2,28 @@ import React, { useEffect } from 'react';
 import { TitleBar } from './components/layout/TitleBar';
 import { HeaderControls } from './components/layout/HeaderControls';
 import { Sidebar } from './components/layout/Sidebar';
+import { SettingsPanel } from './components/layout/SettingsPanel';
+import { SearchOverlay } from './components/layout/SearchOverlay';
 import { MonthView } from './views/MonthView';
+import { WeekView } from './views/WeekView';
+import { DayView } from './views/DayView';
+import { YearView } from './views/YearView';
 import { EventModal } from './components/events/EventModal';
 import { useCalendarStore } from './storage/calendarStore';
 
 export const App: React.FC = () => {
   const viewType = useCalendarStore((s) => s.viewType);
+  const settings = useCalendarStore((s) => s.settings);
   const goToToday = useCalendarStore((s) => s.goToToday);
   const navigateViewDate = useCalendarStore((s) => s.navigateViewDate);
   const openEventModal = useCalendarStore((s) => s.openEventModal);
   const setViewType = useCalendarStore((s) => s.setViewType);
+  const toggleSearch = useCalendarStore((s) => s.toggleSearch);
+
+  // 앱 로드 시 및 설정 변경 시 Accent Color 동적 CSS 변수 적용
+  useEffect(() => {
+    document.documentElement.style.setProperty('--win10-accent', settings.accentColor);
+  }, [settings.accentColor]);
 
   // Windows 10 캘린더 전역 단축키 등록
   useEffect(() => {
@@ -29,6 +41,9 @@ export const App: React.FC = () => {
         } else if (e.key.toLowerCase() === 'n') {
           e.preventDefault();
           openEventModal();
+        } else if (e.key.toLowerCase() === 'f') {
+          e.preventDefault();
+          toggleSearch();
         } else if (e.key === 'ArrowLeft') {
           e.preventDefault();
           navigateViewDate('prev');
@@ -56,45 +71,38 @@ export const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToToday, navigateViewDate, openEventModal, setViewType]);
+  }, [goToToday, navigateViewDate, openEventModal, setViewType, toggleSearch]);
+
+  const isDark = settings.themeMode === 'dark';
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#1f1f1f] text-white">
+    <div
+      className={`flex flex-col h-screen w-screen overflow-hidden select-none transition-colors ${
+        isDark ? 'bg-[#1f1f1f] text-white' : 'bg-[#f3f3f3] text-[#111111]'
+      }`}
+    >
       {/* 1. 최상단 Windows 10 타이틀바 */}
       <TitleBar />
 
-      {/* 2. 상단 캘린더 컨트롤 (햄버거, 년/월, 네비게이션, 뷰 선택) */}
+      {/* 2. 상단 캘린더 컨트롤 (햄버거, 년/월, 네비게이션, 5개 뷰 탭, 검색) */}
       <HeaderControls />
 
-      {/* 3. 본문 영역: 사이드바 + 캘린더 뷰 */}
+      {/* 3. 본문 영역: 사이드바 + 캘린더 5개 뷰 (월/주/작업주/일/연) */}
       <div className="flex-1 flex overflow-hidden relative">
         <Sidebar />
         <main className="flex-1 flex flex-col overflow-hidden relative">
           {viewType === 'month' && <MonthView />}
-          {viewType !== 'month' && (
-            <div className="flex-1 flex flex-col items-center justify-center text-[#888888]">
-              <div className="text-base font-light mb-1">
-                {viewType === 'day' && '일간 뷰'}
-                {viewType === 'workWeek' && '작업 주 뷰'}
-                {viewType === 'week' && '주간 뷰'}
-                {viewType === 'year' && '연간 뷰'}
-              </div>
-              <p className="text-xs text-[#666666]">
-                현재 월간 뷰가 기본 활성화되어 있으며, 다른 뷰는 다음 업데이트에 연결됩니다.
-              </p>
-              <button
-                onClick={() => setViewType('month')}
-                className="mt-3 px-3 py-1 text-xs bg-[#0078d7] hover:bg-[#1a86d9] text-white rounded transition-colors"
-              >
-                월간 뷰로 돌아가기
-              </button>
-            </div>
-          )}
+          {viewType === 'week' && <WeekView isWorkWeek={false} />}
+          {viewType === 'workWeek' && <WeekView isWorkWeek={true} />}
+          {viewType === 'day' && <DayView />}
+          {viewType === 'year' && <YearView />}
         </main>
       </div>
 
-      {/* 4. 전역 모달 (이벤트 추가/수정) */}
+      {/* 4. 전역 모달 및 패널들 */}
       <EventModal />
+      <SettingsPanel />
+      <SearchOverlay />
     </div>
   );
 };

@@ -11,6 +11,8 @@ export interface CalendarCategory {
   isVisible: boolean;
 }
 
+export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -20,8 +22,8 @@ export interface CalendarEvent {
   isAllDay: boolean;
   categoryId: string;
   location?: string;
-  reminderMinutes?: number; // 분 단위 알림 (예: 15분 전)
-  recurrenceRule?: string; // iCal RRULE (예: FREQ=WEEKLY)
+  reminderMinutes?: number; // 분 단위 알림 (예: 15분 전, 없으면 -1)
+  recurrence?: RecurrenceType;
   createdAt: number;
   updatedAt: number;
 }
@@ -36,12 +38,26 @@ export interface DayCellData {
   events: CalendarEvent[];
 }
 
+export interface AppSettings {
+  themeMode: 'dark' | 'light';
+  accentColor: string;
+  firstDayOfWeek: 0 | 1; // 0: 일요일, 1: 월요일
+}
+
+export interface QuickPopoverState {
+  isOpen: boolean;
+  x: number;
+  y: number;
+  date?: Date;
+  event?: CalendarEvent;
+}
+
 export interface WindowState {
   isMaximized: boolean;
 }
 
 declare global {
   interface Window {
-    electronAPI?: import('../../electron/preload').ElectronAPI;
+    electronAPI?: import('../../electron/preload.cts').ElectronAPI;
   }
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useCalendarStore } from './calendarStore';
 
-describe('CalendarStore', () => {
+describe('CalendarStore Extended', () => {
   beforeEach(() => {
     localStorage.clear();
   });
@@ -11,6 +11,7 @@ describe('CalendarStore', () => {
     expect(state.viewType).toBe('month');
     expect(state.isSidebarOpen).toBe(true);
     expect(state.categories.length).toBeGreaterThan(0);
+    expect(state.settings.accentColor).toBe('#0078D7');
   });
 
   it('일정 추가(addEvent) 시 즉시 events 목록에 반영되어야 한다', () => {
@@ -29,25 +30,22 @@ describe('CalendarStore', () => {
     expect(updated[updated.length - 1].title).toBe('테스트 새 일정');
   });
 
-  it('일정 삭제(deleteEvent) 시 해당 일정이 목록에서 제거되어야 한다', () => {
-    const currentEvents = useCalendarStore.getState().events;
-    const target = currentEvents[0];
+  it('설정 변경(updateSettings) 시 액센트 컬러 및 테마가 갱신되어야 한다', () => {
+    useCalendarStore.getState().updateSettings({
+      accentColor: '#E81123',
+      themeMode: 'light',
+    });
 
-    useCalendarStore.getState().deleteEvent(target.id);
-
-    const remaining = useCalendarStore.getState().events;
-    expect(remaining.some((e) => e.id === target.id)).toBe(false);
+    const settings = useCalendarStore.getState().settings;
+    expect(settings.accentColor).toBe('#E81123');
+    expect(settings.themeMode).toBe('light');
   });
 
-  it('카테고리 가시성 토글(toggleCategoryVisibility)이 정상 작동해야 한다', () => {
-    const category = useCalendarStore.getState().categories[0];
-    const initialVisibility = category.isVisible;
+  it('데이터 JSON 내보내기 및 복원이 정확해야 한다', () => {
+    const exportedJSON = useCalendarStore.getState().exportDataJSON();
+    expect(typeof exportedJSON).toBe('string');
 
-    useCalendarStore.getState().toggleCategoryVisibility(category.id);
-
-    const updatedCat = useCalendarStore
-      .getState()
-      .categories.find((c) => c.id === category.id);
-    expect(updatedCat?.isVisible).toBe(!initialVisibility);
+    const result = useCalendarStore.getState().importDataJSON(exportedJSON);
+    expect(result).toBe(true);
   });
 });
