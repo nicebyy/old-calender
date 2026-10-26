@@ -73,7 +73,7 @@ export const ko = {
       '12월',
     ],
     yearFormat: '{year}년',
-    yearMonthFormat: '{year}년 {month}월',
+    yearMonthFormat: '{year}년 {month}',
     dayFormat: '{day}일',
     allDay: '종일',
     noEvents: '예정된 일정이 없습니다.',
