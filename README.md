@@ -238,3 +238,31 @@ npm test
 ```bash
 npm run build
 ```
+
+### 5. Windows 설치 패키지 로컬 빌드
+```bash
+npm run dist
+```
+- `release/Classic-Calendar-Setup-1.0.0.exe`: Windows NSIS 설치 프로그램 (바탕화면/시작메뉴 바로가기 생성)
+- `release/Classic-Calendar-Portable-1.0.0.exe`: 무설치 포터블 단독 실행 프로그램
+
+---
+
+## 🚀 CI/CD 자동 배포 파이프라인 (GitHub Actions Auto-Release)
+
+`main` 브랜치에 기능이 병합(PR Merge 또는 Push)될 때마다 최신 Windows 배포용 릴리스가 전자동으로 빌드되고 GitHub Releases에 게시됩니다.
+
+### 파이프라인 동작 흐름 (`.github/workflows/release.yml`)
+1. **품질 검증 게이트 (Test & Quality Gate)**:
+   - `windows-latest` 환경에서 단위/통합 테스트 100% 통과 검증 (`npm test`).
+   - TypeScript 타입 체크 및 프로덕션 빌드 무결성 확인 (`npm run build`).
+2. **동적 버전 및 릴리스 태그 생성 (Dynamic Tagging)**:
+   - `package.json` 버전 기반 Git 태그(`v1.0.0`) 자동 탐색.
+   - 기존 태그와 중복될 경우 GitHub Run Number를 결합한 고유 태그(`v1.0.0-build.X`) 자동 생성.
+3. **Electron 바이너리 패키징 및 무결성 검증 (Packaging & Checksums)**:
+   - `electron-builder`를 통해 설치형(`Classic-Calendar-Setup-*.exe`) 및 무설치 포터블(`Classic-Calendar-Portable-*.exe`)을 병렬 패키징.
+   - 바이너리 변조 방지용 SHA256 체크섬(`checksums.txt`) 자동 생성.
+4. **GitHub Releases 자동 발행 (Publishing)**:
+   - 생성된 태그와 함께 GitHub Release 생성 및 인스톨러 바이너리 자동 첨부.
+   - 병합된 커밋 및 PR 내역 기반 릴리스 변경점(Release Notes) 자동 요약 게시.
+   - `workflow_dispatch` 지원으로 GitHub Actions 웹 콘솔에서 수동 즉시 배포 트리거 가능.

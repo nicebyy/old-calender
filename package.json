@@ -51,7 +51,7 @@
           ]
         },
         {
-          "target": "appx",
+          "target": "portable",
           "arch": [
             "x64"
           ]
@@ -63,15 +63,11 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Classic Calendar"
+      "shortcutName": "Classic Calendar",
+      "artifactName": "Classic-Calendar-Setup-${version}.${ext}"
     },
-    "appx": {
-      "identityName": "nicebyy.ClassicCalendar",
-      "applicationId": "ClassicCalendar",
-      "displayName": "Classic Calendar",
-      "publisher": "CN=nicebyy",
-      "publisherDisplayName": "nicebyy",
-      "backgroundColor": "#0078D7"
+    "portable": {
+      "artifactName": "Classic-Calendar-Portable-${version}.${ext}"
     }
   },
   "dependencies": {

@@ -1,0 +1,121 @@
+name: Release Desktop App
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # 1. 품질 검증 게이트 (Rule 1: 단위 및 통합 테스트 100% 통과 필수)
+  test-and-lint:
+    name: Test & Quality Gate
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Unit Tests
+        run: npm test
+
+      - name: Verify Production Build
+        run: npm run build
+
+  # 2. Windows 배포용 인스톨러 빌드 및 GitHub Release 자동 발행
+  release:
+    name: Build & Publish Release
+    needs: test-and-lint
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code with Full History
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Determine Release Tag and Version
+        id: vars
+        shell: pwsh
+        run: |
+          $pkg = Get-Content -Raw -Path package.json | ConvertFrom-Json
+          $baseVer = "v" + $pkg.version
+          
+          # Git tag 중복 확인
+          git fetch --tags
+          $tagExists = git tag -l $baseVer
+          
+          if ($tagExists) {
+            # 기본 버전 태그가 이미 존재하면 빌드 번호(Run Number) 기반 고유 태그 생성
+            $relTag = "${baseVer}-build.$env:GITHUB_RUN_NUMBER"
+          } else {
+            $relTag = $baseVer
+          }
+          
+          Write-Host "Determined Release Tag: $relTag"
+          "release_tag=$relTag" >> $env:GITHUB_OUTPUT
+          "version=$($pkg.version)" >> $env:GITHUB_OUTPUT
+
+      - name: Build Application
+        run: npm run build
+
+      - name: Package Windows Installer & Portable Binary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win nsis portable
+
+      - name: Generate Checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path release -Filter "*.exe" | ForEach-Object {
+            $hash = (Get-FileHash -Path $_.FullName -Algorithm SHA256).Hash
+            "$hash  $($_.Name)" | Out-File -FilePath release/checksums.txt -Append -Encoding utf8
+          }
+          Write-Host "Generated release/checksums.txt:"
+          Get-Content release/checksums.txt
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.release_tag }}
+          name: "Classic Calendar ${{ steps.vars.outputs.release_tag }}"
+          body: |
+            ## 📅 Classic Calendar ${{ steps.vars.outputs.release_tag }}
+            
+            Windows 10 클래식 일정 앱 스타일의 고성능 데스크톱 캘린더 자동 배포 릴리스입니다.
+            
+            ### 📦 배포 파일 안내
+            - **설치형 (NSIS Installer)**: `Classic-Calendar-Setup-*.exe` (바탕화면 및 시작 메뉴 바로가기 자동 생성)
+            - **무설치형 (Portable)**: `Classic-Calendar-Portable-*.exe` (설치 없이 즉시 단독 실행 가능)
+            
+            ### 🛡️ 무결성 검증 (SHA256 Checksums)
+            하단의 `checksums.txt` 파일에서 각 실행 파일의 SHA256 해시값을 확인하실 수 있습니다.
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: |
+            release/*.exe
+            release/latest.yml
+            release/checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
