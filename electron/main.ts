@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Notification } from 'electron';
+import { app, BrowserWindow, ipcMain, Notification, dialog } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
@@ -50,9 +50,26 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
-  // 페이지 로드 오류 로깅
+  // 페이지 로드 오류 로깅 및 사용자 알림 (빈 화면 버그 방지)
   mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
     console.error(`[Electron] Failed to load URL: ${validatedURL} (${errorCode}: ${errorDescription})`);
+    if (app.isPackaged) {
+      dialog.showErrorBox(
+        'Classic Calendar - 로드 실패',
+        `프로그램 화면 리소스를 불러오는 데 실패했습니다.\n\n경로: ${validatedURL}\n오류 코드: ${errorCode} (${errorDescription})\n\n최신 릴리스 패키지로 재설치하거나 파일 무결성을 확인해 주세요.`
+      );
+    }
+  });
+
+  // 렌더러 프로세스 비정상 종료 감지
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[Electron] Render process gone:', details);
+    if (details.reason !== 'clean-exit' && details.reason !== 'killed') {
+      dialog.showErrorBox(
+        'Classic Calendar - 렌더러 프로세스 오류',
+        `화면 렌더링 프로세스가 예기치 않게 종료되었습니다.\n\n원인: ${details.reason} (종료 코드: ${details.exitCode})`
+      );
+    }
   });
 
   // 디버깅을 위한 개발자 도구 단축키 (Ctrl+Shift+I 또는 F12)
