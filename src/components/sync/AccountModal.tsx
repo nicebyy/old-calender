@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import {
   X,
-  Mail,
-  Building,
   Globe,
   Cloud,
   RotateCw,
@@ -44,8 +42,6 @@ export const AccountModal: React.FC = () => {
 
     const defaultNames: Record<OAuthProvider, string> = {
       google: 'Google 캘린더',
-      microsoft: 'Outlook 일정',
-      exchange: 'Office 365 업무 일정',
       apple: 'iCloud 캘린더',
     };
 
@@ -61,16 +57,12 @@ export const AccountModal: React.FC = () => {
 
   const renderProviderIcon = (provider: OAuthProvider) => {
     switch (provider) {
-      case 'microsoft':
-        return <Mail className="w-5 h-5 text-[#0078d7]" />;
-      case 'exchange':
-        return <Building className="w-5 h-5 text-[#107c41]" />;
       case 'google':
         return <Globe className="w-5 h-5 text-[#ea4335]" />;
       case 'apple':
         return <Cloud className="w-5 h-5 text-[#a2aaad]" />;
       default:
-        return <Mail className="w-5 h-5" />;
+        return <Globe className="w-5 h-5" />;
     }
   };
 

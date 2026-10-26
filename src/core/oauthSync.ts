@@ -36,7 +36,7 @@ export function isAccountTokenExpired(account: SyncedAccount): boolean {
 }
 
 /**
- * 공급자별 원격 캘린더 동기화 데이터 생성 및 변환 (Google/Microsoft 시뮬레이터 & 파서)
+ * 공급자별 원격 캘린더 동기화 데이터 생성 및 변환 (Google/Apple 시뮬레이터 & 파서)
  */
 export function generateRemoteEventsForProvider(
   account: SyncedAccount,
@@ -75,24 +75,6 @@ export function generateRemoteEventsForProvider(
         isAllDay: false,
         categoryId: 'default-personal',
         accountId: account.id,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      },
-    ];
-  }
-
-  if (account.provider === 'microsoft' || account.provider === 'exchange') {
-    return [
-      {
-        id: `ms-${account.id}-sync-1`,
-        title: `[Outlook] 분기 경영 전략 회의 (${account.displayName})`,
-        description: 'Microsoft 365 Exchange 동기화 일정',
-        startDate: `${todayStr}T15:30:00`,
-        endDate: `${todayStr}T17:00:00`,
-        isAllDay: false,
-        categoryId: 'default-work',
-        accountId: account.id,
-        location: 'Microsoft Teams',
         createdAt: Date.now(),
         updatedAt: Date.now(),
       },

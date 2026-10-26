@@ -86,9 +86,9 @@ export interface AppSettings {
 }
 
 /**
- * OAuth2 공급자 및 연동 계정 타입
+ * OAuth2 공급자 및 연동 계정 타입 (Google Calendar, iCloud)
  */
-export type OAuthProvider = 'google' | 'microsoft' | 'apple' | 'exchange';
+export type OAuthProvider = 'google' | 'apple';
 
 export interface SyncedAccount {
   id: string;

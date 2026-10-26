@@ -510,8 +510,6 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   addSyncedAccount: (provider, email, displayName) => {
     const providerColors: Record<OAuthProvider, string> = {
       google: '#EA4335',
-      microsoft: '#0078D7',
-      exchange: '#107C41',
       apple: '#888888',
     };
 
