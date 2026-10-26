@@ -8,6 +8,12 @@ import {
   Check,
   FolderPlus,
   Cloud,
+  MapPin,
+  RotateCw,
+  Sun,
+  CloudSun,
+  CloudRain,
+  CloudSnow,
 } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
 import { MiniCalendar } from '../sidebar/MiniCalendar';
@@ -23,6 +29,9 @@ export const Sidebar: React.FC = () => {
   const addCategory = useCalendarStore((s) => s.addCategory);
   const openAccountModal = useCalendarStore((s) => s.openAccountModal);
   const settings = useCalendarStore((s) => s.settings);
+  const currentWeather = useCalendarStore((s) => s.currentWeather);
+  const refreshWeather = useCalendarStore((s) => s.refreshWeather);
+  const isWeatherLoading = useCalendarStore((s) => s.isWeatherLoading);
 
   const { t, language } = useTranslation();
 
@@ -56,6 +65,23 @@ export const Sidebar: React.FC = () => {
     return name;
   };
 
+  const renderWeatherIcon = (condition?: string) => {
+    switch (condition) {
+      case 'sunny':
+        return <Sun className="w-5 h-5 text-[#f59e0b] shrink-0" />;
+      case 'partlyCloudy':
+        return <CloudSun className="w-5 h-5 text-[#38bdf8] shrink-0" />;
+      case 'cloudy':
+        return <Cloud className="w-5 h-5 text-[#94a3b8] shrink-0" />;
+      case 'rainy':
+        return <CloudRain className="w-5 h-5 text-[#60a5fa] shrink-0" />;
+      case 'snowy':
+        return <CloudSnow className="w-5 h-5 text-[#e0e7ff] shrink-0" />;
+      default:
+        return <Sun className="w-5 h-5 text-[#f59e0b] shrink-0" />;
+    }
+  };
+
   return (
     <aside
       className={`h-full bg-[var(--win10-sidebar)] border-r border-[var(--win10-border)] text-[var(--win10-text-primary)] flex flex-col justify-between transition-all duration-150 ease-out select-none overflow-hidden z-20 print:hidden relative ${
@@ -74,7 +100,7 @@ export const Sidebar: React.FC = () => {
       )}
 
       {/* 사이드바 상단 콘텐츠 */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4 relative z-10">
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 relative z-10">
         {/* 새 이벤트 버튼 */}
         <button
           onClick={() => openEventModal()}
@@ -84,8 +110,53 @@ export const Sidebar: React.FC = () => {
           <span>{t('sidebar.newEvent')}</span>
         </button>
 
+        {/* 위치 기반 실시간 MSN Weather 카드 */}
+        {settings.showWeather && currentWeather && (
+          <div className="p-2.5 rounded bg-[var(--win10-card-bg)] border border-[var(--win10-border)] text-xs space-y-1.5 transition-all shadow-xs group">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={toggleSettings}
+                className="flex items-center space-x-1 text-[11px] font-medium text-[var(--win10-accent)] hover:underline truncate max-w-[150px]"
+                title={language === 'ko' ? '위치 변경 및 날씨 설정 열기' : 'Change location in Settings'}
+              >
+                <MapPin className="w-3 h-3 shrink-0" />
+                <span className="truncate">{currentWeather.locationName || settings.weatherLocation.city}</span>
+              </button>
+              <button
+                onClick={() => refreshWeather()}
+                disabled={isWeatherLoading}
+                className="p-1 rounded text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)] transition-colors"
+                title={language === 'ko' ? '날씨 실시간 새로고침' : 'Refresh Weather'}
+              >
+                <RotateCw className={`w-3 h-3 ${isWeatherLoading ? 'animate-spin text-[var(--win10-accent)]' : ''}`} />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between pt-0.5">
+              <div className="flex items-center space-x-2">
+                {renderWeatherIcon(currentWeather.condition)}
+                <div>
+                  <div className="text-base font-bold text-[var(--win10-text-primary)] leading-tight">
+                    {currentWeather.currentTemp ?? currentWeather.tempMax}°{settings.temperatureUnit}
+                  </div>
+                  <div className="text-[10px] text-[var(--win10-text-secondary)] truncate">
+                    {currentWeather.label}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-right text-[10px] text-[var(--win10-text-muted)] space-y-0.5">
+                <div>↑ {currentWeather.tempMax}° / ↓ {currentWeather.tempMin}°</div>
+                {currentWeather.humidity !== undefined && (
+                  <div>{language === 'ko' ? `습도 ${currentWeather.humidity}%` : `Humidity ${currentWeather.humidity}%`}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 미니 캘린더 피커 */}
-        <div className="pt-1">
+        <div className="pt-0.5">
           <MiniCalendar />
         </div>
 

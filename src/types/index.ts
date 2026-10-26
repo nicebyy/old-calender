@@ -33,11 +33,21 @@ export interface CalendarEvent {
   updatedAt: number;
 }
 
+export interface WeatherLocation {
+  city: string;
+  latitude: number;
+  longitude: number;
+  autoDetect: boolean;
+}
+
 export interface WeatherInfo {
   condition: 'sunny' | 'partlyCloudy' | 'cloudy' | 'rainy' | 'snowy';
   tempMax: number;
   tempMin: number;
+  currentTemp?: number;
   label: string;
+  locationName?: string;
+  humidity?: number;
 }
 
 export interface DayCellData {
@@ -82,6 +92,7 @@ export interface AppSettings {
   firstDayOfWeek: 0 | 1; // 0: 일요일, 1: 월요일
   showWeather: boolean; // Windows 10 날씨 표시 여부
   temperatureUnit: 'C' | 'F'; // 섭씨/화씨
+  weatherLocation: WeatherLocation; // 지역/위치 기반 날씨 설정
   showLunarCalendar: boolean; // 대체 캘린더 (음력 표시)
   backgroundTheme: string; // 'none' | 'alps' | 'lake' | 'city' | 'bloom' | 'aurora' | 'sunset' | 'windows' | custom url/data
   backgroundFill: BackgroundFillOption;

@@ -12,10 +12,14 @@ import {
   Image as ImageIcon,
   Sparkles,
   Globe,
+  MapPin,
+  Navigation,
+  RotateCw,
 } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
 import { WIN10_ACCENT_COLORS, FIRST_DAY_OPTIONS, THEME_MODES, BACKGROUND_FILL_OPTIONS } from '../../constants/settings';
 import { WALLPAPER_THEMES, THEME_PRESETS } from '../../constants/theme';
+import { WEATHER_CITY_PRESETS } from '../../constants/weather';
 import { ThemePreset } from '../../types';
 import { useTranslation, SUPPORTED_LANGUAGES } from '../../locales';
 
@@ -29,6 +33,10 @@ export const SettingsPanel: React.FC = () => {
   const importDataJSON = useCalendarStore((s) => s.importDataJSON);
   const exportEventsToICSFile = useCalendarStore((s) => s.exportEventsToICSFile);
   const importEventsFromICS = useCalendarStore((s) => s.importEventsFromICS);
+  const autoDetectLocation = useCalendarStore((s) => s.autoDetectLocation);
+  const setWeatherLocation = useCalendarStore((s) => s.setWeatherLocation);
+  const refreshWeather = useCalendarStore((s) => s.refreshWeather);
+  const isWeatherLoading = useCalendarStore((s) => s.isWeatherLoading);
 
   const { t, language, setLanguage } = useTranslation();
 
@@ -392,28 +400,114 @@ export const SettingsPanel: React.FC = () => {
               <span>{t('settings.showWeather')}</span>
             </label>
             {settings.showWeather && (
-              <div className="flex items-center space-x-3 pl-6 pt-1">
-                <span className="text-[var(--win10-text-secondary)]">{t('settings.tempUnit')}</span>
-                <label className="flex items-center space-x-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="tempUnit"
-                    checked={settings.temperatureUnit === 'C'}
-                    onChange={() => updateSettings({ temperatureUnit: 'C' })}
-                    className="accent-[var(--win10-accent)]"
-                  />
-                  <span>{t('settings.celsius')}</span>
-                </label>
-                <label className="flex items-center space-x-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="tempUnit"
-                    checked={settings.temperatureUnit === 'F'}
-                    onChange={() => updateSettings({ temperatureUnit: 'F' })}
-                    className="accent-[var(--win10-accent)]"
-                  />
-                  <span>{t('settings.fahrenheit')}</span>
-                </label>
+              <div className="space-y-3 pl-6 pt-1">
+                {/* 온도 단위 선택 */}
+                <div className="flex items-center space-x-3">
+                  <span className="text-[var(--win10-text-secondary)]">{t('settings.tempUnit')}</span>
+                  <label className="flex items-center space-x-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="tempUnit"
+                      checked={settings.temperatureUnit === 'C'}
+                      onChange={() => updateSettings({ temperatureUnit: 'C' })}
+                      className="accent-[var(--win10-accent)]"
+                    />
+                    <span>{t('settings.celsius')}</span>
+                  </label>
+                  <label className="flex items-center space-x-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="tempUnit"
+                      checked={settings.temperatureUnit === 'F'}
+                      onChange={() => updateSettings({ temperatureUnit: 'F' })}
+                      className="accent-[var(--win10-accent)]"
+                    />
+                    <span>{t('settings.fahrenheit')}</span>
+                  </label>
+                </div>
+
+                {/* 현재 설정된 위치 상태 표시 배지 */}
+                <div className="p-2.5 rounded bg-[var(--win10-card-bg)] border border-[var(--win10-border)] flex items-center justify-between text-xs">
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="w-4 h-4 text-[var(--win10-accent)] shrink-0" />
+                    <div>
+                      <div className="font-semibold text-[var(--win10-text-primary)] flex items-center space-x-1.5">
+                        <span>{settings.weatherLocation?.city || '서울'}</span>
+                        {settings.weatherLocation?.autoDetect && (
+                          <span className="px-1.5 py-0.5 bg-[var(--win10-accent)]/20 text-[var(--win10-accent)] text-[10px] rounded font-medium">
+                            GPS
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-[var(--win10-text-muted)]">
+                        {(settings.weatherLocation?.latitude ?? 37.56).toFixed(2)}°N, {(settings.weatherLocation?.longitude ?? 126.98).toFixed(2)}°E
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => refreshWeather()}
+                    disabled={isWeatherLoading}
+                    className="p-1.5 rounded hover:bg-[var(--win10-button-hover)] text-[var(--win10-text-secondary)] hover:text-[var(--win10-text-primary)] transition-colors"
+                    title={t('settings.refreshWeather')}
+                  >
+                    <RotateCw className={`w-3.5 h-3.5 ${isWeatherLoading ? 'animate-spin text-[var(--win10-accent)]' : ''}`} />
+                  </button>
+                </div>
+
+                {/* 위치 선택 컨트롤: GPS 자동 감지 버튼 및 도시 프리셋 드롭다운 */}
+                <div className="space-y-2">
+                  <button
+                    onClick={() => autoDetectLocation()}
+                    disabled={isWeatherLoading}
+                    className="w-full flex items-center justify-center space-x-1.5 py-1.5 px-2.5 text-xs bg-[var(--win10-card-bg)] hover:bg-[var(--win10-button-hover)] border border-[var(--win10-border)] text-[var(--win10-text-primary)] rounded transition-colors disabled:opacity-50"
+                  >
+                    <Navigation className={`w-3.5 h-3.5 text-[var(--win10-accent)] ${isWeatherLoading ? 'animate-pulse' : ''}`} />
+                    <span>{isWeatherLoading ? t('settings.detectingLocation') : t('settings.autoDetectLocation')}</span>
+                  </button>
+
+                  <div className="space-y-1">
+                    <label className="block text-[11px] text-[var(--win10-text-secondary)]">
+                      {t('settings.selectCity')}
+                    </label>
+                    <select
+                      value={
+                        WEATHER_CITY_PRESETS.find(
+                          (p) => p.nameKo === settings.weatherLocation?.city || p.nameEn === settings.weatherLocation?.city
+                        )?.id || ''
+                      }
+                      onChange={(e) => {
+                        const preset = WEATHER_CITY_PRESETS.find((p) => p.id === e.target.value);
+                        if (preset) {
+                          setWeatherLocation({
+                            city: language === 'ko' ? preset.nameKo : preset.nameEn,
+                            latitude: preset.latitude,
+                            longitude: preset.longitude,
+                            autoDetect: false,
+                          });
+                        }
+                      }}
+                      className="w-full text-xs p-1.5 rounded bg-[var(--win10-input-bg)] border border-[var(--win10-border)] text-[var(--win10-text-primary)] focus:outline-none focus:border-[var(--win10-accent)]"
+                    >
+                      <option value="" disabled>
+                        {t('settings.selectCity')}
+                      </option>
+                      <optgroup label={language === 'ko' ? '대한민국 주요 거점 / 광역자치단체 (17)' : 'South Korea Major Cities (17)'}>
+                        {WEATHER_CITY_PRESETS.slice(0, 17).map((preset) => (
+                          <option key={preset.id} value={preset.id}>
+                            {language === 'ko' ? preset.nameKo : preset.nameEn}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label={language === 'ko' ? '해외 주요 도시' : 'Global Major Cities'}>
+                        {WEATHER_CITY_PRESETS.slice(17).map((preset) => (
+                          <option key={preset.id} value={preset.id}>
+                            {language === 'ko' ? preset.nameKo : preset.nameEn}
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                  </div>
+                </div>
               </div>
             )}
           </div>

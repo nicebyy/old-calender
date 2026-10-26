@@ -1,4 +1,4 @@
-import { CalendarEvent, DayCellData } from '../types';
+import { CalendarEvent, DayCellData, WeatherInfo, WeatherLocation } from '../types';
 import { DAYS_IN_WEEK, WEEKS_IN_MONTH_GRID } from '../constants/calendar';
 import { getHolidayName, getApproxLunarDateString } from './holidays';
 import { getWeatherForDate } from './weather';
@@ -36,6 +36,9 @@ export function getMonthGrid(
     showWeather?: boolean;
     tempUnit?: 'C' | 'F';
     showLunar?: boolean;
+    location?: WeatherLocation;
+    weatherCache?: Record<string, WeatherInfo>;
+    lang?: 'ko' | 'en';
   }
 ): DayCellData[] {
   const today = new Date();
@@ -64,8 +67,18 @@ export function getMonthGrid(
     });
 
     const holidayName = getHolidayName(cellDate);
-    const lunarDateString = options?.showLunar ? getApproxLunarDateString(cellDate) : undefined;
-    const weather = options?.showWeather ? getWeatherForDate(cellDate, options.tempUnit || 'C') : undefined;
+    const lunarDateString = options?.showLunar
+      ? getApproxLunarDateString(cellDate)
+      : undefined;
+    const weather = options?.showWeather
+      ? getWeatherForDate(
+          cellDate,
+          options.tempUnit || 'C',
+          options.location,
+          options.weatherCache,
+          options.lang
+        )
+      : undefined;
 
     cells.push({
       date: cellDate,
