@@ -96,14 +96,14 @@ export const MonthView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#1f1f1f] select-none overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-[var(--win10-bg)] select-none overflow-hidden transition-colors">
       {/* 요일 헤더 */}
-      <div className="grid grid-cols-7 border-b border-[#333333] bg-[#222222] text-xs font-semibold text-[#aaaaaa]">
+      <div className="grid grid-cols-7 border-b border-[var(--win10-border)] bg-[var(--win10-surface)] text-xs font-semibold text-[var(--win10-text-secondary)]">
         {WEEKDAYS_KO.map((day, idx) => (
           <div
             key={day}
             className={`py-2 px-3 text-left ${
-              idx === 0 ? 'text-[#ff7878]' : idx === 6 ? 'text-[#70b0ff]' : ''
+              idx === 0 ? 'text-[#ff5555]' : idx === 6 ? 'text-[#0078d7]' : ''
             }`}
           >
             {day}
@@ -112,7 +112,7 @@ export const MonthView: React.FC = () => {
       </div>
 
       {/* 6주 x 7일 캘린더 그리드 */}
-      <div className="flex-1 grid grid-cols-7 grid-rows-6 border-l border-t border-[#2d2d2d]">
+      <div className="flex-1 grid grid-cols-7 grid-rows-6 border-l border-t border-[var(--win10-border)]">
         {grid.map((cell, idx) => {
           const isSelected = cell.isSelected;
           const isToday = cell.isToday;
@@ -128,11 +128,11 @@ export const MonthView: React.FC = () => {
               onDragOver={(e) => handleDragOver(e, cell.dateString)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, cell.dateString)}
-              className={`border-r border-b border-[#2d2d2d] p-1 flex flex-col justify-between transition-colors relative cursor-pointer group
-                ${isCurrent ? 'bg-[#1f1f1f]' : 'bg-[#181818]'}
-                ${isSelected ? 'ring-1 ring-[#0078d7] z-10' : ''}
-                ${isDragOver ? 'bg-[#2f3d4c] ring-2 ring-[#0078d7]' : ''}
-                hover:bg-[#282828] hover:border-[#444444]
+              className={`border-r border-b border-[var(--win10-border)] p-1 flex flex-col justify-between transition-colors relative cursor-pointer group
+                ${isCurrent ? 'bg-[var(--win10-cell-bg)]' : 'bg-[var(--win10-cell-other)]'}
+                ${isSelected ? 'ring-2 ring-[var(--win10-accent)] z-10' : ''}
+                ${isDragOver ? 'bg-[var(--win10-cell-hover)] ring-2 ring-[var(--win10-accent)]' : ''}
+                hover:bg-[var(--win10-cell-hover)]
               `}
             >
               {/* 상단 날짜 및 날씨, 공휴일 헤더 */}
@@ -140,11 +140,11 @@ export const MonthView: React.FC = () => {
                 <div className="flex items-baseline space-x-1">
                   <div
                     className={`w-6 h-6 flex items-center justify-center text-xs rounded-full font-medium transition-colors
-                      ${isToday ? 'bg-[#0078d7] text-white font-bold shadow' : ''}
+                      ${isToday ? 'bg-[var(--win10-accent)] text-white font-bold shadow' : ''}
                       ${!isToday && isHoliday ? 'text-[#ff5555] font-semibold' : ''}
-                      ${!isToday && !isHoliday && isCurrent ? 'text-white' : ''}
-                      ${!isToday && !isHoliday && !isCurrent ? 'text-[#666666]' : ''}
-                      ${!isToday && !isHoliday && isCurrent && isWeekend ? 'text-[#e0e0e0]' : ''}
+                      ${!isToday && !isHoliday && isCurrent ? 'text-[var(--win10-text-primary)]' : ''}
+                      ${!isToday && !isHoliday && !isCurrent ? 'text-[var(--win10-text-muted)]' : ''}
+                      ${!isToday && !isHoliday && isCurrent && isWeekend ? 'text-[var(--win10-text-primary)]' : ''}
                     `}
                   >
                     {cell.dayNumber}
@@ -189,15 +189,15 @@ export const MonthView: React.FC = () => {
                       draggable
                       onDragStart={(e) => handleDragStart(e, evt)}
                       onClick={(e) => handleEventClick(e, evt)}
-                      className="px-1.5 py-0.5 rounded text-[11px] truncate flex items-center space-x-1.5 bg-[#2a2a2a] hover:bg-[#383838] border-l-2 transition-all shadow-xs cursor-grab active:cursor-grabbing"
+                      className="px-1.5 py-0.5 rounded text-[11px] truncate flex items-center space-x-1.5 bg-[var(--win10-card-bg)] hover:bg-[var(--win10-card-hover)] border-l-2 transition-all shadow-xs cursor-grab active:cursor-grabbing text-[var(--win10-text-primary)]"
                       style={{ borderLeftColor: color }}
                       title={`${evt.title} (${evt.startDate.slice(11, 16)}~${evt.endDate.slice(11, 16)}) - 드래그하여 날짜 이동 가능`}
                     >
-                      <span className="font-normal text-white truncate flex-1">
+                      <span className="font-normal text-[var(--win10-text-primary)] truncate flex-1">
                         {evt.title}
                       </span>
                       {!evt.isAllDay && (
-                        <span className="text-[9.5px] text-[#888888] shrink-0">
+                        <span className="text-[9.5px] text-[var(--win10-text-secondary)] shrink-0">
                           {evt.startDate.slice(11, 16)}
                         </span>
                       )}
@@ -206,7 +206,7 @@ export const MonthView: React.FC = () => {
                 })}
 
                 {cell.events.length > 3 && (
-                  <div className="text-[10px] text-[#0078d7] font-medium pl-1 hover:underline">
+                  <div className="text-[10px] text-[var(--win10-accent)] font-medium pl-1 hover:underline">
                     +{cell.events.length - 3}개 더보기
                   </div>
                 )}

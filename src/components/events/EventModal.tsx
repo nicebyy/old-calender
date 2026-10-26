@@ -133,16 +133,16 @@ export const EventModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs select-none print:hidden">
-      <div className="w-[500px] max-h-[90vh] bg-[#2b2b2b] border border-[#444444] rounded shadow-2xl overflow-hidden flex flex-col text-white">
+      <div className="w-[500px] max-h-[90vh] bg-[var(--win10-modal-bg)] border border-[var(--win10-border)] rounded shadow-2xl overflow-hidden flex flex-col text-[var(--win10-text-primary)] transition-colors">
         {/* 모달 헤더 */}
-        <div className="h-10 bg-[#252525] border-b border-[#383838] flex items-center justify-between px-3 shrink-0">
-          <div className="text-xs font-semibold text-[#dddddd] flex items-center space-x-2">
-            <CalendarIcon className="w-3.5 h-3.5 text-[#0078d7]" />
+        <div className="h-10 bg-[var(--win10-surface)] border-b border-[var(--win10-border)] flex items-center justify-between px-3 shrink-0">
+          <div className="text-xs font-semibold text-[var(--win10-text-primary)] flex items-center space-x-2">
+            <CalendarIcon className="w-3.5 h-3.5 text-[var(--win10-accent)]" />
             <span>{editingEvent ? '이벤트 편집' : '새 이벤트'}</span>
           </div>
           <button
             onClick={closeModal}
-            className="p-1 hover:bg-[#e81123] rounded transition-colors text-[#aaaaaa] hover:text-white"
+            className="p-1 hover:bg-[#e81123] rounded transition-colors text-[var(--win10-text-secondary)] hover:text-white"
           >
             <X className="w-4 h-4" />
           </button>
@@ -159,7 +159,7 @@ export const EventModal: React.FC = () => {
               placeholder="이벤트 이름 추가"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-2.5 py-1.5 bg-[#1f1f1f] border border-[#444444] focus:border-[#0078d7] outline-none text-sm text-white placeholder-[#888888] rounded"
+              className="w-full px-2.5 py-1.5 bg-[var(--win10-input-bg)] border border-[var(--win10-border)] focus:border-[var(--win10-accent)] outline-none text-sm text-[var(--win10-text-primary)] placeholder-[var(--win10-text-muted)] rounded"
             />
           </div>
 

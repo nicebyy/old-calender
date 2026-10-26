@@ -1,4 +1,4 @@
-import { OAuth2ProviderConfig, OAuthProvider } from '../types';
+import { OAuth2ProviderConfig } from '../types';
 
 export const OAUTH_PROVIDERS: OAuth2ProviderConfig[] = [
   {

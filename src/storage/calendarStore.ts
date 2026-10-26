@@ -5,27 +5,66 @@ import {
   CalendarEvent,
   CalendarViewType,
   QuickPopoverState,
+  OAuthProvider,
+  SyncedAccount,
+  ThemePreset,
 } from '../types';
 import { DEFAULT_CATEGORIES } from '../constants/calendar';
 import { getNavigatedDate } from '../core/calendar';
 import { expandEventsForRange } from '../core/recurrence';
 import { exportEventsToICS, parseICSToEvents } from '../core/ical';
 import { generateRemoteEventsForProvider, mergeRemoteEvents } from '../core/oauthSync';
-import { OAuthProvider, SyncedAccount } from '../types';
 
 const STORAGE_KEY_EVENTS = 'win10_calendar_events';
 const STORAGE_KEY_CATEGORIES = 'win10_calendar_categories';
 const STORAGE_KEY_SETTINGS = 'win10_calendar_settings';
 const STORAGE_KEY_ACCOUNTS = 'win10_calendar_synced_accounts';
 
-const DEFAULT_SETTINGS: AppSettings = {
+export const DEFAULT_SETTINGS: AppSettings = {
   themeMode: 'dark',
   accentColor: '#0078D7',
   firstDayOfWeek: 0,
   showWeather: true,
   temperatureUnit: 'C',
   showLunarCalendar: true,
+  backgroundTheme: 'none',
+  backgroundFill: 'sidebar',
+  backgroundOpacity: 0.35,
 };
+
+/**
+ * 테마 설정(다크/라이트 모드, 액센트 컬러, 배경 불투명도)을 DOM에 실시간 반영
+ */
+export function applyThemeToDOM(settings: AppSettings) {
+  if (typeof document === 'undefined') return;
+
+  // 1. Accent color CSS variables
+  if (settings.accentColor) {
+    document.documentElement.style.setProperty('--win10-accent', settings.accentColor);
+  }
+
+  // 2. Theme Mode: 'dark' | 'light' | 'system'
+  let resolvedMode: 'dark' | 'light' = 'dark';
+  if (settings.themeMode === 'system') {
+    resolvedMode =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: light)').matches
+        ? 'light'
+        : 'dark';
+  } else {
+    resolvedMode = settings.themeMode === 'light' ? 'light' : 'dark';
+  }
+  document.documentElement.setAttribute('data-theme', resolvedMode);
+
+  // 3. Background Opacity variable
+  if (typeof settings.backgroundOpacity === 'number') {
+    document.documentElement.style.setProperty(
+      '--win10-bg-opacity',
+      String(settings.backgroundOpacity)
+    );
+  }
+}
 
 function loadStoredAccounts(): SyncedAccount[] {
   try {
@@ -99,8 +138,11 @@ function loadStoredCategories(): CalendarCategory[] {
 function loadStoredSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SETTINGS);
-    return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
+    const loaded = raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
+    applyThemeToDOM(loaded);
+    return loaded;
   } catch {
+    applyThemeToDOM(DEFAULT_SETTINGS);
     return DEFAULT_SETTINGS;
   }
 }
@@ -139,6 +181,7 @@ interface CalendarState {
 
   // 설정 액션
   updateSettings: (newSettings: Partial<AppSettings>) => void;
+  applyThemePreset: (preset: ThemePreset) => void;
   toggleSettings: () => void;
   toggleSearch: () => void;
   setSearchQuery: (query: string) => void;
@@ -312,12 +355,19 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         console.error('Failed to persist settings:', err);
       }
 
-      // 동적 액센트 컬러 CSS 변수 갱신
-      if (newSettings.accentColor) {
-        document.documentElement.style.setProperty('--win10-accent', newSettings.accentColor);
-      }
+      // 동적 액센트 컬러 및 테마 DOM 반영
+      applyThemeToDOM(updated);
 
       return { settings: updated };
+    });
+  },
+
+  applyThemePreset: (preset) => {
+    get().updateSettings({
+      themeMode: preset.themeMode,
+      accentColor: preset.accentColor,
+      backgroundTheme: preset.backgroundTheme,
+      backgroundFill: preset.backgroundFill,
     });
   },
 
@@ -451,6 +501,153 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     });
 
     return newEvents.length;
+  },
+
+  // OAuth2 계정 동기화 구현
+  openAccountModal: () => set({ isAccountModalOpen: true }),
+  closeAccountModal: () => set({ isAccountModalOpen: false }),
+
+  addSyncedAccount: (provider, email, displayName) => {
+    const providerColors: Record<OAuthProvider, string> = {
+      google: '#EA4335',
+      microsoft: '#0078D7',
+      exchange: '#107C41',
+      apple: '#888888',
+    };
+
+    const newAcc: SyncedAccount = {
+      id: `acc-${Date.now()}`,
+      provider,
+      email,
+      displayName: displayName || email,
+      syncStatus: 'idle',
+      color: providerColors[provider] || '#0078D7',
+      isEnabled: true,
+      createdAt: Date.now(),
+    } as SyncedAccount;
+
+    set((state) => {
+      const updatedAccounts = [...state.syncedAccounts, newAcc];
+      localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updatedAccounts));
+
+      // 해당 계정 전용 캘린더 카테고리도 자동 등록
+      const newCat: CalendarCategory = {
+        id: `cat-${newAcc.id}`,
+        name: `${newAcc.displayName} (${provider.toUpperCase()})`,
+        color: newAcc.color,
+        isVisible: true,
+      };
+      const updatedCategories = [...state.categories, newCat];
+      localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(updatedCategories));
+
+      return {
+        syncedAccounts: updatedAccounts,
+        categories: updatedCategories,
+        isAccountModalOpen: false,
+      };
+    });
+
+    // 계정 추가 직후 즉각 1차 동기화 수행
+    get().syncAccount(newAcc.id);
+  },
+
+  removeSyncedAccount: (accountId) => {
+    set((state) => {
+      const updatedAccounts = state.syncedAccounts.filter((a) => a.id !== accountId);
+      localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updatedAccounts));
+
+      // 해당 계정의 원격 일정 및 전용 카테고리 정리
+      const updatedEvents = state.events.filter((e) => e.accountId !== accountId);
+      localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(updatedEvents));
+
+      const updatedCategories = state.categories.filter((c) => c.id !== `cat-${accountId}`);
+      localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(updatedCategories));
+
+      return {
+        syncedAccounts: updatedAccounts,
+        events: updatedEvents,
+        categories: updatedCategories,
+      };
+    });
+  },
+
+  toggleAccountEnabled: (accountId) => {
+    set((state) => {
+      const updatedAccounts = state.syncedAccounts.map((a) =>
+        a.id === accountId ? { ...a, isEnabled: !a.isEnabled } : a
+      );
+      localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updatedAccounts));
+
+      // 연동된 카테고리 가시성도 동기화
+      const target = updatedAccounts.find((a) => a.id === accountId);
+      if (target) {
+        const updatedCats = state.categories.map((c) =>
+          c.id === `cat-${accountId}` ? { ...c, isVisible: target.isEnabled } : c
+        );
+        localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(updatedCats));
+        return { syncedAccounts: updatedAccounts, categories: updatedCats };
+      }
+
+      return { syncedAccounts: updatedAccounts };
+    });
+  },
+
+  syncAccount: async (accountId) => {
+    const account = get().syncedAccounts.find((a) => a.id === accountId);
+    if (!account) return;
+
+    // 동기화 중 상태 표시
+    set((state) => ({
+      isSyncing: true,
+      syncedAccounts: state.syncedAccounts.map((a) =>
+        a.id === accountId ? { ...a, syncStatus: 'syncing' } : a
+      ),
+    }));
+
+    // 실제 원격 일정 가져오기 시뮬레이션 및 데이터 변환 (약 300ms 지연으로 부드러운 UI 경험)
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    try {
+      const remoteEvents = generateRemoteEventsForProvider(account, get().selectedDate);
+      const mergedEvents = mergeRemoteEvents(get().events, remoteEvents, accountId);
+
+      localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(mergedEvents));
+
+      set((state) => ({
+        isSyncing: false,
+        events: mergedEvents,
+        syncedAccounts: state.syncedAccounts.map((a) =>
+          a.id === accountId
+            ? {
+                ...a,
+                syncStatus: 'success',
+                lastSyncTime: Date.now(),
+              }
+            : a
+        ),
+      }));
+    } catch (err: any) {
+      set((state) => ({
+        isSyncing: false,
+        syncedAccounts: state.syncedAccounts.map((a) =>
+          a.id === accountId
+            ? {
+                ...a,
+                syncStatus: 'error',
+                errorMessage: err?.message || '동기화 실패',
+              }
+            : a
+        ),
+      }));
+    }
+  },
+
+  syncAllAccounts: async () => {
+    const { syncedAccounts } = get();
+    const activeAccounts = syncedAccounts.filter((a) => a.isEnabled);
+    for (const acc of activeAccounts) {
+      await get().syncAccount(acc.id);
+    }
   },
 
   getExpandedEvents: (rangeStart, rangeEnd) => {

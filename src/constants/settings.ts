@@ -26,6 +26,13 @@ export const WIN10_ACCENT_COLORS: AccentColorOption[] = [
 export const THEME_MODES = [
   { id: 'dark', label: '어둡게 (기본값)' },
   { id: 'light', label: '밝게' },
+  { id: 'system', label: 'Windows 모드 사용 (시스템 설정 연동)' },
+] as const;
+
+export const BACKGROUND_FILL_OPTIONS = [
+  { id: 'sidebar', label: '사이드바에만 채우기 (Windows 10 기본)' },
+  { id: 'window', label: '창 전체 채우기' },
+  { id: 'none', label: '배경 채우지 않음' },
 ] as const;
 
 export const FIRST_DAY_OPTIONS = [

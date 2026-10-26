@@ -28,7 +28,7 @@ export const YearView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 bg-[#1f1f1f] select-none">
+    <div className="flex-1 overflow-y-auto p-4 bg-[var(--win10-bg)] select-none transition-colors">
       <div className="grid grid-cols-4 gap-4 max-w-6xl mx-auto">
         {Array.from({ length: 12 }, (_, monthIdx) => {
           const grid = getMonthGrid(year, monthIdx, selectedDate);
@@ -37,20 +37,20 @@ export const YearView: React.FC = () => {
             <div
               key={monthIdx}
               onClick={() => handleMonthClick(monthIdx)}
-              className="bg-[#242424] hover:bg-[#2a2a2a] border border-[#333333] hover:border-[#0078d7] rounded p-2.5 transition-all cursor-pointer shadow-sm group"
+              className="bg-[var(--win10-card-bg)] hover:bg-[var(--win10-card-hover)] border border-[var(--win10-border)] hover:border-[var(--win10-accent)] rounded p-2.5 transition-all cursor-pointer shadow-sm group"
             >
               {/* 월 타이틀 */}
-              <div className="font-semibold text-xs text-white group-hover:text-[#0078d7] transition-colors mb-2 px-1">
+              <div className="font-semibold text-xs text-[var(--win10-text-primary)] group-hover:text-[var(--win10-accent)] transition-colors mb-2 px-1">
                 {MONTH_NAMES_KO[monthIdx]}
               </div>
 
               {/* 요일 헤더 */}
-              <div className="grid grid-cols-7 text-center text-[9px] text-[#888888] mb-1">
+              <div className="grid grid-cols-7 text-center text-[9px] text-[var(--win10-text-secondary)] mb-1">
                 {WEEKDAYS_KO.map((day, idx) => (
                   <div
                     key={day}
                     className={
-                      idx === 0 ? 'text-[#ff7878]' : idx === 6 ? 'text-[#70b0ff]' : ''
+                      idx === 0 ? 'text-[#ff5555]' : idx === 6 ? 'text-[#0078d7]' : ''
                     }
                   >
                     {day}
@@ -74,8 +74,8 @@ export const YearView: React.FC = () => {
                       onClick={(e) => handleDayClick(e, cell.date)}
                       className={`h-4.5 w-4.5 mx-auto flex items-center justify-center rounded-full text-[10px] transition-colors ${
                         isToday
-                          ? 'bg-[#0078d7] text-white font-bold'
-                          : 'text-[#cccccc] hover:bg-[#3d3d3d]'
+                          ? 'bg-[var(--win10-accent)] text-white font-bold'
+                          : 'text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)]'
                       }`}
                     >
                       {cell.dayNumber}
