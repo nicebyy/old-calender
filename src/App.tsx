@@ -63,6 +63,17 @@ export const App: React.FC = () => {
     }
   }, [settings]);
 
+  // Electron 자동 업데이트 상태 리스너 등록
+  const setUpdateStatus = useCalendarStore((s) => s.setUpdateStatus);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.electronAPI?.onUpdateStatus) {
+      const unsubscribe = window.electronAPI.onUpdateStatus((status) => {
+        setUpdateStatus(status);
+      });
+      return () => unsubscribe();
+    }
+  }, [setUpdateStatus]);
+
   // Windows 10 캘린더 전역 단축키 등록
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

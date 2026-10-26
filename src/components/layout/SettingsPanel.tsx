@@ -17,6 +17,10 @@ import {
   RotateCw,
   Search,
   Loader2,
+  RefreshCw,
+  ArrowDownCircle,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import { useCalendarStore } from '../../storage/calendarStore';
 import { WIN10_ACCENT_COLORS, FIRST_DAY_OPTIONS, THEME_MODES, BACKGROUND_FILL_OPTIONS } from '../../constants/settings';
@@ -40,6 +44,9 @@ export const SettingsPanel: React.FC = () => {
   const setWeatherLocation = useCalendarStore((s) => s.setWeatherLocation);
   const refreshWeather = useCalendarStore((s) => s.refreshWeather);
   const isWeatherLoading = useCalendarStore((s) => s.isWeatherLoading);
+  const updateStatus = useCalendarStore((s) => s.updateStatus);
+  const checkForUpdates = useCalendarStore((s) => s.checkForUpdates);
+  const quitAndInstallUpdate = useCalendarStore((s) => s.quitAndInstallUpdate);
 
   const { t, language, setLanguage } = useTranslation();
 
@@ -722,6 +729,95 @@ export const SettingsPanel: React.FC = () => {
                 onChange={handleImportJSON}
                 className="hidden"
               />
+            </div>
+          </div>
+
+          {/* 소프트웨어 자동 업데이트 (Auto-Update) */}
+          <div className="space-y-2 pt-3 border-t border-[var(--win10-border)]">
+            <div className="flex items-center space-x-2 font-medium text-[13px] text-[var(--win10-text-primary)]">
+              <RefreshCw className="w-4 h-4 text-[var(--win10-accent)]" />
+              <span>{t('settings.softwareUpdate')}</span>
+            </div>
+
+            <div className="bg-[var(--win10-card-bg)] border border-[var(--win10-border)] rounded p-2.5 space-y-2 text-xs">
+              <div className="flex items-center justify-between text-[var(--win10-text-secondary)]">
+                <span>{t('settings.currentVersion')}</span>
+                <span className="font-semibold text-[var(--win10-text-primary)]">v1.0.0</span>
+              </div>
+
+              {/* 상태 메시지 및 프로그레스 바 */}
+              {updateStatus?.status === 'checking' && (
+                <div className="flex items-center space-x-2 text-[var(--win10-accent)] py-1">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  <span>{t('settings.checkingForUpdates')}</span>
+                </div>
+              )}
+
+              {updateStatus?.status === 'available' && (
+                <div className="flex items-center space-x-2 text-amber-400 py-1">
+                  <ArrowDownCircle className="w-3.5 h-3.5 shrink-0 animate-bounce" />
+                  <span>{t('settings.updateAvailable', { version: updateStatus.version || '' })}</span>
+                </div>
+              )}
+
+              {updateStatus?.status === 'downloading' && (
+                <div className="space-y-1.5 py-1">
+                  <div className="flex justify-between text-[11px] text-[var(--win10-text-secondary)]">
+                    <span>{t('settings.updateDownloading', { percent: updateStatus.percent || 0 })}</span>
+                    <span>{updateStatus.percent || 0}%</span>
+                  </div>
+                  <div className="w-full bg-[var(--win10-input-bg)] h-1.5 rounded overflow-hidden">
+                    <div
+                      className="bg-[var(--win10-accent)] h-full transition-all duration-300"
+                      style={{ width: `${updateStatus.percent || 0}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {updateStatus?.status === 'downloaded' && (
+                <div className="space-y-2 py-1">
+                  <div className="flex items-center space-x-2 text-emerald-400 font-medium">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{t('settings.updateDownloaded', { version: updateStatus.version || '' })}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={quitAndInstallUpdate}
+                    className="w-full py-1.5 px-3 bg-[var(--win10-accent)] hover:opacity-90 text-white font-medium rounded transition-opacity flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>{t('settings.restartAndInstall')}</span>
+                  </button>
+                </div>
+              )}
+
+              {updateStatus?.status === 'not-available' && (
+                <div className="flex items-center space-x-1.5 text-emerald-400 py-0.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>{t('settings.updateLatest')}</span>
+                </div>
+              )}
+
+              {updateStatus?.status === 'error' && (
+                <div className="flex items-center space-x-1.5 text-red-400 py-0.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{updateStatus.error || t('settings.updateError')}</span>
+                </div>
+              )}
+
+              {/* 업데이트 확인 버튼 */}
+              {updateStatus?.status !== 'downloaded' && (
+                <button
+                  type="button"
+                  disabled={updateStatus?.status === 'checking' || updateStatus?.status === 'downloading'}
+                  onClick={() => checkForUpdates()}
+                  className="w-full mt-1 py-1.5 px-2 bg-[var(--win10-input-bg)] hover:bg-[var(--win10-button-hover)] disabled:opacity-50 text-[var(--win10-text-primary)] rounded border border-[var(--win10-border)] transition-colors flex items-center justify-center space-x-1 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3 h-3 ${updateStatus?.status === 'checking' ? 'animate-spin' : ''}`} />
+                  <span>{t('settings.checkForUpdates')}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
