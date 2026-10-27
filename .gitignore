@@ -14,7 +14,9 @@ out/
 release/
 *.tsbuildinfo
 
-# Agent Worktrees (Git Worktree Isolation Policy)
+# Local guidelines and configs
+GEMINI.md
+RULES.md
 .agents/
 
 # Logs
