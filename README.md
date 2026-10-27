@@ -23,7 +23,7 @@ Windows 10 시절의 미려하고 가벼웠던 **클래식 일정(Calendar) 데�
 * **Build Tool**: [Vite](https://vitejs.dev/) (v6) - 번개 같은 HMR 및 초고속 빌드
 * **State Management**: [Zustand](https://zustand.docs.pmnd.rs/) (v5) - Zero-Latency In-Memory 스토어 & 로컬 영속화
 * **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) + Windows 10 Fluent Theme Tokens
-* **Testing**: [Vitest](https://vitest.dev/) (v3) - 100% 단위 테스트 통과 게이트 ([RULES.md](./RULES.md))
+* **Testing**: [Vitest](https://vitest.dev/) (v3) - 100% 단위 테스트 통과 게이트
 
 ---
 
@@ -230,7 +230,6 @@ classic-calendar/
 │   ├── App.tsx               # 최상위 뷰 및 전역 단축키 핸들러
 │   └── main.tsx              # React 19 진입점
 ├── tests/                    # Vitest 테스트 환경
-├── RULES.md                  # 프로젝트 개발 및 브랜치 규칙
 └── package.json
 ```
 
