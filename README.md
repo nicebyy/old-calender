@@ -318,3 +318,12 @@ npm run dist
    - 다운로드 완료 시 Windows 10 토스트 배너 알림 및 설정 패널의 **`[지금 재시작하여 업데이트 적용]`** 버튼으로 1초 만에 최신 버전으로 교체 재실행됩니다.
 5. **수동 즉시 확인**:
    - 설정 패널의 **`[업데이트 확인]`** 버튼을 통해 사용자가 원하는 시점에 즉시 새 버전을 체크할 수 있습니다.
+
+---
+
+## 🔒 개인정보처리방침 (Privacy Policy)
+
+본 앱은 사용자의 개인정보를 서버로 수집·전송하지 않는 로컬 독립형(Local-First) 애플리케이션입니다. 
+스토어 배포 및 심사를 위한 공식 개인정보처리방침 문서는 [PRIVACY.md](./PRIVACY.md)를 참고해 주시기 바랍니다.
+
+- **온라인 URL (Online Privacy Policy URL)**: `https://github.com/nicebyy/old-calender/blob/main/PRIVACY.md`
