@@ -44,8 +44,11 @@ Windows 10 시절의 미려하고 가벼웠던 **클래식 일정(Calendar) 데�
   - **대구 달서구 본동 포함 30개 이상 전국 시도 및 해외 주요 거점 프리셋**: 수도권, 대구경북, 부산경남, 강원, 충청, 전라, 제주 및 글로벌 주요 도시 원클릭 선택.
   - **무료 오픈 날씨 연동 (Open-Meteo)**: 별도 API Key 없이 실시간 기상청 데이터(온도, 최고/최저, 기상 상태, 습도)를 조회하며, 네트워크 지연/오프라인 시 계절 기반 결정론적 추정 엔진으로 0ms 즉시 폴백.
   - **사이드바 실시간 날씨 카드**: 현재 위치명(`📍`), 실시간 기온, 최고/최저, 날씨 라벨, 습도(%), `RotateCw` 실시간 새로고침 버튼 및 설정 패널 바로가기 제공.
-  - **월간 뷰 캘린더 그리드**: 각 일자별 날씨 아이콘(맑음/구름/흐림/비/눈) 및 최고/최저 기온, 마우스 호버 시 지역명 포함 상세 날씨 툴팁 제공.
+  - **월간 뷰 캘린더 그리드**: 각 일자별 날씨 아이콘(맑음/구름/흐림/비/눈) 표기. 오늘(`isToday`) 날짜 셀에는 낮 최고 기온 대신 **실시간 관측 현재 기온(`currentTemp`)**을 우선 표시하며, 마우스 호버 시 지역명과 현재/최고/최저 기온이 완벽히 포함된 상세 날씨 툴팁 제공.
   - **섭씨(℃)/화씨(℉) 단위 변환**: 원클릭 실시간 단위 전환.
+- **클린 슬레이트 및 기본 샘플 데이터 완전 제거 (Clean Slate & Legacy Purge)**:
+  - 신규 설치 사용자가 앱을 처음 실행할 때 불필요하거나 오해를 유발할 수 있는 하드코딩 샘플 일정을 일체 생성하지 않고 **완전한 빈 캘린더(`[]`) 및 빈 메모 목록**으로 산뜻하게 시작.
+  - 기존 구버전(1.0.0, 1.0.1) 설치자의 로컬 스토리지(`localStorage`)에 저장되어 있던 레거시 샘플 일정(`sample-1, 2, 3`) 및 메모(`memo-sample-1, 2`)를 앱 구동 시 자동 탐지하여 영구 소멸(Purge) 처리.
 - **마우스 휠 세로 스크롤 월 단위 연속 이동 (Vertical Wheel Month Navigation)**:
   - **Windows 10 UWP 시그니처 휠 조작감**: 캘린더 그리드 위에서 마우스 휠을 위/아래로 스크롤하거나 트랙패드를 쓸어내릴 때 별도의 버튼 클릭 없이 월(Month) 단위로 매끄럽게 연속 전환.
   - **Windows 10 Fluent 슬라이드 모션**: 스크롤 방향(위/아래)에 반응하는 부드러운 28px 세로 슬라이드 및 투명도 트랜지션(`.win10-month-slide-up`, `.win10-month-slide-down`) 적용.
@@ -137,7 +140,11 @@ Windows 10 시절의 미려하고 가벼웠던 **클래식 일정(Calendar) 데�
 ### 9. 스토어 배포 패키징 및 브랜드 자산 (Store Packaging & Assets)
 - **공식 제품명 (Product Name)**: `Classic Calendar (클래식 캘린더)`
 - **스토어 앱 패키지 식별자 (App ID)**: `com.fluentcal.classic`
-- **아이콘 자산 (Fluent Design Iconography)**:
+- **Microsoft Store 패키지 Identity**:
+  - **Identity Name**: `kimkkatta.classiccalendar`
+  - **Publisher**: `CN=1F389237-2AEF-45A9-B0ED-1A97F652F8F1`
+  - **Publisher Display Name**: `kimkkatta`
+- **아이콘 및 타일 자산 (Fluent Design Iconography)**:
   - `assets/icon.ico`: 256, 128, 48, 32px 멀티 해상도 Windows 실행/타이틀바 아이콘.
   - `assets/icon.png` & `public/icon.png`: 512x512 마스터 고해상도 PNG.
   - `public/favicon.ico`: 웹 및 브라우저 프리뷰용 파비콘.
@@ -147,7 +154,10 @@ Windows 10 시절의 미려하고 가벼웠던 **클래식 일정(Calendar) 데�
     - `Square310x310Logo.png` (시작 메뉴 큰 타일)
     - `Wide310x150Logo.png` (시작 메뉴 넓은 타일)
     - `StoreLogo.png` (스토어 상세 페이지 로고)
-- **패키징 규격**: Microsoft Store (`appx`/`msix`) 및 Windows 데스크톱 독립형 설치 프로그램 (`nsis`).
+- **배포 패키징 규격**:
+  - **Microsoft Store**: `.appx` (`npm run dist:appx` -> `release/Classic-Calendar-1.0.2.appx`)
+  - **Windows 데스크톱 독립 설치 프로그램**: NSIS (`npm run dist` -> `release/Classic-Calendar-Setup-1.0.2.exe`)
+  - **무설치 포터블 프로그램**: Portable EXE (`release/Classic-Calendar-Portable-1.0.2.exe`)
 
 ### 10. 전역 화면 배율(Zoom) 및 반응형 사이드바 너비 조절 (Dynamic Scale & Resizable Sidebar)
 - **Ctrl + 마우스 휠 및 키보드 확대/축소 (Full UI Proportional Zoom)**:
@@ -272,12 +282,17 @@ npm test
 npm run build
 ```
 
-### 5. Windows 설치 패키지 로컬 빌드
+### 5. Windows 배포 패키지 로컬 빌드
 ```bash
+# Windows NSIS 설치 프로그램 및 포터블 EXE 빌드
 npm run dist
+
+# Microsoft Store (.appx) 패키지 빌드
+npm run dist:appx
 ```
-- `release/Classic-Calendar-Setup-1.0.0.exe`: Windows NSIS 설치 프로그램 (바탕화면/시작메뉴 바로가기 생성)
-- `release/Classic-Calendar-Portable-1.0.0.exe`: 무설치 포터블 단독 실행 프로그램
+- `release/Classic-Calendar-Setup-1.0.2.exe`: Windows NSIS 설치 프로그램 (바탕화면/시작메뉴 바로가기 생성, 백그라운드 자동 업데이트 지원)
+- `release/Classic-Calendar-Portable-1.0.2.exe`: 무설치 포터블 단독 실행 프로그램
+- `release/Classic-Calendar-1.0.2.appx`: Microsoft Store 직접 제출용 AppX 패키지
 
 ---
 
@@ -289,14 +304,15 @@ npm run dist
 1. **품질 검증 게이트 (Test & Quality Gate)**:
    - `windows-latest` 환경에서 단위/통합 테스트 100% 통과 검증 (`npm test`).
    - TypeScript 타입 체크 및 프로덕션 빌드 무결성 확인 (`npm run build`).
-2. **동적 버전 및 릴리스 태그 생성 (Dynamic Tagging)**:
-   - `package.json` 버전 기반 Git 태그(`v1.0.0`) 자동 탐색.
-   - 기존 태그와 중복될 경우 GitHub Run Number를 결합한 고유 태그(`v1.0.0-build.X`) 자동 생성.
+2. **전자동 시맨틱 버전 태깅 (Automated SemVer Tagging)**:
+   - 원격 저장소의 기존 `v*.*.*` 태그들을 자동 조회하여 다음 패치 버전(예: `v1.0.2` -> `v1.0.3`)을 자동 계산.
+   - `package.json`의 버전을 자동으로 판올림(Bump)하고 `main` 브랜치에 `[skip ci]` 커밋 및 푸시.
+   - 신규 릴리스 태그 생성 및 GitHub Release 초안/게시 자동화.
 3. **Electron 바이너리 패키징 및 무결성 검증 (Packaging & Checksums)**:
-   - `electron-builder`를 통해 설치형(`Classic-Calendar-Setup-*.exe`) 및 무설치 포터블(`Classic-Calendar-Portable-*.exe`)을 병렬 패키징.
+   - `electron-builder`를 통해 설치형(`Classic-Calendar-Setup-*.exe`), 무설치 포터블(`Classic-Calendar-Portable-*.exe`) 및 자동 업데이트 메타데이터(`latest.yml`)를 자동 생성.
    - 바이너리 변조 방지용 SHA256 체크섬(`checksums.txt`) 자동 생성.
 4. **GitHub Releases 자동 발행 (Publishing)**:
-   - 생성된 태그와 함께 GitHub Release 생성 및 인스톨러 바이너리 자동 첨부.
+   - 생성된 태그와 함께 GitHub Release 생성 및 인스톨러 바이너리, `latest.yml`, `checksums.txt` 자동 첨부.
    - 병합된 커밋 및 PR 내역 기반 릴리스 변경점(Release Notes) 자동 요약 게시.
    - `workflow_dispatch` 지원으로 GitHub Actions 웹 콘솔에서 수동 즉시 배포 트리거 가능.
 

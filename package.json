@@ -13,6 +13,7 @@
     "build": "tsc -b && vite build && npm run build:electron",
     "dist": "npm run build && electron-builder",
     "dist:dir": "npm run build && electron-builder --dir",
+    "dist:appx": "npm run build && electron-builder --windows appx",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -75,6 +76,18 @@
     },
     "portable": {
       "artifactName": "Classic-Calendar-Portable-${version}.${ext}"
+    },
+    "appx": {
+      "applicationId": "ClassicCalendar",
+      "identityName": "kimkkatta.classiccalendar",
+      "publisher": "CN=1F389237-2AEF-45A9-B0ED-1A97F652F8F1",
+      "publisherDisplayName": "kimkkatta",
+      "displayName": "Classic Calendar",
+      "languages": [
+        "ko-KR",
+        "en-US"
+      ],
+      "artifactName": "Classic-Calendar-${version}.${ext}"
     }
   },
   "dependencies": {
