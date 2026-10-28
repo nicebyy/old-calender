@@ -381,6 +381,123 @@ describe('CalendarStore Extended', () => {
       const restoredMemos = useCalendarStore.getState().memos;
       expect(restoredMemos.some((m) => m.title === '백업 테스트 메모')).toBe(true);
     });
+
+    it('Google 다중 캘린더 연동 및 전용 카테고리 자동 등록/갱신이 정상 작동해야 한다', async () => {
+      const origFetch = global.fetch;
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ items: [], id: 'created-google-evt-123' }),
+      } as any);
+
+      // 1. Google OAuth 설정 저장
+      useCalendarStore.getState().setGoogleOAuthConfig({
+        clientId: 'test-client-id.apps.googleusercontent.com',
+        clientSecret: 'test-secret',
+      });
+      expect(useCalendarStore.getState().settings.googleOAuth?.clientId).toBe(
+        'test-client-id.apps.googleusercontent.com'
+      );
+
+      // 2. 다중 캘린더(기본 + 프로젝트 캘린더)를 가진 구글 계정 등록
+      useCalendarStore.getState().addSyncedAccount('google', 'multical@gmail.com', '멀티 유저', {
+        accessToken: 'mock-token',
+        calendars: [
+          {
+            id: 'primary',
+            name: '내 캘린더',
+            color: '#0078D7',
+            isPrimary: true,
+            isSelected: true,
+          },
+          {
+            id: 'project-alpha',
+            name: '프로젝트 알파',
+            color: '#107C41',
+            isPrimary: false,
+            isSelected: true,
+          },
+          {
+            id: 'excluded-cal',
+            name: '제외된 캘린더',
+            color: '#EA4335',
+            isPrimary: false,
+            isSelected: false,
+          },
+        ],
+      });
+
+      const accounts = useCalendarStore.getState().syncedAccounts;
+      const multiAcc = accounts.find((a) => a.email === 'multical@gmail.com');
+      expect(multiAcc).toBeDefined();
+      expect(multiAcc?.calendars?.length).toBe(3);
+
+      // 선택된 2개 캘린더에 대한 카테고리가 등록되었는지 확인
+      const categories = useCalendarStore.getState().categories;
+      const primaryCat = categories.find((c) => c.id === `cat-${multiAcc!.id}-primary`);
+      const projectCat = categories.find((c) => c.id === `cat-${multiAcc!.id}-project-alpha`);
+      const excludedCat = categories.find((c) => c.id === `cat-${multiAcc!.id}-excluded-cal`);
+
+      expect(primaryCat).toBeDefined();
+      expect(primaryCat?.name).toContain('내 캘린더');
+      expect(projectCat).toBeDefined();
+      expect(projectCat?.name).toContain('프로젝트 알파');
+      expect(excludedCat).toBeUndefined(); // 선택 안 된 캘린더는 카테고리 미등록
+
+      // 3. Google 캘린더 카테고리에 일정 생성 시 accountId와 googleCalendarId가 자동 부여되는지 검증
+      useCalendarStore.getState().addEvent({
+        title: '알파 프로젝트 스프린트',
+        startDate: '2026-10-30T10:00:00',
+        endDate: '2026-10-30T11:00:00',
+        isAllDay: false,
+        categoryId: `cat-${multiAcc!.id}-project-alpha`,
+      });
+
+      const createdEvent = useCalendarStore
+        .getState()
+        .events.find((e) => e.title === '알파 프로젝트 스프린트');
+      expect(createdEvent).toBeDefined();
+      expect(createdEvent?.accountId).toBe(multiAcc!.id);
+      expect(createdEvent?.googleCalendarId).toBe('project-alpha');
+
+      // 4. 캘린더 선택 상태 변경 (프로젝트 알파 해제, 제외된 캘린더 활성화)
+      await useCalendarStore.getState().updateAccountCalendars(multiAcc!.id, [
+        {
+          id: 'primary',
+          name: '내 캘린더',
+          color: '#0078D7',
+          isPrimary: true,
+          isSelected: true,
+        },
+        {
+          id: 'project-alpha',
+          name: '프로젝트 알파',
+          color: '#107C41',
+          isPrimary: false,
+          isSelected: false,
+        },
+        {
+          id: 'excluded-cal',
+          name: '새로 선택된 캘린더',
+          color: '#EA4335',
+          isPrimary: false,
+          isSelected: true,
+        },
+      ]);
+
+      const updatedCats = useCalendarStore.getState().categories;
+      expect(updatedCats.some((c) => c.id === `cat-${multiAcc!.id}-excluded-cal`)).toBe(true);
+      expect(updatedCats.some((c) => c.id === `cat-${multiAcc!.id}-project-alpha`)).toBe(false);
+
+      // 계정 정리
+      useCalendarStore.getState().removeSyncedAccount(multiAcc!.id);
+      expect(
+        useCalendarStore.getState().categories.some((c) => c.id.startsWith(`cat-${multiAcc!.id}`))
+      ).toBe(false);
+
+      global.fetch = origFetch;
+    });
   });
 });
+
 
