@@ -67,12 +67,18 @@ export const SettingsPanel: React.FC = () => {
   const setZoomLevel = useCalendarStore((s) => s.setZoomLevel);
   const setSidebarWidth = useCalendarStore((s) => s.setSidebarWidth);
   const resetSidebarWidth = useCalendarStore((s) => s.resetSidebarWidth);
+  const openAccountModal = useCalendarStore((s) => s.openAccountModal);
+  const setGoogleOAuthConfig = useCalendarStore((s) => s.setGoogleOAuthConfig);
 
   const { t, language, setLanguage } = useTranslation();
 
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
   const icsFileInputRef = useRef<HTMLInputElement>(null);
   const imageFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [googleClientId, setGoogleClientId] = useState(settings.googleOAuth?.clientId || '');
+  const [googleClientSecret, setGoogleClientSecret] = useState(settings.googleOAuth?.clientSecret || '');
+  const [isGoogleSaved, setIsGoogleSaved] = useState(false);
 
   const [searchQuery, setSearchQueryLocal] = useState('');
   const [searchResults, setSearchResults] = useState<LocationSearchResult[]>([]);
@@ -857,6 +863,90 @@ export const SettingsPanel: React.FC = () => {
                 onChange={handleImportJSON}
                 className="hidden"
               />
+            </div>
+          </div>
+
+          {/* 9. Google Calendar OAuth2 API 설정 */}
+          <div className="space-y-2 pt-3 border-t border-[var(--win10-border)]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 font-medium text-[13px] text-[var(--win10-text-primary)]">
+                <Globe className="w-4 h-4 text-[#ea4335]" />
+                <span>{t('sync.googleSetupTitle')}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => openAccountModal()}
+                className="text-[11px] text-[var(--win10-accent)] hover:underline flex items-center space-x-1"
+              >
+                <span>{t('sync.title')}</span>
+              </button>
+            </div>
+
+            <div className="bg-[var(--win10-card-bg)] border border-[var(--win10-border)] rounded p-2.5 space-y-2.5 text-xs">
+              <p className="text-[11px] text-[var(--win10-text-secondary)] leading-relaxed">
+                {t('sync.googleSetupDesc')}
+              </p>
+
+              <div className="space-y-2">
+                <div>
+                  <label className="text-[10.5px] text-[var(--win10-text-secondary)] block mb-1">
+                    {t('sync.googleSetupClientId')}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="xxxxxxxxxxxx-xxxxxxxxxxxxxxxx.apps.googleusercontent.com"
+                    value={googleClientId}
+                    onChange={(e) => setGoogleClientId(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-[var(--win10-bg-layer)] border border-[var(--win10-border)] focus:border-[var(--win10-accent)] outline-none text-[var(--win10-text-primary)] rounded text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] text-[var(--win10-text-secondary)] block mb-1">
+                    {t('sync.googleSetupClientSecret')}
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx"
+                    value={googleClientSecret}
+                    onChange={(e) => setGoogleClientSecret(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-[var(--win10-bg-layer)] border border-[var(--win10-border)] focus:border-[var(--win10-accent)] outline-none text-[var(--win10-text-primary)] rounded text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={() => openAccountModal()}
+                  className="text-[11px] text-[var(--win10-accent)] hover:underline"
+                >
+                  {language === 'ko' ? '계정 로그인/캘린더 선택' : 'Sign in / Select Calendars'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGoogleOAuthConfig({
+                      clientId: googleClientId.trim(),
+                      clientSecret: googleClientSecret.trim(),
+                    });
+                    setIsGoogleSaved(true);
+                    setTimeout(() => setIsGoogleSaved(false), 2000);
+                  }}
+                  disabled={!googleClientId.trim()}
+                  className="px-3 py-1 bg-[var(--win10-accent)] hover:opacity-90 active:opacity-80 text-white rounded text-xs font-medium transition-all flex items-center space-x-1 disabled:opacity-50"
+                >
+                  {isGoogleSaved ? (
+                    <>
+                      <Check className="w-3 h-3" />
+                      <span>{language === 'ko' ? '저장됨' : 'Saved'}</span>
+                    </>
+                  ) : (
+                    <span>{t('common.save')}</span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
