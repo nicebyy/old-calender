@@ -70,6 +70,7 @@ export interface WeatherInfo {
   label: string;
   locationName?: string;
   humidity?: number;
+  iconUrl?: string;
 }
 
 export interface DayCellData {
@@ -120,6 +121,8 @@ export interface AppSettings {
   showWeather: boolean; // Windows 10 날씨 표시 여부
   temperatureUnit: 'C' | 'F'; // 섭씨/화씨
   weatherLocation: WeatherLocation; // 지역/위치 기반 날씨 설정
+  weatherProvider?: 'google' | 'openmeteo'; // 날씨 제공자 (기본: google)
+  googleWeatherApiKey?: string; // Google Maps Platform Weather API 키
   showLunarCalendar: boolean; // 대체 캘린더 (음력 표시)
   backgroundTheme: string; // 'none' | 'alps' | 'lake' | 'city' | 'bloom' | 'aurora' | 'sunset' | 'windows' | custom url/data
   backgroundFill: BackgroundFillOption;

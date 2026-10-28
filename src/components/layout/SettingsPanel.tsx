@@ -584,6 +584,72 @@ export const SettingsPanel: React.FC = () => {
             </label>
             {settings.showWeather && (
               <div className="space-y-3 pl-6 pt-1">
+                {/* 날씨 제공자 선택 (Google 날씨 / Open-Meteo) */}
+                <div className="space-y-1.5 p-2.5 rounded bg-[var(--win10-card-bg)] border border-[var(--win10-border)]">
+                  <span className="text-[11px] font-medium text-[var(--win10-text-secondary)]">
+                    {t('settings.weatherProvider')}
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ weatherProvider: 'google' })}
+                      className={`py-1.5 px-2 rounded-xs border text-left transition-all flex items-center justify-between text-xs ${
+                        (settings.weatherProvider || 'google') === 'google'
+                          ? 'border-[var(--win10-accent)] bg-[var(--win10-accent)] text-white font-medium shadow-2xs'
+                          : 'border-[var(--win10-border)] bg-[var(--win10-input-bg)] text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)]'
+                      }`}
+                    >
+                      <span className="truncate">{t('settings.weatherProviderGoogle')}</span>
+                      {(settings.weatherProvider || 'google') === 'google' && (
+                        <Check className="w-3 h-3 text-white stroke-[3] shrink-0 ml-1" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ weatherProvider: 'openmeteo' })}
+                      className={`py-1.5 px-2 rounded-xs border text-left transition-all flex items-center justify-between text-xs ${
+                        settings.weatherProvider === 'openmeteo'
+                          ? 'border-[var(--win10-accent)] bg-[var(--win10-accent)] text-white font-medium shadow-2xs'
+                          : 'border-[var(--win10-border)] bg-[var(--win10-input-bg)] text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)]'
+                      }`}
+                    >
+                      <span className="truncate">{t('settings.weatherProviderOpenMeteo')}</span>
+                      {settings.weatherProvider === 'openmeteo' && (
+                        <Check className="w-3 h-3 text-white stroke-[3] shrink-0 ml-1" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Google 날씨 API 키 입력란 */}
+                  {(settings.weatherProvider || 'google') === 'google' && (
+                    <div className="pt-2 space-y-1">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-[var(--win10-text-secondary)]">
+                          {t('settings.googleApiKey')}
+                        </span>
+                        <a
+                          href="https://console.cloud.google.com/apis/library/weather.googleapis.com"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[10px] text-[var(--win10-accent)] hover:underline"
+                        >
+                          Google Cloud ↗
+                        </a>
+                      </div>
+                      <input
+                        type="password"
+                        value={settings.googleWeatherApiKey || ''}
+                        onChange={(e) => updateSettings({ googleWeatherApiKey: e.target.value.trim() })}
+                        placeholder={t('settings.googleApiKeyPlaceholder')}
+                        className="w-full text-xs px-2.5 py-1.5 rounded bg-[var(--win10-input-bg)] border border-[var(--win10-border)] text-[var(--win10-text-primary)] focus:outline-none focus:border-[var(--win10-accent)]"
+                      />
+                      <p className="text-[10px] text-[var(--win10-text-muted)] leading-tight pt-0.5">
+                        {t('settings.googleApiKeyHint')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* 온도 단위 선택 */}
                 <div className="flex items-center space-x-3">
                   <span className="text-[var(--win10-text-secondary)]">{t('settings.tempUnit')}</span>

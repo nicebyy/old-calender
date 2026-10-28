@@ -62,6 +62,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showWeather: true,
   temperatureUnit: 'C',
   weatherLocation: DEFAULT_WEATHER_LOCATION,
+  weatherProvider: 'google',
+  googleWeatherApiKey: '',
   showLunarCalendar: true,
   backgroundTheme: 'none',
   backgroundFill: 'sidebar',
@@ -595,7 +597,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         newSettings.language !== undefined ||
         newSettings.temperatureUnit !== undefined ||
         newSettings.weatherLocation !== undefined ||
-        newSettings.showWeather !== undefined
+        newSettings.showWeather !== undefined ||
+        newSettings.weatherProvider !== undefined ||
+        newSettings.googleWeatherApiKey !== undefined
       ) {
         setTimeout(() => {
           get().refreshWeather();
@@ -1223,7 +1227,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       const { current, daily } = await fetchRealWeather(
         settings.weatherLocation,
         settings.temperatureUnit,
-        settings.language
+        settings.language,
+        settings.weatherProvider || 'google',
+        settings.googleWeatherApiKey
       );
       set({
         currentWeather: current,

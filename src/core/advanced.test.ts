@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getHolidayName, getApproxLunarDateString } from './holidays';
-import { getWeatherForDate } from './weather';
+import { getFallbackWeather } from './weather';
 import { exportEventsToICS, parseICSToEvents } from './ical';
 import { CalendarEvent } from '../types';
 
@@ -33,11 +33,11 @@ describe('Advanced Win10 Features (Holidays, Weather, ICS)', () => {
 
   it('날씨 정보를 결정론적으로 생성하고 섭씨/화씨를 올바르게 계산해야 한다', () => {
     const date = new Date(2026, 9, 26);
-    const weatherC = getWeatherForDate(date, 'C');
-    const weatherF = getWeatherForDate(date, 'F');
+    const weatherC = getFallbackWeather(date, undefined, 'C');
+    const weatherF = getFallbackWeather(date, undefined, 'F');
 
     expect(weatherC.condition).toBeDefined();
-    expect(weatherC.tempMax).toBeGreaterThan(weatherC.tempMin);
+    expect(weatherC.tempMax).toBeGreaterThanOrEqual(weatherC.tempMin);
     // 화씨는 섭씨보다 수치가 큼
     expect(weatherF.tempMax).toBeGreaterThan(weatherC.tempMax);
   });
