@@ -83,7 +83,7 @@ describe('Location-based Weather Core Module', () => {
     expect(dailyMap['2026-10-27'].tempMax).toBe(19);
   });
 
-  it('getWeatherForDate가 캐시가 있으면 캐시를, 없으면 폴백을 반환해야 한다', () => {
+  it('getWeatherForDate는 캐시가 있으면 캐시를 반환하고, 2028년 등 예보 범위 외 날짜는 undefined를 반환해야 한다', () => {
     const testDate = new Date(2026, 9, 26);
     const dateKey = '2026-10-26';
 
@@ -100,16 +100,95 @@ describe('Location-based Weather Core Module', () => {
       [dateKey]: cachedWeather,
     };
 
-    // 캐시 있는 경우
+    // 1. 캐시 있는 경우 -> 캐시 반환
     const fromCache = getWeatherForDate(testDate, 'C', undefined, cacheMap);
-    expect(fromCache.condition).toBe('rainy');
-    expect(fromCache.locationName).toBe('제주');
+    expect(fromCache).toBeDefined();
+    expect(fromCache?.condition).toBe('rainy');
+    expect(fromCache?.locationName).toBe('제주');
 
-    // 캐시 없는 날짜인 경우 -> 폴백 생성
-    const otherDate = new Date(2026, 9, 27);
-    const fallback = getWeatherForDate(otherDate, 'C', undefined, cacheMap);
-    expect(fallback).toBeDefined();
-    expect(fallback.tempMax).toBeDefined();
+    // 2. 2028년 등 캐시 없는 미래 날짜인 경우 -> 날씨를 표시하지 않음 (undefined)
+    const future2028Date = new Date(2028, 4, 15);
+    const futureResult = getWeatherForDate(future2028Date, 'C', undefined, cacheMap);
+    expect(futureResult).toBeUndefined();
+
+    // 3. 오늘 날짜이고 캐시가 아직 로딩 중인 경우 -> 즉시 표시용 폴백 제공
+    const today = new Date();
+    const todayResult = getWeatherForDate(today, 'C', undefined, {});
+    expect(todayResult).toBeDefined();
+    expect(todayResult?.tempMax).toBeDefined();
+  });
+
+  it('Google Maps Platform Weather API condition 타입을 올바르게 매핑해야 한다', async () => {
+    const { mapGoogleWeatherCondition } = await import('./weather');
+
+    expect(mapGoogleWeatherCondition('CLEAR').condition).toBe('sunny');
+    expect(mapGoogleWeatherCondition('MOSTLY_CLEAR').condition).toBe('sunny');
+    expect(mapGoogleWeatherCondition('PARTLY_CLOUDY').condition).toBe('partlyCloudy');
+    expect(mapGoogleWeatherCondition('CLOUDY').condition).toBe('cloudy');
+    expect(mapGoogleWeatherCondition('RAIN_SHOWERS').condition).toBe('rainy');
+    expect(mapGoogleWeatherCondition('THUNDERSTORM').condition).toBe('rainy');
+    expect(mapGoogleWeatherCondition('HEAVY_SNOW').condition).toBe('snowy');
+    expect(mapGoogleWeatherCondition(undefined, '흐리고 가끔 비').condition).toBe('rainy');
+  });
+
+  it('Google Weather API 응답 데이터를 WeatherInfo 규격으로 정확하게 파싱해야 한다', async () => {
+    const { parseGoogleCurrentWeather, parseGoogleDailyForecast } = await import('./weather');
+
+    const mockGoogleCurrent = {
+      currentTime: '2026-10-28T10:00:00Z',
+      temperature: { degrees: 21.5, unit: 'CELSIUS' },
+      relativeHumidity: 45,
+      weatherCondition: {
+        type: 'CLEAR',
+        description: { text: '맑음', languageCode: 'ko' },
+        iconBaseUri: 'https://maps.gstatic.com/weather/v1/sunny',
+      },
+    };
+
+    const current = parseGoogleCurrentWeather(mockGoogleCurrent, 'C', 'ko', '서울');
+    expect(current.condition).toBe('sunny');
+    expect(current.currentTemp).toBe(22);
+    expect(current.label).toBe('맑음');
+    expect(current.locationName).toBe('서울');
+    expect(current.humidity).toBe(45);
+    expect(current.iconUrl).toBe('https://maps.gstatic.com/weather/v1/sunny.png');
+
+    const mockGoogleForecast = {
+      forecastDays: [
+        {
+          displayDate: { year: 2026, month: 10, day: 28 },
+          daytimeForecast: {
+            maxTemperature: { degrees: 23.0 },
+            minTemperature: { degrees: 12.0 },
+            weatherCondition: {
+              type: 'PARTLY_CLOUDY',
+              description: { text: '구름 조금' },
+            },
+          },
+        },
+        {
+          displayDate: { year: 2026, month: 10, day: 29 },
+          daytimeForecast: {
+            maxTemperature: { degrees: 19.0 },
+            minTemperature: { degrees: 11.0 },
+            weatherCondition: {
+              type: 'RAIN',
+              description: { text: '비' },
+            },
+          },
+        },
+      ],
+    };
+
+    const daily = parseGoogleDailyForecast(mockGoogleForecast, 'C', 'ko', '서울');
+    expect(daily['2026-10-28']).toBeDefined();
+    expect(daily['2026-10-28'].condition).toBe('partlyCloudy');
+    expect(daily['2026-10-28'].tempMax).toBe(23);
+    expect(daily['2026-10-28'].tempMin).toBe(12);
+
+    expect(daily['2026-10-29']).toBeDefined();
+    expect(daily['2026-10-29'].condition).toBe('rainy');
+    expect(daily['2026-10-29'].tempMax).toBe(19);
   });
 
   it('경북 칠곡/구미 좌표에서도 최근접 프리셋 도시를 정확히 찾아야 한다', () => {

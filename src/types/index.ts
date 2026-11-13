@@ -23,6 +23,8 @@ export interface CalendarEvent {
   isAllDay: boolean;
   categoryId: string;
   accountId?: string; // OAuth2 연동 계정 ID (Google, Microsoft 등)
+  googleCalendarId?: string; // 연동된 원격 구글 캘린더 ID
+  remoteEventId?: string; // 원격 Google 캘린더 이벤트 ID
   location?: string;
   reminderMinutes?: number; // 분 단위 알림 (예: 15분 전, 없으면 -1)
   recurrence?: RecurrenceType;
@@ -68,6 +70,7 @@ export interface WeatherInfo {
   label: string;
   locationName?: string;
   humidity?: number;
+  iconUrl?: string;
 }
 
 export interface DayCellData {
@@ -105,6 +108,11 @@ export interface ThemePreset {
 
 export type SupportedLanguage = 'ko' | 'en';
 
+export interface GoogleOAuthConfig {
+  clientId: string;
+  clientSecret: string;
+}
+
 export interface AppSettings {
   language: SupportedLanguage; // 'ko' | 'en'
   themeMode: ThemeMode;
@@ -113,18 +121,30 @@ export interface AppSettings {
   showWeather: boolean; // Windows 10 날씨 표시 여부
   temperatureUnit: 'C' | 'F'; // 섭씨/화씨
   weatherLocation: WeatherLocation; // 지역/위치 기반 날씨 설정
+  weatherProvider?: 'google' | 'openmeteo'; // 날씨 제공자 (기본: google)
+  googleWeatherApiKey?: string; // Google Maps Platform Weather API 키
   showLunarCalendar: boolean; // 대체 캘린더 (음력 표시)
   backgroundTheme: string; // 'none' | 'alps' | 'lake' | 'city' | 'bloom' | 'aurora' | 'sunset' | 'windows' | custom url/data
   backgroundFill: BackgroundFillOption;
   backgroundOpacity: number; // 0.1 ~ 1.0
   zoomLevel?: number; // 0.70 ~ 1.60 (기본 1.0)
   sidebarWidth?: number; // 200 ~ 480 (기본 260)
+  googleOAuth?: GoogleOAuthConfig;
 }
 
 /**
  * OAuth2 공급자 및 연동 계정 타입 (Google Calendar, iCloud)
  */
 export type OAuthProvider = 'google' | 'apple';
+
+export interface SyncedAccountCalendar {
+  id: string; // Google Calendar ID (primary 또는 xxx@group.calendar.google.com)
+  name: string; // 캘린더 요약명
+  color: string; // 캘린더 대표 색상
+  isPrimary?: boolean;
+  isSelected: boolean; // 동기화 활성화 여부
+  accessRole?: string; // 권한 (owner, writer, reader)
+}
 
 export interface SyncedAccount {
   id: string;
@@ -140,6 +160,8 @@ export interface SyncedAccount {
   errorMessage?: string;
   color: string;
   isEnabled: boolean;
+  calendars?: SyncedAccountCalendar[];
+  createdAt?: number;
 }
 
 export interface OAuth2ProviderConfig {

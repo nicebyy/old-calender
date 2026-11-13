@@ -10,6 +10,30 @@ export interface UpdateStatusPayload {
   error?: string;
 }
 
+export interface GoogleOAuthResult {
+  success: boolean;
+  error?: string;
+  tokens?: {
+    accessToken: string;
+    refreshToken?: string;
+    expiresIn?: number;
+    expiresAt?: number;
+  };
+  userInfo?: {
+    email?: string;
+    name?: string;
+    picture?: string;
+  };
+}
+
+export interface GoogleRefreshResult {
+  success: boolean;
+  error?: string;
+  accessToken?: string;
+  expiresIn?: number;
+  expiresAt?: number;
+}
+
 export interface ElectronAPI {
   minimizeWindow: () => void;
   maximizeWindow: () => void;
@@ -23,6 +47,8 @@ export interface ElectronAPI {
   onUpdateStatus?: (callback: (payload: UpdateStatusPayload) => void) => () => void;
   setZoomFactor?: (factor: number) => void;
   getZoomFactor?: () => number;
+  startGoogleOAuth?: (params: { clientId: string; clientSecret?: string }) => Promise<GoogleOAuthResult>;
+  refreshGoogleToken?: (params: { clientId: string; clientSecret?: string; refreshToken: string }) => Promise<GoogleRefreshResult>;
 }
 
 const electronAPI: ElectronAPI = {
@@ -54,6 +80,8 @@ const electronAPI: ElectronAPI = {
   getZoomFactor: () => {
     return webFrame.getZoomFactor();
   },
+  startGoogleOAuth: (params) => ipcRenderer.invoke('google-oauth:start', params),
+  refreshGoogleToken: (params) => ipcRenderer.invoke('google-oauth:refresh-token', params),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

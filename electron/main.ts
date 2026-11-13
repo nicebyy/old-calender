@@ -1,6 +1,7 @@
-import { app, BrowserWindow, ipcMain, Notification, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, Notification, dialog, shell } from 'electron';
+import http from 'http';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, URL } from 'url';
 import { exec } from 'child_process';
 import { createRequire } from 'module';
 import type { AppUpdater } from 'electron-updater';
@@ -170,6 +171,220 @@ if ($task.Wait(4500)) {
       resolve(null);
     });
   });
+});
+
+// ==========================================
+// Google OAuth2 루프백 인증 핸들러 (RFC 8252)
+// ==========================================
+let activeOAuthServer: http.Server | null = null;
+let activeOAuthTimeout: NodeJS.Timeout | null = null;
+
+function closeActiveOAuthServer() {
+  if (activeOAuthTimeout) {
+    clearTimeout(activeOAuthTimeout);
+    activeOAuthTimeout = null;
+  }
+  if (activeOAuthServer) {
+    try {
+      activeOAuthServer.close();
+    } catch {}
+    activeOAuthServer = null;
+  }
+}
+
+ipcMain.handle('google-oauth:start', async (_event, { clientId, clientSecret }) => {
+  if (!clientId) {
+    return { success: false, error: 'Google Client ID가 필요합니다.' };
+  }
+
+  closeActiveOAuthServer();
+
+  const OAUTH_PORT = 52123;
+  const redirectUri = `http://127.0.0.1:${OAUTH_PORT}/oauth2callback`;
+
+  return new Promise((resolve) => {
+    const server = http.createServer();
+    activeOAuthServer = server;
+
+    // 3분 안전 타임아웃
+    activeOAuthTimeout = setTimeout(() => {
+      closeActiveOAuthServer();
+      resolve({ success: false, error: '인증 대기 시간이 초과되었습니다. (3분)' });
+    }, 180000);
+
+    server.on('request', async (req, res) => {
+      try {
+        const reqUrl = new URL(req.url || '', `http://127.0.0.1:${OAUTH_PORT}`);
+        if (reqUrl.pathname !== '/oauth2callback') {
+          res.writeHead(404);
+          res.end('Not found');
+          return;
+        }
+
+        const code = reqUrl.searchParams.get('code');
+        const error = reqUrl.searchParams.get('error');
+
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        if (error || !code) {
+          res.end(`
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="utf-8"><title>Classic Calendar - 인증 실패</title>
+            <style>body{background:#1f1f1f;color:#fff;font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}</style>
+            </head>
+            <body>
+              <div style="text-align:center;max-width:400px;padding:32px;background:#2b2b2b;border-radius:8px;border:1px solid #444;">
+                <h2 style="color:#e81123;margin-top:0;">Google 로그인 취소 또는 오류</h2>
+                <p style="color:#aaa;font-size:14px;">${error || '인가 코드를 수신하지 못했습니다.'}</p>
+                <p style="color:#888;font-size:12px;">이 브라우저 창을 닫고 Classic Calendar로 돌아가세요.</p>
+              </div>
+            </body></html>
+          `);
+          closeActiveOAuthServer();
+          resolve({ success: false, error: error || '사용자가 인증을 취소했거나 오류가 발생했습니다.' });
+          return;
+        }
+
+        res.end(`
+          <!DOCTYPE html>
+          <html>
+          <head><meta charset="utf-8"><title>Classic Calendar - 연동 완료</title>
+          <style>body{background:#1f1f1f;color:#fff;font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}</style>
+          </head>
+          <body>
+            <div style="text-align:center;max-width:440px;padding:36px;background:#262626;border-radius:8px;border:1px solid #0078d7;box-shadow:0 8px 30px rgba(0,0,0,0.6);">
+              <div style="width:52px;height:52px;border-radius:50%;background:#0078d7;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;">✓</div>
+              <h2 style="margin:0 0 10px;font-size:20px;color:#fff;">Google 캘린더 연동 성공</h2>
+              <p style="color:#ccc;font-size:14px;line-height:1.6;margin:0 0 16px;">Google 계정 인증이 완료되었습니다.<br>이 브라우저 창을 닫고 <strong>Classic Calendar</strong> 앱으로 돌아가 캘린더 목록을 선택해 주세요.</p>
+              <div style="font-size:12px;color:#777;">Classic Calendar Windows 10 Edition</div>
+            </div>
+          </body></html>
+        `);
+        closeActiveOAuthServer();
+
+        // 토큰 교환 요청 (POST https://oauth2.googleapis.com/token)
+        const tokenParams = new URLSearchParams({
+          code,
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        });
+        if (clientSecret) {
+          tokenParams.append('client_secret', clientSecret);
+        }
+
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: tokenParams.toString(),
+        });
+
+        const tokenData = (await tokenRes.json()) as any;
+        if (!tokenRes.ok || tokenData.error) {
+          resolve({
+            success: false,
+            error: tokenData.error_description || tokenData.error || 'Google 토큰 발급에 실패했습니다.',
+          });
+          return;
+        }
+
+        // 사용자 프로필 정보 조회 (email, name)
+        let userInfo: { email?: string; name?: string; picture?: string } = {};
+        try {
+          const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          });
+          if (userRes.ok) {
+            userInfo = (await userRes.json()) as any;
+          }
+        } catch {}
+
+        resolve({
+          success: true,
+          tokens: {
+            accessToken: tokenData.access_token,
+            refreshToken: tokenData.refresh_token,
+            expiresIn: tokenData.expires_in,
+            expiresAt: Date.now() + (tokenData.expires_in || 3600) * 1000,
+          },
+          userInfo: {
+            email: userInfo.email,
+            name: userInfo.name || userInfo.email,
+            picture: userInfo.picture,
+          },
+        });
+      } catch (err: any) {
+        closeActiveOAuthServer();
+        resolve({ success: false, error: err?.message || '인증 응답 처리 중 오류가 발생했습니다.' });
+      }
+    });
+
+    server.on('error', (err: any) => {
+      closeActiveOAuthServer();
+      resolve({
+        success: false,
+        error: `로컬 인증 리스너 실행 실패 (${err.code || err.message}). 포트 ${OAUTH_PORT}가 사용 중인지 확인하세요.`,
+      });
+    });
+
+    server.listen(OAUTH_PORT, '127.0.0.1', async () => {
+      const scopes = [
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/calendar',
+      ].join(' ');
+
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
+        clientId
+      )}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(
+        scopes
+      )}&access_type=offline&prompt=consent`;
+
+      try {
+        await shell.openExternal(authUrl);
+      } catch (err: any) {
+        closeActiveOAuthServer();
+        resolve({ success: false, error: `기본 웹 브라우저를 열 수 없습니다: ${err.message}` });
+      }
+    });
+  });
+});
+
+ipcMain.handle('google-oauth:refresh-token', async (_event, { clientId, clientSecret, refreshToken }) => {
+  if (!clientId || !refreshToken) {
+    return { success: false, error: 'clientId 및 refreshToken이 필요합니다.' };
+  }
+
+  try {
+    const params = new URLSearchParams({
+      client_id: clientId,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    });
+    if (clientSecret) {
+      params.append('client_secret', clientSecret);
+    }
+
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+
+    const data = (await res.json()) as any;
+    if (!res.ok || data.error) {
+      return { success: false, error: data.error_description || data.error || '토큰 갱신 실패' };
+    }
+
+    return {
+      success: true,
+      accessToken: data.access_token,
+      expiresIn: data.expires_in,
+      expiresAt: Date.now() + (data.expires_in || 3600) * 1000,
+    };
+  } catch (err: any) {
+    return { success: false, error: err?.message || '토큰 갱신 통신 오류' };
+  }
 });
 
 // ==========================================

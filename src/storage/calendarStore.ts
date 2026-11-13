@@ -13,6 +13,8 @@ import {
   WeatherInfo,
   WeatherLocation,
   type UpdateStatusPayload,
+  GoogleOAuthConfig,
+  SyncedAccountCalendar,
 } from '../types';
 import { DEFAULT_CATEGORIES } from '../constants/calendar';
 import { DEFAULT_WEATHER_LOCATION } from '../constants/weather';
@@ -29,7 +31,18 @@ import {
 import { getNavigatedDate } from '../core/calendar';
 import { expandEventsForRange } from '../core/recurrence';
 import { exportEventsToICS, parseICSToEvents } from '../core/ical';
-import { generateRemoteEventsForProvider, mergeRemoteEvents } from '../core/oauthSync';
+import {
+  generateRemoteEventsForProvider,
+  mergeRemoteEvents,
+  isAccountTokenExpired,
+} from '../core/oauthSync';
+import {
+  fetchGoogleCalendarEvents,
+  fetchGoogleCalendarList,
+  createGoogleCalendarEvent,
+  updateGoogleCalendarEvent,
+  deleteGoogleCalendarEvent,
+} from '../core/googleCalendar';
 import { getDueReminders, formatReminderMessage } from '../core/notifications';
 import { fetchRealWeather, detectUserLocation, getFallbackWeather } from '../core/weather';
 
@@ -49,6 +62,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showWeather: true,
   temperatureUnit: 'C',
   weatherLocation: DEFAULT_WEATHER_LOCATION,
+  weatherProvider: 'google',
+  googleWeatherApiKey: '',
   showLunarCalendar: true,
   backgroundTheme: 'none',
   backgroundFill: 'sidebar',
@@ -273,13 +288,25 @@ interface CalendarState {
   rescheduleEvent: (id: string, newDateStr: string, newStartTime?: string) => void;
 
   // OAuth2 계정 동기화 액션
-  addSyncedAccount: (provider: OAuthProvider, email: string, displayName: string) => void;
+  addSyncedAccount: (
+    provider: OAuthProvider,
+    email: string,
+    displayName: string,
+    options?: {
+      accessToken?: string;
+      refreshToken?: string;
+      expiresAt?: number;
+      calendars?: SyncedAccountCalendar[];
+    }
+  ) => void;
+  updateAccountCalendars: (accountId: string, calendars: SyncedAccountCalendar[]) => Promise<void>;
   removeSyncedAccount: (accountId: string) => void;
   toggleAccountEnabled: (accountId: string) => void;
   syncAccount: (accountId: string) => Promise<void>;
   syncAllAccounts: () => Promise<void>;
   openAccountModal: () => void;
   closeAccountModal: () => void;
+  setGoogleOAuthConfig: (config: GoogleOAuthConfig) => void;
 
   // 데이터 백업 및 복원 (JSON & iCal)
   exportDataJSON: () => string;
@@ -330,6 +357,25 @@ interface CalendarState {
 
 const initialStoredSettings = loadStoredSettings();
 const initialWeatherCache = loadStoredWeatherCache();
+
+function findGoogleCalendarTarget(
+  categoryId: string,
+  syncedAccounts: SyncedAccount[]
+): { account: SyncedAccount; calendarId: string } | null {
+  for (const acc of syncedAccounts) {
+    if (acc.provider !== 'google' || !acc.accessToken) continue;
+    const prefix = `cat-${acc.id}-`;
+    if (categoryId.startsWith(prefix)) {
+      const calId = categoryId.slice(prefix.length);
+      return { account: acc, calendarId: calId };
+    }
+    if (categoryId === `cat-${acc.id}`) {
+      const primaryCal = acc.calendars?.find((c) => c.isPrimary) || acc.calendars?.[0];
+      return { account: acc, calendarId: primaryCal?.id || 'primary' };
+    }
+  }
+  return null;
+}
 
 export const useCalendarStore = create<CalendarState>((set, get) => ({
   selectedDate: new Date(),
@@ -393,6 +439,37 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       createdAt: now,
       updatedAt: now,
     };
+
+    // Google 캘린더 양방향 연동 감지 및 백그라운드 등록
+    const googleTarget = findGoogleCalendarTarget(newEvent.categoryId, get().syncedAccounts);
+    if (googleTarget && googleTarget.account.accessToken) {
+      newEvent.accountId = googleTarget.account.id;
+      newEvent.googleCalendarId = googleTarget.calendarId;
+
+      (async () => {
+        try {
+          const res = await createGoogleCalendarEvent(
+            googleTarget.account.accessToken!,
+            googleTarget.calendarId,
+            newEvent
+          );
+          if (res?.id) {
+            set((state) => {
+              const updated = state.events.map((e) =>
+                e.id === newEvent.id ? { ...e, remoteEventId: res.id } : e
+              );
+              try {
+                localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(updated));
+              } catch {}
+              return { events: updated };
+            });
+          }
+        } catch (err) {
+          console.error('Failed to create event on Google Calendar:', err);
+        }
+      })();
+    }
+
     set((state) => {
       const updatedEvents = [...state.events, newEvent];
       try {
@@ -414,6 +491,26 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       ? updated.id.split('_instance_')[0]
       : updated.id;
 
+    // Google 캘린더 원격 수정 백그라운드 전송
+    const targetEvent = get().events.find((e) => e.id === realId);
+    if (targetEvent?.remoteEventId && targetEvent?.googleCalendarId && targetEvent?.accountId) {
+      const googleTarget = get().syncedAccounts.find((a) => a.id === targetEvent.accountId);
+      if (googleTarget && googleTarget.accessToken) {
+        (async () => {
+          try {
+            await updateGoogleCalendarEvent(
+              googleTarget.accessToken!,
+              targetEvent.googleCalendarId!,
+              targetEvent.remoteEventId!,
+              { ...updated, id: realId }
+            );
+          } catch (err) {
+            console.error('Failed to update event on Google Calendar:', err);
+          }
+        })();
+      }
+    }
+
     set((state) => {
       const updatedEvents = state.events.map((e) =>
         e.id === realId ? { ...updated, id: realId, updatedAt: Date.now() } : e
@@ -434,6 +531,26 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
 
   deleteEvent: (id) => {
     const realId = id.includes('_instance_') ? id.split('_instance_')[0] : id;
+
+    // Google 캘린더 원격 삭제 백그라운드 전송
+    const targetEvent = get().events.find((e) => e.id === realId);
+    if (targetEvent?.remoteEventId && targetEvent?.googleCalendarId && targetEvent?.accountId) {
+      const googleTarget = get().syncedAccounts.find((a) => a.id === targetEvent.accountId);
+      if (googleTarget && googleTarget.accessToken) {
+        (async () => {
+          try {
+            await deleteGoogleCalendarEvent(
+              googleTarget.accessToken!,
+              targetEvent.googleCalendarId!,
+              targetEvent.remoteEventId!
+            );
+          } catch (err) {
+            console.error('Failed to delete event from Google Calendar:', err);
+          }
+        })();
+      }
+    }
+
     set((state) => {
       const updatedEvents = state.events.filter((e) => e.id !== realId);
       try {
@@ -480,7 +597,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         newSettings.language !== undefined ||
         newSettings.temperatureUnit !== undefined ||
         newSettings.weatherLocation !== undefined ||
-        newSettings.showWeather !== undefined
+        newSettings.showWeather !== undefined ||
+        newSettings.weatherProvider !== undefined ||
+        newSettings.googleWeatherApiKey !== undefined
       ) {
         setTimeout(() => {
           get().refreshWeather();
@@ -653,6 +772,25 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(updatedEvents));
       return { events: updatedEvents };
     });
+
+    const updatedTarget = get().events.find((e) => e.id === realId);
+    if (updatedTarget?.remoteEventId && updatedTarget?.googleCalendarId && updatedTarget?.accountId) {
+      const googleTarget = get().syncedAccounts.find((a) => a.id === updatedTarget.accountId);
+      if (googleTarget && googleTarget.accessToken) {
+        (async () => {
+          try {
+            await updateGoogleCalendarEvent(
+              googleTarget.accessToken!,
+              updatedTarget.googleCalendarId!,
+              updatedTarget.remoteEventId!,
+              updatedTarget
+            );
+          } catch (err) {
+            console.error('Failed to update rescheduled event on Google Calendar:', err);
+          }
+        })();
+      }
+    }
   },
 
   exportEventsToICSFile: () => {
@@ -685,7 +823,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   openAccountModal: () => set({ isAccountModalOpen: true }),
   closeAccountModal: () => set({ isAccountModalOpen: false }),
 
-  addSyncedAccount: (provider, email, displayName) => {
+  addSyncedAccount: (provider, email, displayName, options) => {
     const providerColors: Record<OAuthProvider, string> = {
       google: '#EA4335',
       apple: '#888888',
@@ -699,6 +837,10 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       syncStatus: 'idle',
       color: providerColors[provider] || '#0078D7',
       isEnabled: true,
+      accessToken: options?.accessToken,
+      refreshToken: options?.refreshToken,
+      expiresAt: options?.expiresAt,
+      calendars: options?.calendars || [],
       createdAt: Date.now(),
     } as SyncedAccount;
 
@@ -706,14 +848,31 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       const updatedAccounts = [...state.syncedAccounts, newAcc];
       localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updatedAccounts));
 
-      // 해당 계정 전용 캘린더 카테고리도 자동 등록
-      const newCat: CalendarCategory = {
-        id: `cat-${newAcc.id}`,
-        name: `${newAcc.displayName} (${provider.toUpperCase()})`,
-        color: newAcc.color,
-        isVisible: true,
-      };
-      const updatedCategories = [...state.categories, newCat];
+      // 캘린더별 카테고리 등록
+      const newCategories: CalendarCategory[] = [];
+      if (newAcc.calendars && newAcc.calendars.length > 0) {
+        for (const cal of newAcc.calendars) {
+          if (cal.isSelected) {
+            newCategories.push({
+              id: `cat-${newAcc.id}-${cal.id}`,
+              name: `${cal.name} (${newAcc.displayName})`,
+              color: cal.color || newAcc.color,
+              isVisible: true,
+            });
+          }
+        }
+      } else {
+        newCategories.push({
+          id: `cat-${newAcc.id}`,
+          name: `${newAcc.displayName} (${provider.toUpperCase()})`,
+          color: newAcc.color,
+          isVisible: true,
+        });
+      }
+
+      const existingIds = new Set(state.categories.map((c) => c.id));
+      const categoriesToAdd = newCategories.filter((c) => !existingIds.has(c.id));
+      const updatedCategories = [...state.categories, ...categoriesToAdd];
       localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(updatedCategories));
 
       return {
@@ -727,6 +886,50 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     get().syncAccount(newAcc.id);
   },
 
+  updateAccountCalendars: async (accountId, calendars) => {
+    const account = get().syncedAccounts.find((a) => a.id === accountId);
+    if (!account) return;
+
+    set((state) => {
+      const updatedAccounts = state.syncedAccounts.map((a) =>
+        a.id === accountId ? { ...a, calendars } : a
+      );
+      localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updatedAccounts));
+
+      // 선택된 캘린더 카테고리 갱신
+      let updatedCategories = state.categories;
+      for (const cal of calendars) {
+        const catId = `cat-${accountId}-${cal.id}`;
+        const catExists = updatedCategories.some((c) => c.id === catId);
+        if (cal.isSelected && !catExists) {
+          updatedCategories = [
+            ...updatedCategories,
+            {
+              id: catId,
+              name: `${cal.name} (${account.displayName})`,
+              color: cal.color || account.color,
+              isVisible: true,
+            },
+          ];
+        } else if (!cal.isSelected && catExists) {
+          updatedCategories = updatedCategories.filter((c) => c.id !== catId);
+        }
+      }
+      localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(updatedCategories));
+
+      return {
+        syncedAccounts: updatedAccounts,
+        categories: updatedCategories,
+      };
+    });
+
+    await get().syncAccount(accountId);
+  },
+
+  setGoogleOAuthConfig: (config) => {
+    get().updateSettings({ googleOAuth: config });
+  },
+
   removeSyncedAccount: (accountId) => {
     set((state) => {
       const updatedAccounts = state.syncedAccounts.filter((a) => a.id !== accountId);
@@ -736,7 +939,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       const updatedEvents = state.events.filter((e) => e.accountId !== accountId);
       localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(updatedEvents));
 
-      const updatedCategories = state.categories.filter((c) => c.id !== `cat-${accountId}`);
+      const updatedCategories = state.categories.filter(
+        (c) => c.id !== `cat-${accountId}` && !c.id.startsWith(`cat-${accountId}-`)
+      );
       localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(updatedCategories));
 
       return {
@@ -758,7 +963,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       const target = updatedAccounts.find((a) => a.id === accountId);
       if (target) {
         const updatedCats = state.categories.map((c) =>
-          c.id === `cat-${accountId}` ? { ...c, isVisible: target.isEnabled } : c
+          c.id === `cat-${accountId}` || c.id.startsWith(`cat-${accountId}-`)
+            ? { ...c, isVisible: target.isEnabled }
+            : c
         );
         localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(updatedCats));
         return { syncedAccounts: updatedAccounts, categories: updatedCats };
@@ -769,21 +976,124 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
   },
 
   syncAccount: async (accountId) => {
-    const account = get().syncedAccounts.find((a) => a.id === accountId);
+    let account = get().syncedAccounts.find((a) => a.id === accountId);
     if (!account) return;
 
     // 동기화 중 상태 표시
     set((state) => ({
       isSyncing: true,
       syncedAccounts: state.syncedAccounts.map((a) =>
-        a.id === accountId ? { ...a, syncStatus: 'syncing' } : a
+        a.id === accountId ? { ...a, syncStatus: 'syncing', errorMessage: undefined } : a
       ),
     }));
 
-    // 실제 원격 일정 가져오기 시뮬레이션 및 데이터 변환 (약 300ms 지연으로 부드러운 UI 경험)
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
     try {
+      // 1. 실제 Google OAuth 연동 계정 동기화 (accessToken 보유 시)
+      if (account.provider === 'google' && account.accessToken) {
+        let currentAccessToken = account.accessToken;
+
+        // 만료 확인 및 토큰 갱신
+        if (isAccountTokenExpired(account) && account.refreshToken) {
+          const clientId = get().settings.googleOAuth?.clientId || '';
+          const clientSecret = get().settings.googleOAuth?.clientSecret || '';
+          if (typeof window !== 'undefined' && window.electronAPI?.refreshGoogleToken && clientId) {
+            const refreshRes = await window.electronAPI.refreshGoogleToken({
+              clientId,
+              clientSecret,
+              refreshToken: account.refreshToken,
+            });
+            if (refreshRes.success && refreshRes.accessToken) {
+              currentAccessToken = refreshRes.accessToken;
+              set((state) => {
+                const refreshedAccounts = state.syncedAccounts.map((a) =>
+                  a.id === accountId
+                    ? {
+                        ...a,
+                        accessToken: refreshRes.accessToken,
+                        expiresAt: refreshRes.expiresAt,
+                      }
+                    : a
+                );
+                localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(refreshedAccounts));
+                return { syncedAccounts: refreshedAccounts };
+              });
+              account = { ...account, accessToken: refreshRes.accessToken, expiresAt: refreshRes.expiresAt };
+            }
+          }
+        }
+
+        // 캘린더 목록이 비어있으면 원격에서 조회하여 기본 설정
+        let calendars = account.calendars;
+        if (!calendars || calendars.length === 0) {
+          const fetchedCals = await fetchGoogleCalendarList(currentAccessToken);
+          calendars = fetchedCals.map((c) => ({
+            id: c.id,
+            name: c.summary,
+            color: c.backgroundColor || '#EA4335',
+            isPrimary: c.primary,
+            isSelected: true,
+            accessRole: c.accessRole,
+          }));
+
+          set((state) => {
+            const updatedAccs = state.syncedAccounts.map((a) =>
+              a.id === accountId ? { ...a, calendars } : a
+            );
+            localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(updatedAccs));
+
+            // 새 카테고리 등록
+            const newCats: CalendarCategory[] = calendars!.map((c) => ({
+              id: `cat-${accountId}-${c.id}`,
+              name: `${c.name} (${account!.displayName})`,
+              color: c.color,
+              isVisible: true,
+            }));
+            const existingCatIds = new Set(state.categories.map((c) => c.id));
+            const categoriesToAdd = newCats.filter((c) => !existingCatIds.has(c.id));
+            const updatedCategories = [...state.categories, ...categoriesToAdd];
+            localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(updatedCategories));
+
+            return { syncedAccounts: updatedAccs, categories: updatedCategories };
+          });
+        }
+
+        // 선택된 모든 구글 캘린더에서 이벤트 가져오기
+        const selectedCals = calendars.filter((c) => c.isSelected);
+        let allRemoteEvents: CalendarEvent[] = [];
+
+        for (const cal of selectedCals) {
+          const catId = `cat-${accountId}-${cal.id}`;
+          const calEvents = await fetchGoogleCalendarEvents(
+            currentAccessToken,
+            cal.id,
+            accountId,
+            catId
+          );
+          allRemoteEvents = [...allRemoteEvents, ...calEvents];
+        }
+
+        const mergedEvents = mergeRemoteEvents(get().events, allRemoteEvents, accountId);
+        localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(mergedEvents));
+
+        set((state) => ({
+          isSyncing: false,
+          events: mergedEvents,
+          syncedAccounts: state.syncedAccounts.map((a) =>
+            a.id === accountId
+              ? {
+                  ...a,
+                  syncStatus: 'success',
+                  lastSyncTime: Date.now(),
+                  errorMessage: undefined,
+                }
+              : a
+          ),
+        }));
+        return;
+      }
+
+      // 2. 오프라인 또는 Mock 테스트 계정 폴백
+      await new Promise((resolve) => setTimeout(resolve, 300));
       const remoteEvents = generateRemoteEventsForProvider(account, get().selectedDate);
       const mergedEvents = mergeRemoteEvents(get().events, remoteEvents, accountId);
 
@@ -803,6 +1113,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
         ),
       }));
     } catch (err: any) {
+      console.error('Account sync failed:', err);
       set((state) => ({
         isSyncing: false,
         syncedAccounts: state.syncedAccounts.map((a) =>
@@ -811,8 +1122,11 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
                 ...a,
                 syncStatus: 'error',
                 errorMessage:
-                  err?.message ||
-                  (get().settings.language === 'en' ? 'Sync failed' : '동기화 실패'),
+                  err?.message === 'GOOGLE_AUTH_EXPIRED'
+                    ? (get().settings.language === 'en'
+                        ? 'Google sign-in expired. Please sign in again.'
+                        : 'Google 인증이 만료되었습니다. 다시 로그인해 주세요.')
+                    : (err?.message || (get().settings.language === 'en' ? 'Sync failed' : '동기화 실패')),
               }
             : a
         ),
@@ -913,7 +1227,9 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       const { current, daily } = await fetchRealWeather(
         settings.weatherLocation,
         settings.temperatureUnit,
-        settings.language
+        settings.language,
+        settings.weatherProvider || 'google',
+        settings.googleWeatherApiKey
       );
       set({
         currentWeather: current,

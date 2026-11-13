@@ -67,12 +67,18 @@ export const SettingsPanel: React.FC = () => {
   const setZoomLevel = useCalendarStore((s) => s.setZoomLevel);
   const setSidebarWidth = useCalendarStore((s) => s.setSidebarWidth);
   const resetSidebarWidth = useCalendarStore((s) => s.resetSidebarWidth);
+  const openAccountModal = useCalendarStore((s) => s.openAccountModal);
+  const setGoogleOAuthConfig = useCalendarStore((s) => s.setGoogleOAuthConfig);
 
   const { t, language, setLanguage } = useTranslation();
 
   const jsonFileInputRef = useRef<HTMLInputElement>(null);
   const icsFileInputRef = useRef<HTMLInputElement>(null);
   const imageFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [googleClientId, setGoogleClientId] = useState(settings.googleOAuth?.clientId || '');
+  const [googleClientSecret, setGoogleClientSecret] = useState(settings.googleOAuth?.clientSecret || '');
+  const [isGoogleSaved, setIsGoogleSaved] = useState(false);
 
   const [searchQuery, setSearchQueryLocal] = useState('');
   const [searchResults, setSearchResults] = useState<LocationSearchResult[]>([]);
@@ -578,6 +584,72 @@ export const SettingsPanel: React.FC = () => {
             </label>
             {settings.showWeather && (
               <div className="space-y-3 pl-6 pt-1">
+                {/* 날씨 제공자 선택 (Google 날씨 / Open-Meteo) */}
+                <div className="space-y-1.5 p-2.5 rounded bg-[var(--win10-card-bg)] border border-[var(--win10-border)]">
+                  <span className="text-[11px] font-medium text-[var(--win10-text-secondary)]">
+                    {t('settings.weatherProvider')}
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ weatherProvider: 'google' })}
+                      className={`py-1.5 px-2 rounded-xs border text-left transition-all flex items-center justify-between text-xs ${
+                        (settings.weatherProvider || 'google') === 'google'
+                          ? 'border-[var(--win10-accent)] bg-[var(--win10-accent)] text-white font-medium shadow-2xs'
+                          : 'border-[var(--win10-border)] bg-[var(--win10-input-bg)] text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)]'
+                      }`}
+                    >
+                      <span className="truncate">{t('settings.weatherProviderGoogle')}</span>
+                      {(settings.weatherProvider || 'google') === 'google' && (
+                        <Check className="w-3 h-3 text-white stroke-[3] shrink-0 ml-1" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ weatherProvider: 'openmeteo' })}
+                      className={`py-1.5 px-2 rounded-xs border text-left transition-all flex items-center justify-between text-xs ${
+                        settings.weatherProvider === 'openmeteo'
+                          ? 'border-[var(--win10-accent)] bg-[var(--win10-accent)] text-white font-medium shadow-2xs'
+                          : 'border-[var(--win10-border)] bg-[var(--win10-input-bg)] text-[var(--win10-text-primary)] hover:bg-[var(--win10-button-hover)]'
+                      }`}
+                    >
+                      <span className="truncate">{t('settings.weatherProviderOpenMeteo')}</span>
+                      {settings.weatherProvider === 'openmeteo' && (
+                        <Check className="w-3 h-3 text-white stroke-[3] shrink-0 ml-1" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Google 날씨 API 키 입력란 */}
+                  {(settings.weatherProvider || 'google') === 'google' && (
+                    <div className="pt-2 space-y-1">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-[var(--win10-text-secondary)]">
+                          {t('settings.googleApiKey')}
+                        </span>
+                        <a
+                          href="https://console.cloud.google.com/apis/library/weather.googleapis.com"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[10px] text-[var(--win10-accent)] hover:underline"
+                        >
+                          Google Cloud ↗
+                        </a>
+                      </div>
+                      <input
+                        type="password"
+                        value={settings.googleWeatherApiKey || ''}
+                        onChange={(e) => updateSettings({ googleWeatherApiKey: e.target.value.trim() })}
+                        placeholder={t('settings.googleApiKeyPlaceholder')}
+                        className="w-full text-xs px-2.5 py-1.5 rounded bg-[var(--win10-input-bg)] border border-[var(--win10-border)] text-[var(--win10-text-primary)] focus:outline-none focus:border-[var(--win10-accent)]"
+                      />
+                      <p className="text-[10px] text-[var(--win10-text-muted)] leading-tight pt-0.5">
+                        {t('settings.googleApiKeyHint')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* 온도 단위 선택 */}
                 <div className="flex items-center space-x-3">
                   <span className="text-[var(--win10-text-secondary)]">{t('settings.tempUnit')}</span>
@@ -857,6 +929,90 @@ export const SettingsPanel: React.FC = () => {
                 onChange={handleImportJSON}
                 className="hidden"
               />
+            </div>
+          </div>
+
+          {/* 9. Google Calendar OAuth2 API 설정 */}
+          <div className="space-y-2 pt-3 border-t border-[var(--win10-border)]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 font-medium text-[13px] text-[var(--win10-text-primary)]">
+                <Globe className="w-4 h-4 text-[#ea4335]" />
+                <span>{t('sync.googleSetupTitle')}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => openAccountModal()}
+                className="text-[11px] text-[var(--win10-accent)] hover:underline flex items-center space-x-1"
+              >
+                <span>{t('sync.title')}</span>
+              </button>
+            </div>
+
+            <div className="bg-[var(--win10-card-bg)] border border-[var(--win10-border)] rounded p-2.5 space-y-2.5 text-xs">
+              <p className="text-[11px] text-[var(--win10-text-secondary)] leading-relaxed">
+                {t('sync.googleSetupDesc')}
+              </p>
+
+              <div className="space-y-2">
+                <div>
+                  <label className="text-[10.5px] text-[var(--win10-text-secondary)] block mb-1">
+                    {t('sync.googleSetupClientId')}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="xxxxxxxxxxxx-xxxxxxxxxxxxxxxx.apps.googleusercontent.com"
+                    value={googleClientId}
+                    onChange={(e) => setGoogleClientId(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-[var(--win10-bg-layer)] border border-[var(--win10-border)] focus:border-[var(--win10-accent)] outline-none text-[var(--win10-text-primary)] rounded text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10.5px] text-[var(--win10-text-secondary)] block mb-1">
+                    {t('sync.googleSetupClientSecret')}
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx"
+                    value={googleClientSecret}
+                    onChange={(e) => setGoogleClientSecret(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-[var(--win10-bg-layer)] border border-[var(--win10-border)] focus:border-[var(--win10-accent)] outline-none text-[var(--win10-text-primary)] rounded text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={() => openAccountModal()}
+                  className="text-[11px] text-[var(--win10-accent)] hover:underline"
+                >
+                  {language === 'ko' ? '계정 로그인/캘린더 선택' : 'Sign in / Select Calendars'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGoogleOAuthConfig({
+                      clientId: googleClientId.trim(),
+                      clientSecret: googleClientSecret.trim(),
+                    });
+                    setIsGoogleSaved(true);
+                    setTimeout(() => setIsGoogleSaved(false), 2000);
+                  }}
+                  disabled={!googleClientId.trim()}
+                  className="px-3 py-1 bg-[var(--win10-accent)] hover:opacity-90 active:opacity-80 text-white rounded text-xs font-medium transition-all flex items-center space-x-1 disabled:opacity-50"
+                >
+                  {isGoogleSaved ? (
+                    <>
+                      <Check className="w-3 h-3" />
+                      <span>{language === 'ko' ? '저장됨' : 'Saved'}</span>
+                    </>
+                  ) : (
+                    <span>{t('common.save')}</span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 

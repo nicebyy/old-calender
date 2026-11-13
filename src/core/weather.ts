@@ -432,13 +432,235 @@ export function parseOpenMeteoDailyForecast(
 }
 
 /**
- * Open-Meteo 기상청 API를 통한 실시간 예보 페칭 (No API Key Required)
+ * Google Maps Platform Weather API condition type -> 내부 condition 매핑
+ */
+export function mapGoogleWeatherCondition(
+  type?: string,
+  descText?: string
+): { condition: WeatherInfo['condition']; labelKo: string; labelEn: string } {
+  const upperType = (type || '').toUpperCase();
+  const desc = (descText || '').toLowerCase();
+
+  if (upperType === 'CLEAR' || upperType === 'MOSTLY_CLEAR') {
+    return { condition: 'sunny', labelKo: '맑음', labelEn: 'Clear Sky' };
+  }
+  if (upperType === 'PARTLY_CLOUDY') {
+    return { condition: 'partlyCloudy', labelKo: '구름 조금', labelEn: 'Partly Cloudy' };
+  }
+  if (upperType === 'MOSTLY_CLOUDY' || upperType === 'CLOUDY' || upperType === 'OVERCAST') {
+    return { condition: 'cloudy', labelKo: '흐림', labelEn: 'Overcast' };
+  }
+  if (
+    upperType.includes('RAIN') ||
+    upperType.includes('SHOWER') ||
+    upperType.includes('DRIZZLE') ||
+    upperType.includes('THUNDERSTORM') ||
+    upperType.includes('STORM')
+  ) {
+    return { condition: 'rainy', labelKo: '비', labelEn: 'Rainy' };
+  }
+  if (
+    upperType.includes('SNOW') ||
+    upperType.includes('BLIZZARD') ||
+    upperType.includes('FLURRIES') ||
+    upperType.includes('ICE') ||
+    upperType.includes('FREEZING')
+  ) {
+    return { condition: 'snowy', labelKo: '눈', labelEn: 'Snowy' };
+  }
+
+  // description 텍스트 보조 판단
+  if (desc.includes('snow') || desc.includes('눈')) {
+    return { condition: 'snowy', labelKo: '눈', labelEn: 'Snowy' };
+  }
+  if (desc.includes('rain') || desc.includes('비') || desc.includes('소나기')) {
+    return { condition: 'rainy', labelKo: '비', labelEn: 'Rainy' };
+  }
+  if (desc.includes('cloud') || desc.includes('흐림') || desc.includes('구름많음')) {
+    return { condition: 'cloudy', labelKo: '흐림', labelEn: 'Overcast' };
+  }
+  if (desc.includes('partly') || desc.includes('조금')) {
+    return { condition: 'partlyCloudy', labelKo: '구름 조금', labelEn: 'Partly Cloudy' };
+  }
+  if (desc.includes('clear') || desc.includes('sun') || desc.includes('맑음')) {
+    return { condition: 'sunny', labelKo: '맑음', labelEn: 'Clear Sky' };
+  }
+
+  return { condition: 'partlyCloudy', labelKo: '구름 조금', labelEn: 'Partly Cloudy' };
+}
+
+/**
+ * Google Maps Platform Weather API 응답으로부터 실시간 현재 날씨 파싱
+ */
+export function parseGoogleCurrentWeather(
+  data: any,
+  unit: 'C' | 'F' = 'C',
+  lang: 'ko' | 'en' = 'ko',
+  locationName = '서울'
+): WeatherInfo {
+  if (!data || (!data.temperature && !data.weatherCondition)) {
+    return getFallbackWeather(new Date(), DEFAULT_WEATHER_LOCATION, unit, lang);
+  }
+
+  const condType = data.weatherCondition?.type;
+  const descText = data.weatherCondition?.description?.text;
+  const mapped = mapGoogleWeatherCondition(condType, descText);
+
+  let currentTemp = Math.round(data.temperature?.degrees ?? 18);
+  if (unit === 'F') {
+    currentTemp = celsiusToFahrenheit(currentTemp);
+  }
+
+  const label =
+    descText && descText.trim()
+      ? descText.trim()
+      : lang === 'ko'
+      ? mapped.labelKo
+      : mapped.labelEn;
+
+  return {
+    condition: mapped.condition,
+    tempMax: currentTemp + 3,
+    tempMin: currentTemp - 3,
+    currentTemp,
+    label,
+    locationName,
+    humidity: data.relativeHumidity ?? 50,
+    iconUrl: data.weatherCondition?.iconBaseUri ? `${data.weatherCondition.iconBaseUri}.png` : undefined,
+  };
+}
+
+/**
+ * Google Maps Platform Weather API 응답으로부터 일별 예보 맵 파싱 (최대 10일)
+ */
+export function parseGoogleDailyForecast(
+  data: any,
+  unit: 'C' | 'F' = 'C',
+  lang: 'ko' | 'en' = 'ko',
+  locationName = '서울'
+): Record<string, WeatherInfo> {
+  const result: Record<string, WeatherInfo> = {};
+  const forecastDays = Array.isArray(data?.forecastDays) ? data.forecastDays : [];
+
+  for (const dayItem of forecastDays) {
+    const d = dayItem.displayDate;
+    if (!d || !d.year || !d.month || !d.day) continue;
+
+    const dateKey = `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`;
+    const daytime = dayItem.daytimeForecast || {};
+    const condType = daytime.weatherCondition?.type || dayItem.nighttimeForecast?.weatherCondition?.type;
+    const descText =
+      daytime.weatherCondition?.description?.text ||
+      dayItem.nighttimeForecast?.weatherCondition?.description?.text;
+    const mapped = mapGoogleWeatherCondition(condType, descText);
+
+    let tMax = Math.round(daytime.maxTemperature?.degrees ?? (daytime.temperature?.degrees ?? 20));
+    let tMin = Math.round(
+      daytime.minTemperature?.degrees ?? (dayItem.nighttimeForecast?.minTemperature?.degrees ?? 10)
+    );
+
+    if (unit === 'F') {
+      tMax = celsiusToFahrenheit(tMax);
+      tMin = celsiusToFahrenheit(tMin);
+    }
+
+    const label =
+      descText && descText.trim()
+        ? descText.trim()
+        : lang === 'ko'
+        ? mapped.labelKo
+        : mapped.labelEn;
+
+    result[dateKey] = {
+      condition: mapped.condition,
+      tempMax: tMax,
+      tempMin: tMin,
+      currentTemp: Math.round((tMax + tMin) / 2),
+      label,
+      locationName,
+      iconUrl: daytime.weatherCondition?.iconBaseUri ? `${daytime.weatherCondition.iconBaseUri}.png` : undefined,
+    };
+  }
+
+  return result;
+}
+
+/**
+ * Google Maps Platform Weather API 페칭
+ */
+export async function fetchGoogleWeather(
+  location: WeatherLocation,
+  apiKey: string,
+  unit: 'C' | 'F' = 'C',
+  lang: 'ko' | 'en' = 'ko'
+): Promise<{ current: WeatherInfo; daily: Record<string, WeatherInfo> }> {
+  const lat = location.latitude;
+  const lon = location.longitude;
+  const langCode = lang === 'ko' ? 'ko' : 'en';
+
+  const currentUrl = `https://weather.googleapis.com/v1/currentConditions:lookup?key=${apiKey}&location.latitude=${lat}&location.longitude=${lon}&languageCode=${langCode}`;
+  const forecastUrl = `https://weather.googleapis.com/v1/forecast/days:lookup?key=${apiKey}&location.latitude=${lat}&location.longitude=${lon}&days=10&languageCode=${langCode}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+  const [resCurrent, resForecast] = await Promise.all([
+    fetch(currentUrl, { signal: controller.signal }),
+    fetch(forecastUrl, { signal: controller.signal }),
+  ]);
+  clearTimeout(timeoutId);
+
+  if (!resCurrent.ok && !resForecast.ok) {
+    throw new Error(`Google Weather API failed: current ${resCurrent.status}, forecast ${resForecast.status}`);
+  }
+
+  const currentData = resCurrent.ok ? await resCurrent.json() : null;
+  const forecastData = resForecast.ok ? await resForecast.json() : null;
+
+  const current = currentData
+    ? parseGoogleCurrentWeather(currentData, unit, lang, location.city)
+    : getFallbackWeather(new Date(), location, unit, lang);
+  const daily = forecastData
+    ? parseGoogleDailyForecast(forecastData, unit, lang, location.city)
+    : {};
+
+  // 오늘 날짜의 일별 데이터에 실시간 현재 기온 및 날씨 연동
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  if (daily[todayKey]) {
+    if (typeof current.currentTemp === 'number') daily[todayKey].currentTemp = current.currentTemp;
+    daily[todayKey].condition = current.condition;
+    daily[todayKey].label = current.label;
+    if (current.humidity) daily[todayKey].humidity = current.humidity;
+    if (current.tempMax > daily[todayKey].tempMax) daily[todayKey].tempMax = current.tempMax;
+    if (current.tempMin < daily[todayKey].tempMin) daily[todayKey].tempMin = current.tempMin;
+  } else if (current) {
+    daily[todayKey] = { ...current };
+  }
+
+  return { current, daily };
+}
+
+/**
+ * 실시간 날씨 페칭 (Google Weather 연동 지원, Open-Meteo 자동 폴백)
  */
 export async function fetchRealWeather(
   location: WeatherLocation = DEFAULT_WEATHER_LOCATION,
   unit: 'C' | 'F' = 'C',
-  lang: 'ko' | 'en' = 'ko'
+  lang: 'ko' | 'en' = 'ko',
+  provider: 'google' | 'openmeteo' = 'google',
+  googleApiKey?: string
 ): Promise<{ current: WeatherInfo; daily: Record<string, WeatherInfo> }> {
+  // 1. Google Weather API 연동 (provider가 google이고 API 키가 있는 경우 우선 실행)
+  if (provider === 'google' && googleApiKey && googleApiKey.trim()) {
+    try {
+      return await fetchGoogleWeather(location, googleApiKey.trim(), unit, lang);
+    } catch (googleErr) {
+      console.warn('Google Weather fetch failed, falling back to Open-Meteo:', googleErr);
+    }
+  }
+
+  // 2. Open-Meteo API (키가 없거나 Google API 실패 시 무중단 자동 폴백)
   try {
     const lat = location.latitude;
     const lon = location.longitude;
@@ -478,7 +700,8 @@ export async function fetchRealWeather(
 }
 
 /**
- * 특정 일자의 날씨 정보 반환 (캐시 우선, 없으면 폴백)
+ * 특정 일자의 날씨 정보 반환 (캐시 우선, 예보 기간 외 날짜는 undefined 반환)
+ * 2028년 등 먼 미래나 예보 기간을 벗어난 날짜에는 가짜 날씨를 표시하지 않습니다.
  */
 export function getWeatherForDate(
   date: Date,
@@ -486,12 +709,24 @@ export function getWeatherForDate(
   location: WeatherLocation = DEFAULT_WEATHER_LOCATION,
   cacheMap: Record<string, WeatherInfo> = {},
   lang: 'ko' | 'en' = 'ko'
-): WeatherInfo {
+): WeatherInfo | undefined {
   const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
+  // 1. 실제 예보 데이터가 캐시되어 있는 경우 (오늘 ~ 향후 7~10일)
   if (cacheMap[dateKey]) {
     return cacheMap[dateKey];
   }
 
-  return getFallbackWeather(date, location, unit, lang);
+  // 2. 캐시가 아직 로딩 중인 오늘(Today)인 경우에만 즉시 표시용 폴백 제공
+  const now = new Date();
+  if (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  ) {
+    return getFallbackWeather(date, location, unit, lang);
+  }
+
+  // 3. 2028년 등 예보 범위를 벗어난 미래나 과거 일자에는 날씨 정보를 생성하지 않음
+  return undefined;
 }
